@@ -9,7 +9,7 @@ from models import *
 
 
 class Data():
-    def __init__(self, filename="planer.mtp"):
+    def __init__(self, filename="planer.vdp"):
         engine = create_engine('sqlite:///' + filename)
         Base.metadata.create_all(engine)
         DBsession = sessionmaker(bind=engine)

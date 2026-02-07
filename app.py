@@ -16,7 +16,7 @@ from settings_dialog import SettingsDialog
 
 
 
-user_data_dir = get_user_data_dir('MontePlaner')
+user_data_dir = get_user_data_dir('VDP')
 os.makedirs(user_data_dir, exist_ok=True)
 db_name_path = os.path.join(user_data_dir, 'db_name')
 basedir = os.path.dirname(__file__)
@@ -35,14 +35,14 @@ class MainWindow(QMainWindow):
         with open(db_name_path, 'r+') as f:
             self.db_name = f.read().strip()
             if not self.db_name:
-                self.db_name = os.path.join(user_data_dir, 'planer.mtp')
+                self.db_name = os.path.join(user_data_dir, 'planer.vdp')
                 f.write(self.db_name)
 
         self.db = Data(self.db_name)
 
 
         filename = self.db_name.split('/')[-1]
-        self.setWindowTitle(f"Monte Planer - {filename}")
+        self.setWindowTitle(f"VDP - {filename}")
         self.setWindowIcon(QIcon(os.path.join(basedir,'icon.png')))
         self.setMinimumSize(QSize(800, 800))
         self.tabs = Tabs(self)
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
 
 
     def load_data(self):
-        db_name, _ = QFileDialog.getOpenFileName(self, 'Wczytaj dane', str(user_data_dir.absolute()), '*.mtp', '*.mtp')
+        db_name, _ = QFileDialog.getOpenFileName(self, 'Wczytaj dane', str(user_data_dir.absolute()), '*.vdp', '*.vdp')
         if not db_name:
             return
         self.db_name = db_name
@@ -109,12 +109,12 @@ class MainWindow(QMainWindow):
         with open(db_name_path, mode='w') as f:
             f.write(self.db_name)
         filename = self.db_name.split('/')[-1]
-        self.setWindowTitle(f"Monte Planer - {filename}")
+        self.setWindowTitle(f"VDP - {filename}")
         return True
     
     def backup_data(self):
-        directory = os.path.join(user_data_dir, f'{self.db_name[:-4]} - kopia zapasowa.mtp')
-        path, _ = QFileDialog.getSaveFileName(self, 'Stwórz kopię zapasową', directory, '*.mtp', '*.mtp')
+        directory = os.path.join(user_data_dir, f'{self.db_name[:-4]} - kopia zapasowa.vdp')
+        path, _ = QFileDialog.getSaveFileName(self, 'Stwórz kopię zapasową', directory, '*.vdp', '*.vdp')
         if not path:
             return
         shutil.copy(self.db_name, path)
