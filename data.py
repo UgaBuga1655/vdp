@@ -144,6 +144,10 @@ class Data():
         self.session.delete(student)
         self.session.commit()
 
+    def update_student_name(self, student, name):
+        student.name = name
+        self.session.commit()
+
     def remove_subject_from_student(self, subject: Subject, student: Student):
         student.subjects.remove(subject)
         self.session.commit()
