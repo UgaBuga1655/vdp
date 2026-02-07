@@ -7,52 +7,15 @@ from PyQt5.QtCore import Qt
 from data import Data, Class, Subclass, Student, Subject
 from sqlalchemy.exc import IntegrityError
 from .reorder_classes_dialog import ReorderClassesDialog
-from .subject_btn import SubjectButton
-
-class AddSubjectDialog(QDialog):
-    def __init__(self, parent, subclass: Subclass):
-        super().__init__(parent)
-        self.db = parent.db
-        self.subclass: Subclass = subclass
-        
-
-        self.setWindowTitle('Wybierz przedmiot')
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-
-        self.type_list = QComboBox()
-        layout.addWidget(self.type_list)
-        self.type_list.addItems(['Przedmiot wspólny', 'Przedmiot podstawowy'])
-        self.type_list.setItemData(0, False)
-        self.type_list.setItemData(1, True)
-        self.type_list.currentTextChanged.connect(self.update_subject_list)
-
-        self.subject_list = QComboBox()
-        layout.addWidget(self.subject_list)
-        self.update_subject_list()
-
-        buttonBox = QDialogButtonBox()
-        layout.addWidget(buttonBox)
-
-        buttonBox.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttonBox.accepted.connect(self.accept)
-        buttonBox.rejected.connect(self.reject)
-
-    def update_subject_list(self):
-        basic = self.type_list.currentData()
-        if basic:
-            subjects = self.subclass.subjects
-        else:
-            subjects = self.subclass.my_class.subjects
-        subjects.sort(key=lambda s: s.name)
-        self.subject_list.clear()
-        for subject in subjects:
-            self.subject_list.addItem(subject.name, subject) 
+from .vertical_label import VerticalLabel
+from .colorwidget import Color
+from .name_label import NameLabel
 
 class ClassesWidget(QWidget):
     def __init__(self,parent):
         super().__init__(parent=parent)
         self.db: Data = parent.db
+        self.subjects = {}
 
         main_layout = QVBoxLayout()
 
@@ -167,6 +130,8 @@ class ClassesWidget(QWidget):
             self.list.setCurrentText(opened_class)
         except:
             pass
+
+
     def load_class(self):
         #clear widget
         for i in range(self.container_layout.count()):
@@ -183,102 +148,98 @@ class ClassesWidget(QWidget):
         subclass: Subclass
         for subclass in my_class.subclasses:
             scrollarea = QScrollArea()
-            student_list_widget = QWidget()
-            scrollarea.setWidget(student_list_widget)
+            subclass_widget = QWidget()
+            scrollarea.setWidget(subclass_widget)
             scrollarea.setMinimumHeight(200//len(my_class.subclasses))
+            subclass_layout = QVBoxLayout()
+            subclass_widget.setLayout(subclass_layout)
             student_list = QGridLayout()
-            student_list_widget.setLayout(student_list) 
+            subclass_layout.addLayout(student_list)
             student_list.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+            # student_list.setContentsMargins(5, 0, 5, 0)
+            student_list.setSpacing(0)
             scrollarea.setWidgetResizable(True)
 
             #subclass name
-            frame_layout.addWidget(QLabel(subclass.name.upper()))
+            name_row = QHBoxLayout()
+            frame_layout.addLayout(name_row)
+            name_row.addWidget(QLabel(subclass.name.upper()))
+            name_row.addStretch()
+            remove_subclass_btn = QPushButton('Usuń podklasę')
+            remove_subclass_btn.clicked.connect(self.remove_subclass(subclass))
+            name_row.addWidget(remove_subclass_btn)
+            
+
+
             #headers
-            main_checkbox = QCheckBox()
-            main_checkbox.toggled.connect(self.toggle_all_checkboxes)
-            student_list.addWidget(main_checkbox, 0, 0)
-            student_name_label = QLabel('Uczeń')
-            student_name_label.setMinimumWidth(100)
-            student_list.addWidget(student_name_label, 0, 1)
-            student_list.addWidget(QLabel("Przedmioty wspólne"), 0, 2)
-            student_list.addWidget(QLabel("Przedmioty podstawowe"), 0, 3)
+            student_header = QLabel('Uczeń')
+            student_header.setStyleSheet('font-weight: bold;')
+            student_list.addWidget(student_header, 1, 0, Qt.AlignCenter)
+            col = 1
+            self.subjects[subclass] = sorted(subclass.subjects, key=lambda x: x.get_name(0,0,0))
+            self.subjects[subclass].append(None)
+            self.subjects[subclass] += sorted(my_class.subjects, key=lambda x: x.get_name(0,0,0))
+
+            for subject in self.subjects[subclass]:
+                if subject:
+                    name = subject.get_name(0,0,0)
+                    checkbox = QCheckBox()
+                    checkbox.clicked.connect(self.toggle_all_checkboxes(subject))
+                    student_list.addWidget(checkbox, 1, col, Qt.AlignCenter)
+                else:
+                    name = ''
+                student_list.addWidget(VerticalLabel(name), 0, col)
+
+                col += 1
+            
 
             #load students
             student: Student
             for student in sorted(subclass.students, key=lambda s: s.name):
                 self.add_student_to_list(student, student_list)
 
-            frame_layout.addWidget(scrollarea)
-
-            bottom_button_group = QHBoxLayout()
-            frame_layout.addLayout(bottom_button_group)
+            new_student_row = QHBoxLayout()
+            subclass_layout.addLayout(new_student_row)
             new_name = QLineEdit()
             new_name.setPlaceholderText('Imię i nazwisko')
             new_name.setObjectName(f'new_name_{subclass.name}')
+            new_name.setMaximumWidth(143)
             new_name.returnPressed.connect(self.new_student(subclass, student_list))
-            bottom_button_group.addWidget(new_name)
+            new_student_row.addWidget(new_name)
             add_student_btn = QPushButton("Dodaj ucznia")
             add_student_btn.clicked.connect(self.new_student(subclass, student_list))
-            bottom_button_group.addWidget(add_student_btn)
-            delete_student_button = QPushButton("Usuń ucznia")
-            delete_student_button.clicked.connect(self.delete_students(student_list_widget))
-            bottom_button_group.addWidget(delete_student_button)
-            add_subject_to_student_btn = QPushButton("Dodaj przedmiot")
-            add_subject_to_student_btn.clicked.connect(self.add_subject_to_student(subclass, student_list_widget))
-            bottom_button_group.addWidget(add_subject_to_student_btn)
-            remove_subclass_btn = QPushButton('Usuń podklasę')
-            remove_subclass_btn.clicked.connect(self.remove_subclass(subclass))
-            bottom_button_group.addWidget(remove_subclass_btn)
-        
-            pass
+            new_student_row.addWidget(add_student_btn)
+            new_student_row.addStretch()
 
-    def add_subject_to_student(self, subclass: str, student_list:QWidget):
-        def func():
-            checkboxes = [checkbox for checkbox in student_list.findChildren(QCheckBox) if checkbox.isChecked()]
-            if not checkboxes:
-                return False
-            dialog = AddSubjectDialog(self, subclass)
-            ok = dialog.exec()
-            if not ok:
-                return False
-            subject = dialog.subject_list.currentData()
-            for checkbox in checkboxes:
-                if hasattr(checkbox, 'student'):
-                    if subject in checkbox.student.subjects:
-                        continue
-                    self.db.add_subject_to_student(subject, checkbox.student)
-                    btn = SubjectButton(self, checkbox.student, subject)
-                    index = student_list.layout().indexOf(checkbox) + 3 - (isinstance(subject.parent(), Subclass))
-                    layout = student_list.layout().itemAt(index).layout()
-                    layout.insertWidget(layout.count()-1, btn)
+            subclass_layout.addStretch()
+            
 
-        return func
+
+            frame_layout.addWidget(scrollarea)
+
 
     def add_student_to_list(self, student, student_list: QGridLayout): 
         n = student_list.rowCount()
         #checkbox
-        checkbox = QCheckBox()
-        checkbox.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        checkbox.student = student
-        student_list.addWidget(checkbox,n, 0)
-        #name
-        name_label = QLabel(student.name)
-        name_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        student_list.addWidget(name_label, n, 1)
-        #basic subjects
-        basic_subject_list = QHBoxLayout()
-        student_list.addLayout(basic_subject_list, n, 3)
-        extra_subject_list = QHBoxLayout()
-        student_list.addLayout(extra_subject_list, n, 2)
-        subject: Subject
-        for subject in student.subjects:
-            btn = SubjectButton(self, student, subject)
-            if subject.subclass:
-                basic_subject_list.addWidget(btn)
-            else:
-                extra_subject_list.addWidget(btn)
-        basic_subject_list.addStretch()
-        extra_subject_list.addStretch()
+        label = NameLabel(student, self)
+        label.setMargin(5)
+        label.setMinimumWidth(150)
+        student_list.addWidget(label,n, 0)
+
+        #subjects
+        for i, subject in enumerate(self.subjects[student.subclass]):
+            if not subject:
+                continue
+            student_list.addWidget(Color(subject.color, brighten=n%2), n, i+1)
+            checkbox = QCheckBox()
+            checkbox.subject = subject
+            if subject in student.subjects:
+                checkbox.setChecked(True)
+            # checkbox.setStyleSheet(f'background-color: {subject.color}')
+            checkbox.toggled.connect(self.set_student_subject(student, subject))
+            student_list.addWidget(checkbox, n, i+1, Qt.AlignCenter)
+
+
 
     def new_student(self, subclass, student_list):
         def func():
@@ -296,12 +257,23 @@ class ClassesWidget(QWidget):
             new_name_box.clear()
         return func
 
-    def toggle_all_checkboxes(self):
-        curr_widget:QWidget = self.sender().parent()
-        checkboxes: list[QCheckBox] = curr_widget.findChildren(QCheckBox)
-        new_state = checkboxes[0].isChecked()
-        for chechbox in checkboxes:
-            chechbox.setChecked(new_state)
+    def toggle_all_checkboxes(self, subject):
+        def func(new_state):
+            curr_widget:QWidget = self.sender().parent()
+            checkboxes: list[QCheckBox] = curr_widget.findChildren(QCheckBox)
+            # new_state = checkboxes[0].isChecked()
+            for checkbox in checkboxes:
+                if hasattr(checkbox, 'subject') and checkbox.subject == subject:
+                    checkbox.setChecked(new_state)
+        return func
+
+    def set_student_subject(self, student, subject):
+        def func(add):
+            if add:
+                self.db.add_subject_to_student(subject, student)
+            else:
+                self.db.remove_subject_from_student(subject, student)
+        return func
 
     def delete_students(self, student_list):
         def func():
@@ -320,6 +292,14 @@ class ClassesWidget(QWidget):
 
             self.load_class()
 
+        return func
+
+    def delete_student(self, student: Student):
+        def func():
+            if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {student.name}') != QMessageBox.StandardButton.Yes:
+                return False
+            self.db.delete_student(student)
+            self.load_class()
         return func
 
     def delete_class(self):
