@@ -1,0 +1,76 @@
+from PyQt5.QtGui import QColor
+from pathlib import Path
+from os import getenv
+import sys
+
+
+
+def snap_position(pos:float, unit:float, ofset=0.0, up=False):
+    return (pos-ofset)//unit*unit+ofset+unit*up
+
+def display_hour(mins):
+    hs = int(mins//12+8)
+    mins = int(mins%12)*5
+    return f'{hs}:{mins:02d}' 
+
+def shorten_name(name):
+    words = name.split()
+    return ' '.join([word[0:3] + '.' for word in words])
+
+def luminance(color: QColor):
+    def to_linear(c):
+        c = c / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+    r = to_linear(color.red())
+    g = to_linear(color.green())
+    b = to_linear(color.blue())
+
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+def contrast_ratio(c1: QColor, c2: QColor):
+    L1 = luminance(c1)
+    L2 = luminance(c2)
+    return (max(L1, L2) + 0.05) / (min(L1, L2) + 0.05)
+
+def delete_layout(layout):
+    if layout is None:
+        return
+
+    # remove all items from the layout
+    while layout.count():
+        item = layout.takeAt(0)
+
+        # if the item is a widget, delete it
+        widget = item.widget()
+        if widget is not None:
+            widget.setParent(None)
+
+        # if the item is a layout, delete it recursively
+        child_layout = item.layout()
+        if child_layout is not None:
+            delete_layout(child_layout)
+
+    # finally delete the layout itself
+    parent = layout.parent()
+    if parent is not None:
+        parent.setLayout(None)
+
+
+
+
+def get_user_data_dir(appname: str) -> Path:
+    if sys.platform == "win32":
+        import winreg
+
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+        )
+        dir_, _ = winreg.QueryValueEx(key, "Local AppData")
+        ans = Path(dir_).resolve(strict=False)
+    elif sys.platform == "darwin":
+        ans = Path("~/Library/Application Support/").expanduser()
+    else:
+        ans = Path(getenv("XDG_DATA_HOME", "~/.local/share")).expanduser()
+    return ans.joinpath(appname)
