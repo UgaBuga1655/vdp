@@ -1,21 +1,24 @@
 from PyQt5.QtWidgets import QLabel, QMenu, QAction, QInputDialog
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal
+from data import Student
 
 class NameLabel(QLabel):
-    def __init__(self, student, parent=None):
+    delete = pyqtSignal(Student)
+    update_name = pyqtSignal(Student, str)
+
+
+    def __init__(self, student):
         super().__init__(student.name)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.student = student
         self.customContextMenuRequested.connect(self.contextMenuEvent)
-        self.class_widget = parent
 
-        # print(student.name)
 
     def contextMenuEvent(self, event: QPoint):
         menu = QMenu(self)
 
         action_delete = QAction("Usuń", self)
-        action_delete.triggered.connect(self.class_widget.delete_student(self.student))
+        action_delete.triggered.connect(self.delete_subject)
 
         action_edit = QAction("Edytuj", self)
         action_edit.triggered.connect(self.update_name)
@@ -29,5 +32,9 @@ class NameLabel(QLabel):
         name, ok = QInputDialog.getText(self, 'Edytuj ucznia', 'Imię i nazwisko', text=self.text())
         if not ok:
             return
-        self.class_widget.db.update_student_name(self.student, name)
+        # self.class_widget.db.update_student_name(self.student, name)
+        self.update_name.emit(self.student, name)
         self.setText(name)
+
+    def delete_subject(self):
+        self.delete.emit(self.student)

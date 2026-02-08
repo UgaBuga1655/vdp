@@ -219,9 +219,11 @@ class ClassesWidget(QWidget):
     def add_student_to_list(self, student, student_list: QGridLayout): 
         n = student_list.rowCount()
         #checkbox
-        label = NameLabel(student, self)
+        label = NameLabel(student)
         label.setMargin(5)
         label.setMinimumWidth(150)
+        label.delete.connect(self.delete_student)
+        label.update_name.connect(self.db.update_student_name)
         student_list.addWidget(label,n, 0)
 
         #subjects
@@ -275,12 +277,12 @@ class ClassesWidget(QWidget):
 
 
     def delete_student(self, student: Student):
-        def func():
-            if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {student.name}') != QMessageBox.StandardButton.Yes:
-                return False
-            self.db.delete_student(student)
-            self.load_class()
-        return func
+
+        if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {student.name}') != QMessageBox.StandardButton.Yes:
+            return False
+        self.db.delete_student(student)
+        self.load_class()
+
     
     def delete_subject(self, subject):
         def func():
