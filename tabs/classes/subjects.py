@@ -44,9 +44,13 @@ class SubjectsWidget(QDialog):
         self.subject = subject
         layout= QVBoxLayout()
         self.setLayout(layout)
+        self.setWindowTitle('Przedmiot')
 
         top_row = QHBoxLayout()
         layout.addLayout(top_row)
+        full_name = QLineEdit(subject.name, self)
+        top_row.addWidget(full_name)
+        full_name.textEdited.connect(self.set_name)
 
 
 
@@ -119,20 +123,12 @@ class SubjectsWidget(QDialog):
 
 
 
-        # bottom row
-        new_subject_btn_box = QDialogButtonBox()
-        remove_subject_btn = new_subject_btn_box.addButton('Usuń przedmiot', QDialogButtonBox.ButtonRole.ActionRole)
-        remove_subject_btn.clicked.connect(self.remove_subject)
-        layout.addWidget(new_subject_btn_box)
-        
         buttonBox = QDialogButtonBox()
         buttonBox.setStandardButtons(QDialogButtonBox.Ok)
         buttonBox.accepted.connect(self.accept)
         layout.addWidget(buttonBox)
         if subject:
             self.load_subject(subject)
-        # self.load_class()
-        # self.frame.hide()
 
 
 
@@ -195,39 +191,23 @@ class SubjectsWidget(QDialog):
 
 
 
-    def new_subject(self):
-        my_class = self.type_list.currentData()
-        if not my_class:
-            return False
+    # def new_subject(self):
+    #     my_class = self.type_list.currentData()
+    #     if not my_class:
+    #         return False
         
-        subject_name, ok = QInputDialog.getText(self, 'Dodaj Przedmiot', 'Przedmiot:')
-        if ok and subject_name:
-            basic = isinstance(my_class, Subclass)
-            self.display_r_checkbox.setCheckable(True)
-            self.display_r_checkbox.blockSignals(True)
-            self.display_r_checkbox.setChecked(not basic)
-            self.display_r_checkbox.setCheckable(not basic)
-            self.display_r_checkbox.blockSignals(False)
-            subject = self.db.create_subject(subject_name, basic, my_class)
-            self.list.addItem(subject.name, subject)
-            self.list.setCurrentText(subject.name)
+    #     subject_name, ok = QInputDialog.getText(self, 'Dodaj Przedmiot', 'Przedmiot:')
+    #     if ok and subject_name:
+    #         basic = isinstance(my_class, Subclass)
+    #         self.display_r_checkbox.setCheckable(True)
+    #         self.display_r_checkbox.blockSignals(True)
+    #         self.display_r_checkbox.setChecked(not basic)
+    #         self.display_r_checkbox.setCheckable(not basic)
+    #         self.display_r_checkbox.blockSignals(False)
+    #         subject = self.db.create_subject(subject_name, basic, my_class)
+    #         self.list.addItem(subject.name, subject)
+    #         self.list.setCurrentText(subject.name)
 
-
-    def toggle_all_checkboxes(self, value):
-        checkboxes: list[QCheckBox] = self.frame.findChildren(QCheckBox)
-        # new_state = checkboxes[0].isChecked()
-        for chechbox in checkboxes[2:]:
-            chechbox.setChecked(value)
-
-
-    def checkbox_clicked(self):
-        checkbox:QCheckBox = self.sender()
-        subject = self.list.currentData()
-        student = checkbox.student
-        if checkbox.isChecked():
-            self.db.add_subject_to_student(subject, student)
-        else:
-            self.db.remove_subject_from_student(subject, student)
 
 
     def set_teacher(self):
@@ -260,12 +240,6 @@ class SubjectsWidget(QDialog):
         self.db.delete_lesson(btn.lesson)
         btn.deleteLater()
 
-    def remove_subject(self):
-        message = f'Czy na pewno chcesz usunąć: {self.subject.name}'
-        if QMessageBox.question(self, 'Uwaga', message) != QMessageBox.StandardButton.Yes:
-            return
-        self.db.delete_subject(self.subject)
-        self.load_data(self.db)
 
     def copy_subjects(self):
         origin = self.type_list.currentData()
@@ -290,6 +264,9 @@ class SubjectsWidget(QDialog):
         short_name = self.short_name.text()
         self.db.update_subject_short_name(self.subject, short_name)
 
+    def set_name(self, name):
+        self.db.update_subject_name(self.subject, name)
+
     def update_subject_is_basic(self):
         basic = not self.display_r_checkbox.isChecked()
         self.db.update_subject_is_basic(self.subject, basic)
@@ -298,30 +275,4 @@ class SubjectsWidget(QDialog):
         classroom = self.classroom_list.currentData()
         self.db.update_subject_classroom(self.subject, classroom)
 
-    # def load_data(self, db):
-    #     opened_class = self.class_list.currentText()
-    #     opened_subclass = self.type_list.currentText()
-    #     opened_subject = self.subject
-    #     self.db = db
-    #     self.teacher_list.clear()
-    #     self.teacher_list.addItem('')
-    #     for t in self.db.read_all_teachers():
-    #         self.teacher_list.addItem(t.name, t)
-    #     # self.teacher_list.adjustSize()
-    #     # self.teacher_list.updateGeometry()
-    #     self.class_list.clear()
-    #     self.classroom_list.blockSignals(True)
-    #     self.classroom_list.clear()
-    #     self.classroom_list.addItem('')
-    #     for classroom in self.db.all_classrooms():
-    #         self.classroom_list.addItem(classroom.name, classroom)
-    #     self.classroom_list.blockSignals(False)
-    #     try:
-    #         self.class_list.setCurrentText(opened_class)
-    #         self.type_list.setCurrentText(opened_subclass)
-    #         self.list.setCurrentText(opened_subject)
-    #     except:
-    #         pass
-
-    #     self.load_subject()
 

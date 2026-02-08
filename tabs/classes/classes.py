@@ -9,6 +9,7 @@ from .reorder_classes_dialog import ReorderClassesDialog
 from .vertical_label import VerticalLabel
 from .colorwidget import Color
 from .name_label import NameLabel
+from .subjects import SubjectsWidget
 
 class ClassesWidget(QWidget):
     def __init__(self,parent):
@@ -186,7 +187,10 @@ class ClassesWidget(QWidget):
                     student_list.addWidget(checkbox, 1, col, Qt.AlignCenter)
                 else:
                     name = ''
-                student_list.addWidget(VerticalLabel(self.db, subject, self), 0, col)
+                label = VerticalLabel(subject)
+                label.delete.connect(self.delete_subject)
+                label.edit.connect(self.edit_subject)
+                student_list.addWidget(label, 0, col)
 
                 col += 1
             
@@ -277,7 +281,6 @@ class ClassesWidget(QWidget):
 
 
     def delete_student(self, student: Student):
-
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {student.name}') != QMessageBox.StandardButton.Yes:
             return False
         self.db.delete_student(student)
@@ -285,12 +288,17 @@ class ClassesWidget(QWidget):
 
     
     def delete_subject(self, subject):
-        def func():
-            if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {subject.get_name(0,0,0)}') != QMessageBox.StandardButton.Yes:
-                return False
-            self.db.delete_subject(subject)
-            self.load_class()
-        return func
+        if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {subject.get_name(0,0,0)}') != QMessageBox.StandardButton.Yes:
+            return False
+        self.db.delete_subject(subject)
+        self.load_class()
+    
+    def edit_subject(self, subject):
+        if not subject:
+            return
+        dialog = SubjectsWidget(self, self.db, subject)
+        ok = dialog.exec()
+        self.sender().setText(subject.get_name(1,0,0))
     
 
     def delete_class(self):

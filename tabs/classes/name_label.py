@@ -18,17 +18,17 @@ class NameLabel(QLabel):
         menu = QMenu(self)
 
         action_delete = QAction("Usuń", self)
-        action_delete.triggered.connect(self.delete_subject)
+        action_delete.triggered.connect(self.delete_student)
 
         action_edit = QAction("Edytuj", self)
-        action_edit.triggered.connect(self.update_name)
+        action_edit.triggered.connect(self.update_student_name)
 
         menu.addAction(action_edit)
         menu.addAction(action_delete)
 
         menu.exec_(self.mapToGlobal(event))
 
-    def update_name(self):
+    def update_student_name(self):
         name, ok = QInputDialog.getText(self, 'Edytuj ucznia', 'Imię i nazwisko', text=self.text())
         if not ok:
             return
@@ -36,5 +36,5 @@ class NameLabel(QLabel):
         self.update_name.emit(self.student, name)
         self.setText(name)
 
-    def delete_subject(self):
+    def delete_student(self):
         self.delete.emit(self.student)

@@ -187,6 +187,10 @@ class Data():
         subject.teacher = teacher
         self.session.commit()
 
+    def update_subject_name(self, subject: Subject, name: str) -> None:
+        subject.name = name
+        self.session.commit()
+
     def update_subject_short_name(self, subject: Subject, short_name: str) -> None:
         subject.short_name = short_name
         self.session.commit()
