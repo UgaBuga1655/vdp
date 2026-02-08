@@ -1,10 +1,9 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QInputDialog, QPushButton, \
-    QComboBox, QMessageBox, QVBoxLayout, QCheckBox, QGridLayout, QLabel, QSizePolicy, \
-    QLineEdit, QScrollArea, QDialog, QDialogButtonBox
-from PyQt5.QtGui import QColor
+    QComboBox, QMessageBox, QVBoxLayout, QCheckBox, QGridLayout, QLabel, \
+    QLineEdit, QScrollArea
 
 from PyQt5.QtCore import Qt
-from data import Data, Class, Subclass, Student, Subject
+from data import Data, Class, Subclass, Student
 from sqlalchemy.exc import IntegrityError
 from .reorder_classes_dialog import ReorderClassesDialog
 from .vertical_label import VerticalLabel
@@ -170,7 +169,6 @@ class ClassesWidget(QWidget):
             name_row.addWidget(remove_subclass_btn)
             
 
-
             #headers
             student_header = QLabel('Uczeń')
             student_header.setStyleSheet('font-weight: bold;')
@@ -188,7 +186,7 @@ class ClassesWidget(QWidget):
                     student_list.addWidget(checkbox, 1, col, Qt.AlignCenter)
                 else:
                     name = ''
-                student_list.addWidget(VerticalLabel(name), 0, col)
+                student_list.addWidget(VerticalLabel(self.db, subject, self), 0, col)
 
                 col += 1
             
@@ -275,24 +273,6 @@ class ClassesWidget(QWidget):
                 self.db.remove_subject_from_student(subject, student)
         return func
 
-    def delete_students(self, student_list):
-        def func():
-            checkboxes:list[QCheckBox] = student_list.findChildren(QCheckBox)[1:]
-            to_remove = [ch.student for ch in checkboxes if ch.isChecked()]
-            amount = len(to_remove)
-            if amount == 0:
-                return False
-
-            message = f"Czy na pewno chcesz usunąć {amount} {'ucznia' if amount == 1 else 'uczniów'}?"
-            if QMessageBox.question(self, 'Uwaga', message) != QMessageBox.StandardButton.Yes:
-                return False
-
-            for student in to_remove:
-                self.db.delete_student(student)
-
-            self.load_class()
-
-        return func
 
     def delete_student(self, student: Student):
         def func():
@@ -301,6 +281,15 @@ class ClassesWidget(QWidget):
             self.db.delete_student(student)
             self.load_class()
         return func
+    
+    def delete_subject(self, subject):
+        def func():
+            if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {subject.get_name(0,0,0)}') != QMessageBox.StandardButton.Yes:
+                return False
+            self.db.delete_subject(subject)
+            self.load_class()
+        return func
+    
 
     def delete_class(self):
         my_class: Class = self.list.currentData()
