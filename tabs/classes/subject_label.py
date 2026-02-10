@@ -3,7 +3,7 @@ from PyQt5.QtGui import QPainter
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from data import Subject
 
-class VerticalLabel(QLabel):
+class SubjectLabel(QLabel):
     delete = pyqtSignal(Subject)
     edit = pyqtSignal(Subject)
 
@@ -32,19 +32,13 @@ class VerticalLabel(QLabel):
     def contextMenuEvent(self, ev):
         menu = QMenu(self)
 
-        action_delete = QAction("Usuń", self)
-        action_delete.triggered.connect(lambda: self.delete.emit(self.subject))
-
         action_edit = QAction("Edytuj", self)
         action_edit.triggered.connect(lambda: self.edit.emit(self.subject))
-
         menu.addAction(action_edit)
+
+        action_delete = QAction("Usuń", self)
+        action_delete.triggered.connect(lambda: self.delete.emit(self.subject))
         menu.addAction(action_delete)
 
         menu.exec_(self.mapToGlobal(ev))
-        
-    # def edit(self, ev):
-    #     if not self.subject:
-    #         return
-    #     dialog = SubjectsWidget(self, self.db, self.subject)
-    #     ok = dialog.exec()
+    

@@ -1,15 +1,16 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QInputDialog, QPushButton, \
     QComboBox, QMessageBox, QVBoxLayout, QCheckBox, QGridLayout, QLabel, \
-    QLineEdit, QScrollArea
+    QLineEdit, QScrollArea, QSizePolicy
 
 from PyQt5.QtCore import Qt
-from data import Data, Class, Subclass, Student
+from data import Data, Class, Subclass, Student, Subject
 from sqlalchemy.exc import IntegrityError
 from .reorder_classes_dialog import ReorderClassesDialog
-from .vertical_label import VerticalLabel
+from .subject_label import SubjectLabel
+from .new_subject_label import NewSubjectLabel
 from .colorwidget import Color
 from .name_label import NameLabel
-from .subjects import SubjectsWidget
+from .subjects import SubjectsWindow
 
 class ClassesWidget(QWidget):
     def __init__(self,parent):
@@ -156,7 +157,7 @@ class ClassesWidget(QWidget):
             student_list = QGridLayout()
             subclass_layout.addLayout(student_list)
             student_list.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-            # student_list.setContentsMargins(5, 0, 5, 0)
+            student_list.setContentsMargins(0, 0, 0, 0)
             student_list.setSpacing(0)
             scrollarea.setWidgetResizable(True)
 
@@ -176,21 +177,23 @@ class ClassesWidget(QWidget):
             student_list.addWidget(student_header, 1, 0, Qt.AlignCenter)
             col = 1
             self.subjects[subclass] = sorted(subclass.subjects, key=lambda x: x.get_name(0,0,0))
-            self.subjects[subclass].append(None)
+            self.subjects[subclass].append(subclass)
             self.subjects[subclass] += sorted(my_class.subjects, key=lambda x: x.get_name(0,0,0))
+            self.subjects[subclass].append(my_class)
 
             for subject in self.subjects[subclass]:
-                if subject:
-                    name = subject.get_name(0,0,0)
+                if isinstance(subject, Subject):
                     checkbox = QCheckBox()
                     checkbox.clicked.connect(self.toggle_all_checkboxes(subject))
                     student_list.addWidget(checkbox, 1, col, Qt.AlignCenter)
+                    label = SubjectLabel(subject)
+                    label.delete.connect(self.delete_subject)
+                    label.edit.connect(self.edit_subject)
+                    student_list.addWidget(label, 0, col)
                 else:
-                    name = ''
-                label = VerticalLabel(subject)
-                label.delete.connect(self.delete_subject)
-                label.edit.connect(self.edit_subject)
-                student_list.addWidget(label, 0, col)
+                    label = NewSubjectLabel('+')
+                    student_list.addWidget(label, 0, col, Qt.AlignBottom)
+                    label.clicked.connect(self.new_subject(subject))
 
                 col += 1
             
@@ -232,7 +235,7 @@ class ClassesWidget(QWidget):
 
         #subjects
         for i, subject in enumerate(self.subjects[student.subclass]):
-            if not subject:
+            if not isinstance(subject, Subject):
                 continue
             student_list.addWidget(Color(subject.color, brighten=n%2), n, i+1)
             checkbox = QCheckBox()
@@ -296,10 +299,21 @@ class ClassesWidget(QWidget):
     def edit_subject(self, subject):
         if not subject:
             return
-        dialog = SubjectsWidget(self, self.db, subject)
-        ok = dialog.exec()
-        self.sender().setText(subject.get_name(1,0,0))
-    
+        subject_window = SubjectsWindow(self, self.db, subject)
+        setattr(self, f'subject_{subject.id}', subject_window)
+        subject_window.show()
+        subject_window.update_subject_short_name.connect(self.sender().setText)
+        
+    def new_subject(self, sub_class):
+        def func():
+            basic = isinstance(sub_class, Subclass)
+            subject_name, ok = QInputDialog.getText(self, f"Dodaj Przedmiot {'Podstawowy' if basic else 'Wspólny'}", 'Przedmiot:')
+            if ok and subject_name:
+                subject = self.db.create_subject(subject_name, basic, sub_class)
+            self.load_class()
+        return func
+
+
 
     def delete_class(self):
         my_class: Class = self.list.currentData()

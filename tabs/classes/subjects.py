@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QHBoxLayout, QDialog, QDialogButtonBox, \
       QPushButton, QLabel, QDialogButtonBox, QMessageBox, QInputDialog, QGridLayout, QCheckBox, QSizePolicy,\
       QColorDialog, QLineEdit
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal
+from PyQt5.QtGui import QColor, QCursor
 
-from data import Data, Class, Subclass, Student, Subject
+from data import Data, Class, Subclass
 
 class AddLessonDialog(QDialog):
     def __init__(self, parent):
@@ -37,14 +37,18 @@ class CopySubjectsDialog(QDialog):
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         
-class SubjectsWidget(QDialog):
+class SubjectsWindow(QWidget):
+    update_subject_short_name = pyqtSignal(str)
+
     def __init__(self,parent, db, subject):
-        super().__init__(parent=parent)
+        super().__init__()
         self.db: Data = db
         self.subject = subject
         layout= QVBoxLayout()
         self.setLayout(layout)
         self.setWindowTitle('Przedmiot')
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        self.move(QCursor.pos() + QPoint(10,10))
 
         top_row = QHBoxLayout()
         layout.addLayout(top_row)
@@ -125,7 +129,7 @@ class SubjectsWidget(QDialog):
 
         buttonBox = QDialogButtonBox()
         buttonBox.setStandardButtons(QDialogButtonBox.Ok)
-        buttonBox.accepted.connect(self.accept)
+        buttonBox.accepted.connect(self.close)
         layout.addWidget(buttonBox)
         if subject:
             self.load_subject(subject)
@@ -228,8 +232,7 @@ class SubjectsWidget(QDialog):
         except:
             QMessageBox.warning(self, 'Błąd', 'Podaj liczbę!')
             return False
-        subject: Subject = self.list.currentData()
-        lesson = self.db.create_lesson(length, subject)
+        lesson = self.db.create_lesson(length, self.subject)
         btn = QPushButton(str(length))
         btn.lesson = lesson
         self.lessons.addWidget(btn)
@@ -260,8 +263,8 @@ class SubjectsWidget(QDialog):
             self.color_button.setStyleSheet(f'background-color: {color.name()}')
             self.db.update_subject_color(self.subject, color.name())
 
-    def set_short_name(self):
-        short_name = self.short_name.text()
+    def set_short_name(self, short_name):
+        self.update_subject_short_name.emit(short_name)
         self.db.update_subject_short_name(self.subject, short_name)
 
     def set_name(self, name):
