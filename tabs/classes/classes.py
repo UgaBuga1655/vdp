@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QInputDialog, QPushButton, \
     QComboBox, QMessageBox, QVBoxLayout, QCheckBox, QGridLayout, QLabel, \
-    QLineEdit, QScrollArea, QSizePolicy
+    QLineEdit, QScrollArea
 
 from PyQt5.QtCore import Qt
 from data import Data, Class, Subclass, Student, Subject
@@ -147,6 +147,8 @@ class ClassesWidget(QWidget):
         if not my_class:
             return False
         subclass: Subclass
+        extra_subs = sorted(my_class.subjects, key=lambda x: x.get_name(0,0,0))
+        self.labels = {s: [] for s in extra_subs}
         for subclass in my_class.subclasses:
             scrollarea = QScrollArea()
             subclass_widget = QWidget()
@@ -176,10 +178,16 @@ class ClassesWidget(QWidget):
             student_header.setStyleSheet('font-weight: bold;')
             student_list.addWidget(student_header, 1, 0, Qt.AlignCenter)
             col = 1
-            self.subjects[subclass] = sorted(subclass.subjects, key=lambda x: x.get_name(0,0,0))
-            self.subjects[subclass].append(subclass)
-            self.subjects[subclass] += sorted(my_class.subjects, key=lambda x: x.get_name(0,0,0))
+            basic_subs = sorted(subclass.subjects, key=lambda x: x.get_name(0,0,0))
+
+            self.subjects[subclass] = []
+            self.subjects[subclass].extend(extra_subs)
             self.subjects[subclass].append(my_class)
+            self.subjects[subclass].extend(basic_subs)
+            self.subjects[subclass].append(subclass)
+
+            for sub in basic_subs:
+                self.labels[sub] = []
 
             for subject in self.subjects[subclass]:
                 if isinstance(subject, Subject):
@@ -190,13 +198,12 @@ class ClassesWidget(QWidget):
                     label.delete.connect(self.delete_subject)
                     label.edit.connect(self.edit_subject)
                     student_list.addWidget(label, 0, col)
+                    self.labels[subject].append(label)
                 else:
                     label = NewSubjectLabel('+')
                     student_list.addWidget(label, 0, col, Qt.AlignBottom)
                     label.clicked.connect(self.new_subject(subject))
-
                 col += 1
-            
 
             #load students
             student: Student
@@ -218,10 +225,7 @@ class ClassesWidget(QWidget):
 
             subclass_layout.addStretch()
             
-
-
             frame_layout.addWidget(scrollarea)
-
 
     def add_student_to_list(self, student, student_list: QGridLayout): 
         n = student_list.rowCount()
@@ -245,8 +249,6 @@ class ClassesWidget(QWidget):
             # checkbox.setStyleSheet(f'background-color: {subject.color}')
             checkbox.toggled.connect(self.set_student_subject(student, subject))
             student_list.addWidget(checkbox, n, i+1, Qt.AlignCenter)
-
-
 
     def new_student(self, subclass, student_list):
         def func():
@@ -282,14 +284,12 @@ class ClassesWidget(QWidget):
                 self.db.remove_subject_from_student(subject, student)
         return func
 
-
     def delete_student(self, student: Student):
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {student.name}') != QMessageBox.StandardButton.Yes:
             return False
         self.db.delete_student(student)
         self.load_class()
 
-    
     def delete_subject(self, subject):
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {subject.get_name(0,0,0)}') != QMessageBox.StandardButton.Yes:
             return False
@@ -302,7 +302,9 @@ class ClassesWidget(QWidget):
         subject_window = SubjectsWindow(self, self.db, subject)
         setattr(self, f'subject_{subject.id}', subject_window)
         subject_window.show()
-        subject_window.update_subject_short_name.connect(self.sender().setText)
+        for label in self.labels[subject]:
+            subject_window.short_name_updated.connect(label.setText)
+        subject_window.color_changed.connect(self.load_class)
         
     def new_subject(self, sub_class):
         def func():
@@ -313,8 +315,6 @@ class ClassesWidget(QWidget):
             self.load_class()
         return func
 
-
-
     def delete_class(self):
         my_class: Class = self.list.currentData()
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chcesz usunąć klasę: {my_class.name}') == QMessageBox.StandardButton.Yes:
@@ -322,4 +322,3 @@ class ClassesWidget(QWidget):
         self.load_data(self.db)
                     
                 
-

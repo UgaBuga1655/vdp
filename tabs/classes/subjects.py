@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QHBoxLayout, QDialog, QDialogButtonBox, \
-      QPushButton, QLabel, QDialogButtonBox, QMessageBox, QInputDialog, QGridLayout, QCheckBox, QSizePolicy,\
-      QColorDialog, QLineEdit
+      QPushButton, QLabel, QDialogButtonBox, QMessageBox, QCheckBox, QColorDialog, QLineEdit
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from PyQt5.QtGui import QColor, QCursor
 
@@ -38,7 +37,9 @@ class CopySubjectsDialog(QDialog):
         buttonBox.rejected.connect(self.reject)
         
 class SubjectsWindow(QWidget):
-    update_subject_short_name = pyqtSignal(str)
+    short_name_updated = pyqtSignal(str)
+    color_changed = pyqtSignal(QColor)
+    
 
     def __init__(self,parent, db, subject):
         super().__init__()
@@ -67,21 +68,18 @@ class SubjectsWindow(QWidget):
         display_options_row.addWidget(QLabel('Kolor:'))
         self.color_button = QPushButton()
         self.color_button.setFixedSize(20,20)
-        # color = QColor(subject.color)
-        self.color_button.setStyleSheet(f'background-color: {subject.color}')
         self.color_button.clicked.connect(self.pick_color)
         display_options_row.addWidget(self.color_button)
 
         # short name
         display_options_row.addWidget(QLabel('Skrót:'))
-        self.short_name = QLineEdit(subject.short_name)
+        self.short_name = QLineEdit()
         self.short_name.setFixedWidth(100)
         self.short_name.textEdited.connect(self.set_short_name)
         display_options_row.addWidget(self.short_name)
 
         # display R
         self.display_r_checkbox = QCheckBox('Rozszerzony')
-        self.display_r_checkbox.setChecked(not subject.basic)
         self.display_r_checkbox.clicked.connect(self.update_subject_is_basic)
         display_options_row.addWidget(self.display_r_checkbox)
         display_options_row.addStretch()
@@ -99,7 +97,6 @@ class SubjectsWindow(QWidget):
         self.teacher_list.addItem('')
         for t in self.db.read_all_teachers():
             self.teacher_list.addItem(t.name, t)
-        # self.teacher_list.setCurrentText(subject.teacher.name)
         self.teacher_list.currentTextChanged.connect(self.set_teacher)
         self.teacher_list.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         teacher_row.addWidget(self.teacher_list)
@@ -124,9 +121,6 @@ class SubjectsWindow(QWidget):
         lesson_row.addWidget(add_lesson_btn)
         lesson_row.addStretch()
 
-
-
-
         buttonBox = QDialogButtonBox()
         buttonBox.setStandardButtons(QDialogButtonBox.Ok)
         buttonBox.accepted.connect(self.close)
@@ -135,31 +129,13 @@ class SubjectsWindow(QWidget):
             self.load_subject(subject)
 
 
-
-    # def load_class(self):
-    #     self.list.clear()
-    #     my_class = self.type_list.currentData()
-    #     if not my_class:
-    #         return False
-        
-    #     # subjects
-    #     self.list.clear()
-    #     for subject in my_class.subjects:
-
-    #         self.list.addItem(subject.get_name(False, False, False), subject)
-        
-        
-    #     self.load_subject()
-
-
     def load_subject(self, subject):
-        # subject: Subject = self.subject
-
         # teacher
         teacher = subject.teacher
         teacher_name = teacher.name if teacher else ''
         self.teacher_list.setCurrentText(teacher_name)
 
+        # classroom
         classroom = subject.required_classroom
         classroom_name = classroom.name if classroom else ''
         self.classroom_list.setCurrentText(classroom_name)
@@ -191,29 +167,6 @@ class SubjectsWindow(QWidget):
             self.lessons.addWidget(btn)
             btn.clicked.connect(self.remove_lesson)
 
-  
-
-
-
-    # def new_subject(self):
-    #     my_class = self.type_list.currentData()
-    #     if not my_class:
-    #         return False
-        
-    #     subject_name, ok = QInputDialog.getText(self, 'Dodaj Przedmiot', 'Przedmiot:')
-    #     if ok and subject_name:
-    #         basic = isinstance(my_class, Subclass)
-    #         self.display_r_checkbox.setCheckable(True)
-    #         self.display_r_checkbox.blockSignals(True)
-    #         self.display_r_checkbox.setChecked(not basic)
-    #         self.display_r_checkbox.setCheckable(not basic)
-    #         self.display_r_checkbox.blockSignals(False)
-    #         subject = self.db.create_subject(subject_name, basic, my_class)
-    #         self.list.addItem(subject.name, subject)
-    #         self.list.setCurrentText(subject.name)
-
-
-
     def set_teacher(self):
         teacher = self.teacher_list.currentData()
         subject = self.subject
@@ -243,7 +196,6 @@ class SubjectsWindow(QWidget):
         self.db.delete_lesson(btn.lesson)
         btn.deleteLater()
 
-
     def copy_subjects(self):
         origin = self.type_list.currentData()
         if isinstance(origin, Subclass):
@@ -262,9 +214,10 @@ class SubjectsWindow(QWidget):
         if color.isValid():
             self.color_button.setStyleSheet(f'background-color: {color.name()}')
             self.db.update_subject_color(self.subject, color.name())
+            self.color_changed.emit(color)
 
     def set_short_name(self, short_name):
-        self.update_subject_short_name.emit(short_name)
+        self.short_name_updated.emit(short_name)
         self.db.update_subject_short_name(self.subject, short_name)
 
     def set_name(self, name):
