@@ -36,11 +36,11 @@ class CopySubjectsDialog(QDialog):
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         
+
 class SubjectsWindow(QWidget):
     short_name_updated = pyqtSignal(str)
     color_changed = pyqtSignal(QColor)
     
-
     def __init__(self,parent, db, subject):
         super().__init__()
         self.db: Data = db
@@ -195,19 +195,6 @@ class SubjectsWindow(QWidget):
         btn: QPushButton = self.sender()
         self.db.delete_lesson(btn.lesson)
         btn.deleteLater()
-
-    def copy_subjects(self):
-        origin = self.type_list.currentData()
-        if isinstance(origin, Subclass):
-            targets = self.db.all_subclasses()
-        else:
-            targets = self.db.all_classes()
-        dialog = CopySubjectsDialog(self, targets)
-        ok = dialog.exec()
-        if not ok:
-            return
-        target = dialog.target_list.currentData()
-        self.db.copy_subjects_to_subclass(origin, target)
 
     def pick_color(self):
         color = QColorDialog.getColor(QColor(self.subject.color))

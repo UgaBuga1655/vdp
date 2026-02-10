@@ -11,6 +11,7 @@ from .new_subject_label import NewSubjectLabel
 from .colorwidget import Color
 from .name_label import NameLabel
 from .subjects import SubjectsWindow
+from .subject_label import CopySubjectsDialog
 
 class ClassesWidget(QWidget):
     def __init__(self,parent):
@@ -197,6 +198,7 @@ class ClassesWidget(QWidget):
                     label = SubjectLabel(subject)
                     label.delete.connect(self.delete_subject)
                     label.edit.connect(self.edit_subject)
+                    label.copy.connect(self.copy_subject)
                     student_list.addWidget(label, 0, col)
                     self.labels[subject].append(label)
                 else:
@@ -305,6 +307,21 @@ class ClassesWidget(QWidget):
         for label in self.labels[subject]:
             subject_window.short_name_updated.connect(label.setText)
         subject_window.color_changed.connect(self.load_class)
+
+    def copy_subject(self, subject):
+        if subject.subclass:
+            targets = self.db.all_subclasses()
+        else:
+            targets = self.db.all_classes()
+        dialog = CopySubjectsDialog(self, targets)
+        ok = dialog.exec()
+        if not ok:
+            return
+        target = dialog.target_list.currentData()
+        self.db.copy_subject_to_subclass(subject, target)
+
+
+
         
     def new_subject(self, sub_class):
         def func():
