@@ -1,15 +1,17 @@
 from PyQt5.QtWidgets import QHBoxLayout, QComboBox, QWidget, QPushButton, QGridLayout, QStackedLayout, QStackedWidget, QSizePolicy
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import pyqtSignal
 from .mode_btn import ModeBtn
 from data import Class, Data
+from types import FunctionType
 from db_config import settings
 
 class FilterWidget(QWidget):
-    def __init__(self, parent, view, tool_add_custom):
+    updated = pyqtSignal(list, FunctionType)
+    set_mode_normal = pyqtSignal()
+
+    def __init__(self, parent):
         super().__init__(parent)
-        self.view = view
         self.db: Data = parent.db
-        self.tool_add_custom = tool_add_custom
         main_layout = QGridLayout()
         main_layout.setContentsMargins(10,0,0,0)
         self.setLayout(main_layout)
@@ -19,7 +21,6 @@ class FilterWidget(QWidget):
         self.filter_selection = QComboBox()
         items = 'Klasy Uczniowie Nauczyciele Sale'.split()
         self.filter_selection.addItems(items)
-        self.filter_selection.currentIndexChanged.connect(self.select_filter)
         main_layout.addWidget(self.filter_selection, 0, 0)
 
         self.stacked = QStackedWidget()
@@ -38,8 +39,6 @@ class FilterWidget(QWidget):
         self.student_filter.layout().addWidget(self.student_class_selection)
         self.student_list = QComboBox()
         self.student_filter.layout().addWidget(self.student_list)
-        self.student_class_selection.currentTextChanged.connect(self.load_students)
-        self.student_list.currentIndexChanged.connect(self.update_filter)
         self.stacked.layout().addWidget(self.student_filter)
 
         # teachers
@@ -47,7 +46,6 @@ class FilterWidget(QWidget):
         self.teacher_filter.setLayout(QHBoxLayout())
         self.teacher_list = QComboBox()
         self.teacher_filter.layout().addWidget(self.teacher_list)
-        self.teacher_list.currentIndexChanged.connect(self.update_filter)
         self.stacked.layout().addWidget(self.teacher_filter)
 
         # classrooms
@@ -55,8 +53,14 @@ class FilterWidget(QWidget):
         self.classroom_filter.setLayout(QHBoxLayout())
         self.classroom_list = QComboBox()
         self.classroom_filter.layout().addWidget(self.classroom_list) 
-        self.classroom_list.currentIndexChanged.connect(self.update_filter)
         self.stacked.layout().addWidget(self.classroom_filter)
+
+        self.load_data(self.db)
+        self.filter_selection.currentIndexChanged.connect(self.select_filter)
+        self.student_class_selection.currentTextChanged.connect(self.load_students)
+        self.student_list.currentIndexChanged.connect(self.update_filter)
+        self.teacher_list.currentIndexChanged.connect(self.update_filter)
+        self.classroom_list.currentIndexChanged.connect(self.update_filter)
 
     def go_to_class_filter(self):
         self.filter_selection.setCurrentIndex(0)
@@ -65,8 +69,7 @@ class FilterWidget(QWidget):
 
     
     def filter_btn_clicked(self):
-        self.tool_add_custom.uncheck()
-        self.view.set_mode('normal')
+        self.set_mode_normal.emit()
         self.update_filter()
 
     def update_class_filter(self):
@@ -122,7 +125,7 @@ class FilterWidget(QWidget):
     def update_filter(self):
         index = self.stacked.currentIndex()
         if index>0:
-            self.view.uncheck_all_modes()
+            self.set_mode_normal.emit()
         filters = [
             self.update_class_filter,
             self.update_student_filter,
@@ -134,9 +137,10 @@ class FilterWidget(QWidget):
         classes, curr_filter = filters[index]()
         if curr_filter is None:
             return 
-        self.view.set_classes(classes)
-        self.view.filter_func = curr_filter
-        self.view.draw()
+        self.updated.emit(classes, curr_filter)
+        # self.view.set_classes(classes)
+        # self.view.filter_func = curr_filter
+        # self.view.draw()
 
     def select_filter(self, index):
         self.stacked.setCurrentIndex(index)

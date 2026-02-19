@@ -1,6 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_
+from PyQt5.QtCore import pyqtSignal
 from string import ascii_lowercase
 from typing import List
 from functions import shorten_name
@@ -9,6 +10,9 @@ from models import *
 
 
 class Data():
+    update_block = pyqtSignal(LessonBlockDB)
+
+
     def __init__(self, filename="planer.vdp"):
         engine = create_engine('sqlite:///' + filename)
         Base.metadata.create_all(engine)

@@ -84,22 +84,27 @@ class PlanWidget(QWidget):
         toolbar.layout().addStretch()
 
         self.view = MyView(self)
-        self.hidden_view = MyView(self)
-        self.class_filter = FilterWidget(self, self.view, self.tool_add_custom)
+        self.hidden_view = MyView(self, (2970, 2100))
+        self.class_filter = FilterWidget(self)
         
         self.container = QWidget()
         self.container.setAttribute(Qt.WA_DontShowOnScreen, True)
         conlayout = QVBoxLayout(self.container)
         conlayout.addWidget(self.hidden_view)
 
-        self.container.show()
-        self.hidden_view.resize(2970, 2100)
-        self.container.hide()
+        # self.container.show()
+        # self.hidden_view.resize(2970, 2100)
+        # self.container.hide()
 
         layout.addWidget(self.class_filter)
         layout.addWidget(toolbar)
         layout.addWidget(self.view)
         self.load_data(self.db)
+        self.class_filter.updated.connect(self.view.update_filters)
+        self.class_filter.set_mode_normal.connect(self.uncheck_all_modes)
+        self.view.load_data(self.db)
+        self.view.set_classes(self.db.all_subclasses())
+        print('ended init')
 
     def export(self):
         settings.alpha = 255 
@@ -245,6 +250,7 @@ class PlanWidget(QWidget):
         self.tool_add_block.uncheck()
         self.tool_add_custom.uncheck()
         self.tool_move_block.uncheck()
+        self.view.set_mode('normal')
     
     def update_alpha(self, value):
         alpha = 255 - value*25
@@ -306,12 +312,13 @@ class PlanWidget(QWidget):
 
 
     def load_data(self, db):
+        print('loading data')
         self.db = db
-        self.class_filter.load_data(db)
-        self.view.load_data(db)
-        self.hidden_view.load_data(db)
-        if self.class_filter.filter_selection.currentText() == 'Klasy':
-            self.view.set_classes(self.class_filter.classes)
-            self.view.draw()
-            self.hidden_view.set_classes(self.class_filter.classes)
-            self.hidden_view.draw()
+        # self.class_filter.load_data(db)
+        # self.view.load_data(db)
+        # self.hidden_view.load_data(db)
+        # if self.class_filter.filter_selection.currentText() == 'Klasy':
+            # self.view.set_classes(self.class_filter.classes)
+            # self.view.draw()
+            # # self.hidden_view.set_classes(self.class_filter.classes)
+            # self.hidden_view.draw()

@@ -24,7 +24,7 @@ class Tabs(QTabWidget):
         self.addTab(self.classes, 'Klasy')
         self.addTab(self.teachers, "Nauczyciele")
         self.addTab(self.classrooms, 'Pomieszczenia')
-        self.currentChanged.connect(self.refresh)
+        # self.currentChanged.connect(self.refresh)
 
     def refresh(self):
         try:

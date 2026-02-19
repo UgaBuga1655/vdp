@@ -152,4 +152,6 @@ class MainWindow(QMainWindow):
 app = QApplication(sys.argv)
 window = MainWindow()
 window.showMaximized()
+window.tabs.plan.view.set_ready()
+# window.tabs.plan.view.draw()
 app.exec()

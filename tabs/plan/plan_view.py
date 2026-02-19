@@ -13,8 +13,10 @@ from db_config import settings
 
 class MyView(QGraphicsView):
 
-    def __init__(self,parent):
+    def __init__(self,parent, size=None):
         super().__init__(parent)
+        if size:
+            self.resize(*size)
         self.setScene(QGraphicsScene())
         self.db: Data = parent.db
         self.classes = []
@@ -24,6 +26,7 @@ class MyView(QGraphicsView):
         self.block_start = -1
         self.new_block = False
         self.setMouseTracking(True)
+        self.ready = False
 
         self.top_bar_h = 75
         self.left_bar_w = 50
@@ -69,10 +72,15 @@ class MyView(QGraphicsView):
         self.day_w = (self.scene_width-self.left_bar_w)/5
         self.update_column_sizes()
 
+    def set_ready(self):
+        self.ready = True
+        self.draw()
+
 
     def resizeEvent(self, event):
         QGraphicsView.resizeEvent(self, event)
-
+        if not self.ready:
+            return
         self.update_size_params()
         self.draw()
 
@@ -420,14 +428,19 @@ class MyView(QGraphicsView):
 
 
 
-         
+    def update_filters(self, classes, filter):
+        self.set_classes(classes)
+        self.filter_func = filter
+        self.draw()
 
     def draw(self):
+        print('drawing')
         scene = self.scene()
         scene.clear()
         scene.setSceneRect(0,0, self.scene_width, self.scene_height)
 
         self.draw_frame()
+        print(self.classes)
 
         if len(self.classes):
             self.draw_blocks(self.db.all_blocks())
