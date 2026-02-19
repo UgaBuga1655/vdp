@@ -1,7 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QObject
 from string import ascii_lowercase
 from typing import List
 from functions import shorten_name
@@ -9,11 +9,12 @@ from db_config import Base
 from models import *
 
 
-class Data():
+class Data(QObject):
     update_block = pyqtSignal(LessonBlockDB)
 
 
     def __init__(self, filename="planer.vdp"):
+        super().__init__()
         engine = create_engine('sqlite:///' + filename)
         Base.metadata.create_all(engine)
         DBsession = sessionmaker(bind=engine)
@@ -38,6 +39,11 @@ class Data():
         
     def update_teacher_av(self, t: Teacher, av):
         t.av1, t.av2, t.av3, t.av4, t.av5 = av
+        for subject in t.subjects:
+            for lesson in subject.lessons:
+                if not lesson.block:
+                    continue
+                self.update_block.emit(lesson.block)
         self.session.commit()
 
     def update_teacher_name(self, t: Teacher, name):
@@ -172,12 +178,17 @@ class Data():
 
     def remove_subject_from_student(self, subject: Subject, student: Student):
         student.subjects.remove(subject)
+        for lesson in subject.lessons:
+            self.update_block.emit(lesson.block)
+
         self.session.commit()
 
     def add_subject_to_student(self, subject: Subject, student: Student):
         if subject in student.subjects:
             return
         student.subjects.append(subject)
+        for lesson in subject.lessons:
+            self.update_block.emit(lesson.block)
         self.session.commit()
 
     def student_exists(self, name):
@@ -207,6 +218,8 @@ class Data():
     
     def update_subject_teacher(self, subject: Subject, teacher: Teacher) -> None:
         subject.teacher = teacher
+        for lesson in subject.lessons:
+            self.update_block.emit(lesson.block)
         self.session.commit()
 
     def update_subject_name(self, subject: Subject, name: str) -> None:
@@ -227,11 +240,14 @@ class Data():
 
     def update_subject_classroom(self, subject: Subject, classroom: Classroom) -> None:
         subject.required_classroom = classroom
+        for lesson in subject.lessons:
+            self.update_block.emit(lesson.block)
         self.session.commit()
 
     def delete_subject(self, subject: Subject) -> None:
         for lesson in subject.lessons:
             self.session.delete(lesson)
+            self.update_block.emit(lesson.block)
         self.session.delete(subject)
         self.session.commit()
     
@@ -260,6 +276,7 @@ class Data():
         self.session.commit()
     
     def delete_lesson(self, lesson: Lesson) -> None:
+        self.update_block.emit(lesson.block)
         self.session.delete(lesson)
         self.session.commit()
 

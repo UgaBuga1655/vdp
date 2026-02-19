@@ -134,6 +134,7 @@ class TeachersWidget(QWidget):
         del_teacher_btn.clicked.connect(self.del_teacher)
         layout.addWidget(self.button_row)
         self.setLayout(layout)
+        self.load_data(self.db)
 
     def new_teacher(self):
         teacher_name, ok = QInputDialog.getText(self, 'Dodaj Nauczyciela', 'Nauczyciel:')

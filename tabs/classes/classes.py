@@ -58,6 +58,7 @@ class ClassesWidget(QWidget):
     
         main_layout.addWidget(container)
         self.setLayout(main_layout)
+        self.load_data(self.db)
 
     def new_class(self):
         class_name, ok = QInputDialog.getText(self, 'Dodaj Klasę', 'Klasa:')

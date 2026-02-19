@@ -269,7 +269,7 @@ class LessonBlock(BasicBlock):
     def draw_contents(self):
         self.draw_collisions()
         self.write()
-        self.update()
+        # self.update()
     
     def draw_collisions(self):
         collisions = []

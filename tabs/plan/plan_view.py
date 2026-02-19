@@ -20,7 +20,7 @@ class MyView(QGraphicsView):
         self.setScene(QGraphicsScene())
         self.db: Data = parent.db
         self.classes = []
-        self.blocks = []
+        self.blocks = {}
         self.mode = 'normal'
         self.widths = [0]
         self.block_start = -1
@@ -34,6 +34,8 @@ class MyView(QGraphicsView):
         def filter(l):
             return True
         self.filter_func = filter
+
+        # self.db.update_block.connect(self.redraw_block)
 
     def uncheck_all_modes(self):
         self.parent().uncheck_all_modes()
@@ -176,7 +178,7 @@ class MyView(QGraphicsView):
             self.new_block.block = block
             self.new_block.set_selectable(True)
             self.new_block.draw_contents()
-            self.blocks.append(self.new_block)
+            # self.blocks.append(self.new_block)
         self.block_start = -1
         self.new_block = False
 
@@ -361,26 +363,31 @@ class MyView(QGraphicsView):
                 
 
     def draw_blocks(self, blocks):
-        for z, block in enumerate(blocks):
-            new_block = self.place_block(block)
-            if not new_block:
-                continue
+        for z, block in enumerate(blocks): 
+            self.draw_block(block, z)
 
-            new_block.block = block
-            if isinstance(new_block, LessonBlock): 
-                new_block.setZValue(z+5000)
-                # new_block.write(not self.draw_headers)
-            else:
-                new_block.setZValue(z+2000)
-            new_block.start = block.start
-            new_block.set_filter(self.filter_func)
-            new_block.draw_contents()
+    def draw_block(self, block, z=0):
+        # if block in self.blocks:
+            # self.scene().removeItem(self.blocks[block])
+        new_block = self.place_block(block)
+        if not new_block:
+            return
+        self.blocks[block] = new_block
+        # print(self.blocks[block])
+        new_block.block = block
+        if isinstance(new_block, LessonBlock): 
+            new_block.setZValue(z+5000)
+            # new_block.write(not self.draw_headers)
+        else:
+            new_block.setZValue(z+2000)
+        new_block.start = block.start
+        new_block.set_filter(self.filter_func)
+        new_block.draw_contents()
 
-            new_block.set_movable(self.mode=='move', self.five_min_h, self.top_bar_h)
-            self.blocks.append(new_block)
-            new_block.set_selectable(True)
-            new_block.update()
-            self.scene().addItem(new_block)
+        new_block.set_movable(self.mode=='move', self.five_min_h, self.top_bar_h)
+        new_block.set_selectable(True)
+        # new_block.update()
+        self.scene().addItem(new_block)
 
     def narrow_overlapping_blocks(self):
         # for each day
@@ -433,15 +440,20 @@ class MyView(QGraphicsView):
         self.filter_func = filter
         self.draw()
 
+    def redraw_block(self, block: LessonBlockDB | CustomBlock):
+        if not block:
+            return
+        # print(len(self.blocks))
+        to_update = self.blocks[block]
+        to_update.draw_contents()
+        # print(len(self.blocks))
+
     def draw(self):
-        print('drawing')
         scene = self.scene()
         scene.clear()
         scene.setSceneRect(0,0, self.scene_width, self.scene_height)
-
         self.draw_frame()
-        print(self.classes)
-
+        # self.blocks: dict[LessonBlockDB, LessonBlock] = {}
         if len(self.classes):
             self.draw_blocks(self.db.all_blocks())
 

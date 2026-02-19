@@ -104,7 +104,7 @@ class PlanWidget(QWidget):
         self.class_filter.set_mode_normal.connect(self.uncheck_all_modes)
         self.view.load_data(self.db)
         self.view.set_classes(self.db.all_subclasses())
-        print('ended init')
+        self.db.update_block.connect(self.view.redraw_block)
 
     def export(self):
         settings.alpha = 255 
@@ -312,7 +312,6 @@ class PlanWidget(QWidget):
 
 
     def load_data(self, db):
-        print('loading data')
         self.db = db
         # self.class_filter.load_data(db)
         # self.view.load_data(db)
