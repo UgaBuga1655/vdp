@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLabel, QFileDialog,\
-      QGraphicsTextItem, QCheckBox, QApplication, QMessageBox
+      QGraphicsTextItem, QCheckBox, QApplication, QMessageBox, QComboBox
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import Qt
 from data import Data
@@ -7,6 +7,7 @@ from .mode_btn import ModeBtn
 from .plan_view import MyView
 from .filter import FilterWidget
 from .remaining_lessons import RemainingLessonsWindow
+from .stats import Statistic, StudentDensityStat
 from db_config import settings
 from coloring import ColoringThread, generate_lesson_graph, generate_block_graph
 import os
@@ -80,6 +81,15 @@ class PlanWidget(QWidget):
         show_remaining_lessons = QPushButton('Pozostałe lekcje')
         show_remaining_lessons.clicked.connect(self.show_remaining_lessons_window)
         toolbar.layout().addWidget(show_remaining_lessons)
+
+        toolbar.layout().addWidget(QLabel('Statystyki:'))
+        self.stats = QComboBox()
+        self.default_stat = Statistic(self.db)
+        self.student_density_stat = StudentDensityStat(self.db)
+        self.stats.addItem('---', self.default_stat)
+        self.stats.addItem('Zagęszczenie uczniów', self.student_density_stat)
+        self.stats.currentIndexChanged.connect(self.set_stat)
+        toolbar.layout().addWidget(self.stats)
 
         toolbar.layout().addStretch()
 
@@ -267,6 +277,10 @@ class PlanWidget(QWidget):
             self.rem_les_win = RemainingLessonsWindow(self.db)
         self.rem_les_win.show()
         self.rem_les_win.load()
+
+    def set_stat(self):
+        stat = self.stats.currentData()
+        self.view.set_stat(self.stats.currentData())
 
     def color(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)

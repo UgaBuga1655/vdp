@@ -6,10 +6,13 @@ import gcol
 from .lesson_block import LessonBlock
 from .custom_block import CustomBlock
 from .block import BasicBlock
+from .stats import Statistic, StudentDensityStat
 from functions import snap_position, display_hour, contrast_ratio
 from data import Data, Class, Subclass, LessonBlockDB
 from db_config import settings
-
+from matplotlib.pyplot import get_cmap
+from matplotlib.colors import to_hex
+from numpy import linspace
 
 class MyView(QGraphicsView):
 
@@ -27,6 +30,7 @@ class MyView(QGraphicsView):
         self.new_block = False
         self.setMouseTracking(True)
         self.ready = False
+        self.stat = Statistic(self.db)
 
         self.top_bar_h = 75
         self.left_bar_w = 50
@@ -60,8 +64,8 @@ class MyView(QGraphicsView):
             
 
     def update_column_sizes(self):
-        l = len(self.classes)
-        self.block_w = self.day_w/l if l>0 else self.day_w
+        self.l = len(self.classes) + isinstance(self.stat, StudentDensityStat) # extra column if any stats active
+        self.block_w = self.day_w/self.l if self.l>0 else self.day_w
         self.boundries = [0]
         for width in self.widths:
             self.boundries.append(self.block_w*width+self.boundries[-1])
@@ -86,7 +90,7 @@ class MyView(QGraphicsView):
         self.update_size_params()
         self.draw()
 
-    def set_mode(self, mode):
+    def set_mode(self, mode: str):
         self.mode = mode
         for block in self.scene().items():
             if isinstance(block, BasicBlock):
@@ -96,6 +100,12 @@ class MyView(QGraphicsView):
             self.viewport().setCursor(Qt.CrossCursor)
         else:
             self.viewport().setCursor(Qt.ArrowCursor)
+
+    def set_stat(self, stat: Statistic):
+        self.stat = stat
+        self.stat.load_stat()
+        self.update_size_params()
+        self.draw()
 
                 
     
@@ -278,7 +288,7 @@ class MyView(QGraphicsView):
 
             scene.addLine(0, pos, self.left_bar_w, pos)
 
-        l = len(self.classes)
+        # self.l = len(self.classes)
         days = 'Poniedziałek Wtorek Środa Czwartek Piątek'.split()
         for day in range(5):
             pos = self.day_w*(day+1)+self.left_bar_w
@@ -291,19 +301,58 @@ class MyView(QGraphicsView):
             text_y = (self.top_bar_h/2 - text.boundingRect().height()/2)\
                 /(2 if not settings.draw_blocks_full_width else 1)
             text.setPos(text_x, text_y)
-        self.draw_headers = l>0 and not settings.draw_blocks_full_width
+        self.draw_headers = self.l>0 and not settings.draw_blocks_full_width
         if self.draw_headers:
             
             scene.addLine(self.left_bar_w, self.top_bar_h/2, self.scene_width, self.top_bar_h/2)
-            self.block_w = self.day_w/l
+            self.block_w = self.day_w/self.l
             for i in range(5):
                 for n, class_name in enumerate(self.class_names):
-                    pos = self.block_w*(n+i*l+1)+self.left_bar_w
+                    pos = self.block_w*(n+i*self.l+1)+self.left_bar_w
                     text = scene.addSimpleText(class_name)
                     text_x = pos - (text.boundingRect().width()+self.block_w)/2
                     text_y = self.top_bar_h/2 + (self.top_bar_h/2 - text.boundingRect().height())/2
                     text.setPos(text_x, text_y)
                     scene.addLine(pos, self.top_bar_h/2, pos, self.scene_height)
+
+    
+    def draw_stats(self):
+        def add_rect():
+            rect = scene.addRect(left, top, self.block_w, h)
+            i = 255-int(last/student_count*255)
+            rect.setBrush(QColor(hex_colors[i]))
+            rect.setToolTip(str(last))
+            # if last:
+            #     text = scene.addSimpleText(str(last))
+            #     text.setPos(rect.boundingRect().center())
+
+        student_count = self.db.student_count()
+        stats = self.stat.get_stats()
+        cmap = get_cmap('magma')
+        hex_colors = [to_hex(cmap(i)) for i in linspace(0, 1, 256)]
+        if stats is None:
+            return
+        compiled = [[] for _ in range(5)]
+        scene = self.scene()
+        for n, day in enumerate(stats):
+            left = self.left_bar_w + (n+1)*self.day_w - self.block_w
+            last = day[0]
+            length = 1
+            top = self.top_bar_h
+            for five_min_cell in day[1:]:
+                if five_min_cell == last:
+                    length +=1
+                else:
+                    h = length*self.five_min_h
+                    add_rect()
+                    last = five_min_cell
+                    length = 1
+                    top+=h
+            h = length*self.five_min_h
+            add_rect()
+
+
+
 
 
     def place_block(self, block):
@@ -453,6 +502,7 @@ class MyView(QGraphicsView):
         scene.clear()
         scene.setSceneRect(0,0, self.scene_width, self.scene_height)
         self.draw_frame()
+        self.draw_stats()
         # self.blocks: dict[LessonBlockDB, LessonBlock] = {}
         if len(self.classes):
             self.draw_blocks(self.db.all_blocks())
