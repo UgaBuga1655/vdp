@@ -305,8 +305,10 @@ class ClassesWidget(QWidget):
         subject_window = SubjectsWindow(self, self.db, subject)
         setattr(self, f'subject_{subject.id}', subject_window)
         subject_window.show()
+        label: SubjectLabel
         for label in self.labels[subject]:
             subject_window.short_name_updated.connect(label.setText)
+            subject_window.teacher_changed.connect(label.setToolTip)
         subject_window.color_changed.connect(self.load_class)
 
     def copy_subject(self, subject):

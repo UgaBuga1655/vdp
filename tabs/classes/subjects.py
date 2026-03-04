@@ -40,6 +40,7 @@ class CopySubjectsDialog(QDialog):
 class SubjectsWindow(QWidget):
     short_name_updated = pyqtSignal(str)
     color_changed = pyqtSignal(QColor)
+    teacher_changed = pyqtSignal(str)
     
     def __init__(self,parent, db, subject):
         super().__init__()
@@ -173,6 +174,7 @@ class SubjectsWindow(QWidget):
         if not (subject and teacher):
             return False
         self.db.update_subject_teacher(subject, teacher)
+        self.teacher_changed.emit(teacher.name)
 
     def add_lesson(self):
         dialog = AddLessonDialog(self)

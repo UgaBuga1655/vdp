@@ -219,6 +219,8 @@ class Data(QObject):
     def update_subject_teacher(self, subject: Subject, teacher: Teacher) -> None:
         subject.teacher = teacher
         for lesson in subject.lessons:
+            if lesson.block is None:
+                continue
             self.update_block.emit(lesson.block)
         self.session.commit()
 
