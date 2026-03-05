@@ -118,6 +118,10 @@ class MyView(QGraphicsView):
                 self.block_start = self.how_many_5_min_blocks(event)
                 self.new_block_top = snap_position(self.mapToScene(event.pos()).y(), self.five_min_h, self.top_bar_h)
                 self.new_block_left = snap_position(self.mapToScene(event.pos()).x(), self.block_w, self.left_bar_w)
+                # don't draw anything on stats column
+                i = (self.new_block_left-self.left_bar_w + self.block_w/2)//self.block_w
+                if i >= l:
+                    return
                 if self.mode == 'new':
                     self.new_block = LessonBlock(self.new_block_left, self.new_block_top, self.block_w, self.five_min_h, self.scene(), self.db, self.classes)
                 elif self.mode == 'new_custom':
@@ -128,6 +132,7 @@ class MyView(QGraphicsView):
                 self.scene().addItem(self.new_block)
             elif event.button() == Qt.MouseButton.RightButton:
                 self.drop_new_block()
+        
         if event.button() == Qt.MouseButton.LeftButton and self.mode!='move':
             item = self.itemAt(event.pos())
             if isinstance(item, (BasicBlock, QGraphicsTextItem)):
@@ -162,7 +167,7 @@ class MyView(QGraphicsView):
             length = int(self.new_block.boundingRect().height() // self.five_min_h)
             # find (sub)class
             i = x // self.block_w
-            i = int(i%len(self.classes))
+            i = int(i%self.l)
             if self.mode == 'new':
                 my_class = self.classes[i]
                 # find if block spans entire class
@@ -272,10 +277,15 @@ class MyView(QGraphicsView):
         wide_pen = QPen()
         wide_pen.setWidth(3)
         line = scene.addLine(0, self.top_bar_h, self.scene_width, self.top_bar_h, wide_pen)
+        line.setZValue(1_000_000)
         line = scene.addLine(0, 0, self.scene_width, 0, wide_pen)
+        line.setZValue(1_000_000)
         line = scene.addLine(0, 0, 0, self.scene_height, wide_pen)
+        line.setZValue(1_000_000)
         line = scene.addLine(0, self.scene_height, self.scene_width, self.scene_height, wide_pen)
+        line.setZValue(1_000_000)
         line = scene.addLine(self.left_bar_w, 0, self.left_bar_w, self.scene_height, wide_pen)
+        line.setZValue(1_000_000)
 
         for hour in range(8,16):
             pos = self.top_bar_h+(hour - 7)*self.hour_h
@@ -293,7 +303,7 @@ class MyView(QGraphicsView):
         for day in range(5):
             pos = self.day_w*(day+1)+self.left_bar_w
             line = scene.addLine(pos, 0, pos, self.scene_height)
-            line.setZValue(10000)
+            line.setZValue(1_000_000)
             line.setPen(wide_pen)
             
             text = scene.addSimpleText(days[day])
@@ -318,9 +328,10 @@ class MyView(QGraphicsView):
     
     def draw_stats(self):
         def add_rect():
-            rect = scene.addRect(left, top, self.block_w, h)
+            rect = scene.addRect(left+0.5, top, self.block_w-1, h)
             i = 255-int(last/student_count*255)
             rect.setBrush(QColor(hex_colors[i]))
+            rect.setPen(QPen(Qt.NoPen))
             rect.setToolTip(str(last))
             # if last:
             #     text = scene.addSimpleText(str(last))
@@ -328,7 +339,7 @@ class MyView(QGraphicsView):
 
         student_count = self.db.student_count()
         stats = self.stat.get_stats()
-        cmap = get_cmap('magma')
+        cmap = get_cmap('bwr')
         hex_colors = [to_hex(cmap(i)) for i in linspace(0, 1, 256)]
         if stats is None:
             return
