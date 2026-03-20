@@ -28,6 +28,7 @@ class BasicBlock(QGraphicsRectItem):
         # self.setBrush(QBrush(color))
         self.moved = False
         self.block: LessonBlockDB
+        self.collisions = dict()
         self.text_item0 = BlockText(self, w, h)
         self.text_item1 = BlockText(self, w, h)
         self.text_item2 = BlockText(self, w, h)
@@ -111,15 +112,14 @@ class BasicBlock(QGraphicsRectItem):
                 self.moveBy(0, -self.five_min_h)
             self.bring_forward()
             # show tooltip
-            # print('y_in_scene', self.y_in_scene())
             start = (self.y_in_scene() - self.top_bar_h) // self.five_min_h + 1
             duration = self.block.length
             times = [start, start+duration]
             time = '-'.join([display_hour(t) for t in times])
             if self.block.length>=0:
                 time += f' ({int(self.block.length)*5})'
-            # if show_tooltip:
-                # QToolTip.showText(event.screenPos(), time)
+            if show_tooltip:
+                QToolTip.showText(event.screenPos(), time)
             # move text
             # self.recenter_text()
 
@@ -127,7 +127,6 @@ class BasicBlock(QGraphicsRectItem):
             if start_y != self.y():
                 # print('start before emitting:' ,start)
                 self.signal.block_moved.emit(self.block, int(start))
-            # self.db.update_block_start(self.block, start)
 
 
     def recenter_text(self, text_item=None, rect=None):

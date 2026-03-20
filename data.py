@@ -320,10 +320,22 @@ class Data(QObject):
             for lesson in block.lessons:
                 lesson.classroom = None
         self.session.commit()
-
+    
+    def overlapping_blocks(self, block: LessonBlockDB):
+        return self.session.query(LessonBlockDB).filter_by(day=block.day)\
+                .filter(or_(
+                    LessonBlockDB.start.between(block.start, block.start+block.length),
+                    and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
+                )).all()
+    
     def update_block_start(self, block: LessonBlockDB, start: int):
+        pre_overlapping = set(self.overlapping_blocks(block))
         block.start = start
         self.session.commit()
+        post_overlapping = set(self.overlapping_blocks(block))
+        to_remove = pre_overlapping - post_overlapping
+        collisions = self.block_collisions(block)
+        return to_remove, collisions
 
     def add_lesson_to_block(self, lesson: Lesson, block: LessonBlockDB, lock=True):
         if not lesson :
@@ -440,20 +452,25 @@ class Data(QObject):
         return not(mask & ~teacher.__getattribute__(f'av{block.day+1}'))
     
     def block_collisions(self, block: LessonBlockDB):
-        collisions = []
 
-        colliding_lessons = self.session.query(Lesson).join(Lesson.block).filter(LessonBlockDB.day==block.day)\
+        colliding_blocks = self.session.query(LessonBlockDB).filter(LessonBlockDB.day==block.day)\
                     .filter(or_(
                         LessonBlockDB.start.between(block.start, block.start+block.length),
                         and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
                     )).all()
         
+        collisions = {bl: [] for bl in colliding_blocks}
+        # collisions[None] = []
+        colliding_lessons = []
+        for bl in colliding_blocks:
+            colliding_lessons.extend(bl.lessons)
+
+        
         lesson: Lesson
         for lesson in block.lessons:
             teacher = lesson.subject.teacher
             if teacher and not self.is_teacher_available(teacher, block):
-                collisions.append((
-                    None,
+                collisions[block].append((
                     f'{subject.get_name()}: {subject.teacher.name} nie jest dostępny w tych godzinach'),
                     None
                 )
@@ -465,25 +482,27 @@ class Data(QObject):
                     continue
                 # teachers
                 if teacher and col_les.subject.teacher == teacher:
-                    collisions.append((col_les.block, 
-                      f'{lesson.subject.get_name()}: {teacher.name} prowadzi {col_les.name_and_time()}',
-                      f'{col_les.subject.get_name()}: {teacher.name} prowadzi {lesson.name_and_time()}',
+                    collisions[col_les.block].append((
+                        f'{lesson.subject.get_name()}: {teacher.name} prowadzi {col_les.name_and_time()}',
+                        f'{col_les.subject.get_name()}: {teacher.name} prowadzi {lesson.name_and_time()}',
                     ))
                 # classrooms
                 if lesson.classroom and col_les.classroom == lesson.classroom:
-                    collisions.append((col_les.block, 
+                    collisions[col_les.block].append((
                       f'{lesson.subject.get_name()}: {lesson.classroom.name} jest zajęte przez {col_les.name_and_time()}',
                       f'{col_les.subject.get_name()}: {lesson.classroom.name} jest zajęte przez {lesson.name_and_time()}'
                     ))
-                # stundets
+                # students
                 # don't bother when classes are different
                 if col_les.subject.absolute_class() != lesson.subject.absolute_class():
                     continue
                 if len(students.intersection(col_les.subject.students)):
-                    collisions.append((col_les.block, 
+                    collisions[col_les.block].append(( 
                       f'{lesson.subject.get_name()}: Niektórzy uczniowie mają {col_les.name_and_time()}',
                       f'{col_les.subject.get_name()}: Niektórzy uczniowie mają {lesson.name_and_time()}'
                     ))
+
+        
 
         return collisions
 

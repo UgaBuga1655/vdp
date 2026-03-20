@@ -534,7 +534,16 @@ class MyView(QGraphicsView):
         for lesson in block.lessons:
             self.stat.remove_lesson(lesson)
         # print(start)
-        self.db.update_block_start(block, start)
+        no_longer_overlapping, collisions = self.db.update_block_start(block, start)
+        for bl, cols in collisions.items():
+            my_tooltip = '\n'.join([c[0] for c in cols])
+            their_tooltip = '\n'.join([c[1] for c in cols])
+            self.blocks[bl].add_collision(block, their_tooltip)
+            self.blocks[block].add_collision(bl, my_tooltip)
+        for bl in no_longer_overlapping:
+            self.blocks[bl].remove_collisions_with(block)
+            self.blocks[block].remove_collisions_with(bl)
+        # collisions = self.db.block_collisions(block)
         for lesson in block.lessons:
             self.stat.add_lesson(lesson)
 

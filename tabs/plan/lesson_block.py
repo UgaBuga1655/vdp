@@ -83,8 +83,9 @@ class LessonBlock(BasicBlock):
                             or rect.top() <= bl.boundingRect().bottom() <= rect.bottom())]
     
     def move_and_check_collisions(self, lesson_block, start: int):
-        print(f'moving: {self.block.print_full_time()}')
         self.write()
+        return
+        print(f'moving: {self.block.print_full_time()}')
         if self.isSelected() and self.flags() & QGraphicsRectItem.ItemIsMovable:
             colliding_blocks = self.get_colliding_blocks()
             collisions = self.draw_collisions()
@@ -94,6 +95,30 @@ class LessonBlock(BasicBlock):
                 self.setToolTip(self.time())
             for block in colliding_blocks:
                 block.draw_collisions()
+    
+   
+
+    def remove_collisions_with(self, block):
+        self.collisions[block] = ''
+        self.update_tooltip()
+
+    def add_collision(self, block, collision):
+        # print(collision)
+        self.collisions[block] = collision
+        self.update_tooltip()
+
+        # self.setToolTip('\n'.join([self.time()] + [col[1] for col in self.collisions]))
+
+    def update_tooltip(self):
+        # return
+        text = self.time() + '\n'
+        # print(self.collisions)
+        cols = '\n'.join([c for c in self.collisions.values() if c])
+        if cols:
+            self.setPen(QPen(QBrush(Qt.red),4))
+        else:
+            self.setPen(QPen())
+        self.setToolTip(text + cols)
 
 
     def add_subject(self):
@@ -265,7 +290,7 @@ class LessonBlock(BasicBlock):
     
 
     def draw_contents(self):
-        self.draw_collisions()
+        # self.draw_collisions()
         self.write()
         # self.update()
     
