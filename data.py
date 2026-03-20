@@ -287,6 +287,7 @@ class Data(QObject):
         self.session.commit()
 
     def create_block(self, day:int, start:int, length:int, my_class) -> LessonBlockDB:
+        print(length)
         if isinstance(my_class, Class):
             block = LessonBlockDB(day=day, start=start, length=length, my_class=my_class)
         else:
@@ -430,11 +431,72 @@ class Data(QObject):
         mask_start = int(block.start//6)
         mask_end = int((block.start+block.length-0.5)//6) + 1
         mask = 0
+        if mask_start<0:
+            self.session.delete(block)
+            self.session.commit()
+            return True
         for shift in range(mask_start, mask_end):
             mask |=  1 << shift
         return not(mask & ~teacher.__getattribute__(f'av{block.day+1}'))
     
+    def block_collisions(self, block: LessonBlockDB):
+        collisions = []
+
+        colliding_lessons = self.session.query(Lesson).join(Lesson.block).filter(LessonBlockDB.day==block.day)\
+                    .filter(or_(
+                        LessonBlockDB.start.between(block.start, block.start+block.length),
+                        and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
+                    )).all()
+        
+        lesson: Lesson
+        for lesson in block.lessons:
+            teacher = lesson.subject.teacher
+            if teacher and not self.is_teacher_available(teacher, block):
+                collisions.append((
+                    None,
+                    f'{subject.get_name()}: {subject.teacher.name} nie jest dostępny w tych godzinach'),
+                    None
+                )
+
+            col_les: Lesson
+            students = set(lesson.subject.students)
+            for col_les in colliding_lessons:
+                if col_les == lesson:
+                    continue
+                # teachers
+                if teacher and col_les.subject.teacher == teacher:
+                    collisions.append((col_les.block, 
+                      f'{lesson.subject.get_name()}: {teacher.name} prowadzi {col_les.name_and_time()}',
+                      f'{col_les.subject.get_name()}: {teacher.name} prowadzi {lesson.name_and_time()}',
+                    ))
+                # classrooms
+                if lesson.classroom and col_les.classroom == lesson.classroom:
+                    collisions.append((col_les.block, 
+                      f'{lesson.subject.get_name()}: {lesson.classroom.name} jest zajęte przez {col_les.name_and_time()}',
+                      f'{col_les.subject.get_name()}: {lesson.classroom.name} jest zajęte przez {lesson.name_and_time()}'
+                    ))
+                # stundets
+                # don't bother when classes are different
+                if col_les.subject.absolute_class() != lesson.subject.absolute_class():
+                    continue
+                if len(students.intersection(col_les.subject.students)):
+                    collisions.append((col_les.block, 
+                      f'{lesson.subject.get_name()}: Niektórzy uczniowie mają {col_les.name_and_time()}',
+                      f'{col_les.subject.get_name()}: Niektórzy uczniowie mają {lesson.name_and_time()}'
+                    ))
+
+        return collisions
+
+        
+        # students
+        
+        for lesson in block.lessons:
+            pass
+    
     def lesson_collisions(self, lesson):
+        if not lesson.block:
+            return None
+
         subject = lesson.subject
 
         # students

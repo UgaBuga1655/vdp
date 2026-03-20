@@ -15,6 +15,7 @@ class LessonBlock(BasicBlock):
     def __init__(self, x, y, w, h, parent, db, visible_classes):
         super().__init__(x, y, w, h, parent, db, visible_classes)
         self.text_items = {}
+        # self.signal.block_moved.connect(self.move_and_check_collsions)
 
     def filter(self, l):
         return True
@@ -81,21 +82,19 @@ class LessonBlock(BasicBlock):
                             and (rect.top() <= bl.boundingRect().top() <= rect.bottom() \
                             or rect.top() <= bl.boundingRect().bottom() <= rect.bottom())]
     
-
-    def mouseMoveEvent(self, event):
-        colliding_blocks = self.get_colliding_blocks()
-        super().mouseMoveEvent(event, False)
-
+    def move_and_check_collisions(self, lesson_block, start: int):
+        print(f'moving: {self.block.print_full_time()}')
+        self.write()
         if self.isSelected() and self.flags() & QGraphicsRectItem.ItemIsMovable:
+            colliding_blocks = self.get_colliding_blocks()
             collisions = self.draw_collisions()
             if collisions:
-                QToolTip.showText(event.screenPos(), self.time() + '\n' + collisions)
+                self.setToolTip(self.time() + '\n' + collisions)
             else:
-                QToolTip.showText(event.screenPos(), self.time())
-            colliding_blocks.extend(self.get_colliding_blocks())
+                self.setToolTip(self.time())
             for block in colliding_blocks:
                 block.draw_collisions()
-        self.draw_contents()
+
 
     def add_subject(self):
         dialog = AddLessonToBlockDialog(self)
@@ -254,7 +253,6 @@ class LessonBlock(BasicBlock):
                 text_item.setDefaultTextColor(QColor('white'))
             else:
                 text_item.setDefaultTextColor(QColor('black'))
-
             # write on screen
             if settings.draw_blocks_full_width:
                 specify_class = True
@@ -272,20 +270,18 @@ class LessonBlock(BasicBlock):
         # self.update()
     
     def draw_collisions(self):
-        collisions = []
-        for lesson in self.block.lessons:
-            collisions.extend(self.db.lesson_collisions(lesson))
+        collisions = self.db.block_collisions(self.block)
 
-        collisions = '\n'.join(collisions)
+        display_collisions = '\n'.join([c[1] for c in collisions])
 
-        if collisions:
+        if display_collisions:
             self.setPen(QPen(QBrush(Qt.red),4))
             # QToolTip.showText(self.mapRectToScene(self.boundingRect().topLeft().toPoint()), self.time() + '\n' + collisions)
-            self.setToolTip(self.time() + '\n' + collisions)
+            self.setToolTip(self.time() + '\n' + display_collisions)
         else:
             self.setPen(QPen())
             self.setToolTip(self.time())
-        return collisions
+        return display_collisions
 
     def overlapping_lesson_blocks(self):
         return [bl for bl in self.collidingItems() \

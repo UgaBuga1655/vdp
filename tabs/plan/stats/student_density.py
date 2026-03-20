@@ -1,3 +1,5 @@
+from numpy import delete, less
+
 from data import Data, Lesson
 from PyQt5.QtCore import QObject, pyqtSignal
 from .none_stat import Statistic
@@ -21,8 +23,12 @@ class StudentDensityStat(Statistic):
         if lesson.block is None:
             return
         weight = len(lesson.subject.students)
-        for five_min_block in range(int(lesson.length/5)):
-            self.stats[lesson.block.day][lesson.block.start + five_min_block] += weight
+        try:
+            for five_min_block in range(int(lesson.length/5)):
+                self.stats[lesson.block.day][lesson.block.start + five_min_block] += weight
+        except IndexError:
+            self.db.session.delete(lesson.block)
+            self.db.session.commit()
 
 
     def remove_lesson(self, lesson: Lesson):
@@ -30,7 +36,7 @@ class StudentDensityStat(Statistic):
             return
         weight = len(lesson.subject.students)
         for five_min_block in range(lesson.length):
-            self.stats[lesson.day][lesson.block.start + five_min_block] -= weight
+            self.stats[lesson.block.day][lesson.block.start + five_min_block] -= weight
 
     def get_stats(self):
         return self.stats

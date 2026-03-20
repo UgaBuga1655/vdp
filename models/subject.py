@@ -23,6 +23,9 @@ class Subject(Base):
         if self.subclass:
             return self.subclass
         
+    def absolute_class(self):
+        return self.my_class if self.my_class else self.subclass.my_class
+        
     def class_name(self):
         return self.my_class.name if self.my_class else self.subclass.my_class.name
 

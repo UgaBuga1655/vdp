@@ -1,12 +1,15 @@
 from __future__ import annotations
 from PyQt5.QtWidgets import QGraphicsRectItem, QToolTip, QGraphicsScene, QMenu
 from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from data import Data, Class, LessonBlockDB
 from functions import snap_position, display_hour, contrast_ratio
 from .block_text import BlockText
 from db_config import settings
 
+
+class BlockSignaler(QObject):
+    block_moved = pyqtSignal(LessonBlockDB, int)
 
 class BasicBlock(QGraphicsRectItem):
     
@@ -37,7 +40,7 @@ class BasicBlock(QGraphicsRectItem):
         self.parent.addItem(self.text_item4)
         self.visible_classes = visible_classes
         self.setAcceptHoverEvents(True)
-
+        self.signal = BlockSignaler()
 
     def mousePressEvent(self, event):
         self.moved = True
@@ -98,32 +101,33 @@ class BasicBlock(QGraphicsRectItem):
         if self.isSelected() and self.flags() & QGraphicsRectItem.ItemIsMovable:
             # snap to grid
             x = self.start_x
+            start_y = self.y()
             y = snap_position(self.y(), self.five_min_h)
             self.setPos(x, y)
-
             # correct if out of bounds
             while self.y_in_scene() + self.five_min_h/2 < self.top_bar_h:
                 self.moveBy(0, self.five_min_h)
             while self.y_in_scene() + self.block.length*self.five_min_h > self.parent.height():
                 self.moveBy(0, -self.five_min_h)
-
             self.bring_forward()
-
             # show tooltip
+            # print('y_in_scene', self.y_in_scene())
             start = (self.y_in_scene() - self.top_bar_h) // self.five_min_h + 1
             duration = self.block.length
             times = [start, start+duration]
             time = '-'.join([display_hour(t) for t in times])
             if self.block.length>=0:
                 time += f' ({int(self.block.length)*5})'
-            if show_tooltip:
-                QToolTip.showText(event.screenPos(), time)
-
+            # if show_tooltip:
+                # QToolTip.showText(event.screenPos(), time)
             # move text
             # self.recenter_text()
 
-            # update database 
-            self.db.update_block_start(self.block, start)
+            # update database
+            if start_y != self.y():
+                # print('start before emitting:' ,start)
+                self.signal.block_moved.emit(self.block, int(start))
+            # self.db.update_block_start(self.block, start)
 
 
     def recenter_text(self, text_item=None, rect=None):

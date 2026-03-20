@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QToolTip, QGraphicsTextItem, QGraphicsRectItem
 from PyQt5.QtGui import QPen, QColor, QBrush, QTransform
-from PyQt5.QtCore import QPoint, Qt, QRectF
+from PyQt5.QtCore import QPoint, Qt, QRectF, QEvent
 from networkx import Graph
 import gcol
 from .lesson_block import LessonBlock
@@ -107,7 +107,25 @@ class MyView(QGraphicsView):
         self.update_size_params()
         self.draw()
 
-                
+    # def viewportEvent(self, event):
+    #     if event.type() == QEvent.ToolTip:
+    #         # Find the item under the cursor
+    #         pos = event.pos()
+    #         items = [item for item in self.items(pos) if isinstance(item, QGraphicsRectItem)]
+
+    #         if len(items):
+    #             item = items[0]
+    #             text = item.toolTip()
+    #             if text:
+    #                 # Show tooltip immediately
+    #                 QToolTip.showText(event.globalPos(), text)
+    #                 return True  # stop default delayed tooltip
+
+    #         # If no item or no tooltip, hide
+    #         QToolTip.hideText()
+    #         return True
+
+    #     return super().viewportEvent(event) 
     
     def mousePressEvent(self, event):
         if self.mode in ('new', 'new_custom'):
@@ -414,8 +432,10 @@ class MyView(QGraphicsView):
         height = self.five_min_h * block.length
 
         if isinstance(block, LessonBlockDB):
-            return LessonBlock(x, y, width, height, self.scene(), self.db, self.classes)
-            
+            block = LessonBlock(x, y, width, height, self.scene(), self.db, self.classes)
+            block.signal.block_moved.connect(self.move_block)
+            block.signal.block_moved.connect(block.move_and_check_collisions)
+            return block
         else:
             if not settings.draw_custom_blocks:
                 return
@@ -501,12 +521,22 @@ class MyView(QGraphicsView):
         self.draw()
 
     def redraw_block(self, block: LessonBlockDB | CustomBlock):
+        print(f'redrawing: {block.print_full_time()}')
         if not block:
             return
         # print(len(self.blocks))
         to_update = self.blocks[block]
         to_update.draw_contents()
         # print(len(self.blocks))
+
+    def move_block(self, block, start):
+        # return
+        for lesson in block.lessons:
+            self.stat.remove_lesson(lesson)
+        # print(start)
+        self.db.update_block_start(block, start)
+        for lesson in block.lessons:
+            self.stat.add_lesson(lesson)
 
     def draw(self):
         scene = self.scene()
