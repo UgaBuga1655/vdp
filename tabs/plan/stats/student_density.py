@@ -35,8 +35,8 @@ class StudentDensityStat(Statistic):
         if lesson.block is None:
             return
         weight = len(lesson.subject.students)
-        for five_min_block in range(lesson.length):
+        for five_min_block in range(int(lesson.length/5)):
             self.stats[lesson.block.day][lesson.block.start + five_min_block] -= weight
 
-    def get_stats(self):
-        return self.stats
+    def get_stats(self, only_day=None):
+        return [self.stats[only_day]] if only_day else self.stats

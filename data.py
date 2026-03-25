@@ -473,9 +473,9 @@ class Data(QObject):
             teacher = lesson.subject.teacher
             if teacher and not self.is_teacher_available(teacher, block):
                 collisions[block].append((
-                    f'{subject.get_name()}: {subject.teacher.name} nie jest dostępny w tych godzinach'),
-                    None
-                )
+                    f'{lesson.subject.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
+                    ''
+                ))
 
             col_les: Lesson
             students = set(lesson.subject.students)

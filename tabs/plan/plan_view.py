@@ -344,10 +344,17 @@ class MyView(QGraphicsView):
                     scene.addLine(pos, self.top_bar_h/2, pos, self.scene_height)
 
     
-    def draw_stats(self):
+    def draw_stats(self, only_day = None):
+        for day in range(5) if not only_day else [only_day]:
+            # print(day)
+            # print(self.stat.rects)
+            for rect in self.stat.rects[day][::-1]:
+                self.scene().removeItem(rect)
+            self.stat.rects[day] = []
         def add_rect():
             rect = scene.addRect(left+0.5, top, self.block_w-1, h)
             i = 255-int(last/student_count*255)
+            # print(i)
             rect.setBrush(QColor(hex_colors[i]))
             rect.setPen(QPen(Qt.NoPen))
             rect.setToolTip(str(last))
@@ -356,7 +363,7 @@ class MyView(QGraphicsView):
             #     text.setPos(rect.boundingRect().center())
 
         student_count = self.db.student_count()
-        stats = self.stat.get_stats()
+        stats = self.stat.get_stats(only_day)
         cmap = get_cmap('bwr')
         hex_colors = [to_hex(cmap(i)) for i in linspace(0, 1, 256)]
         if stats is None:
@@ -364,6 +371,8 @@ class MyView(QGraphicsView):
         compiled = [[] for _ in range(5)]
         scene = self.scene()
         for n, day in enumerate(stats):
+            if only_day:
+                n = only_day
             left = self.left_bar_w + (n+1)*self.day_w - self.block_w
             last = day[0]
             length = 1
@@ -535,6 +544,8 @@ class MyView(QGraphicsView):
         # add lessons back to stats
         for lesson in block.lessons:
             self.stat.add_lesson(lesson)
+        # print(self.stat.get_stats(block.day))
+        self.draw_stats(block.day)
 
     def update_collisions_around(self, block):
         collisions = self.db.block_collisions(block)

@@ -5,6 +5,7 @@ class Statistic(QObject):
     def __init__(self, db: Data):
         super().__init__()
         self.db =db
+        self.rects = [[]] * 5
 
     
     def load_stat(self):
@@ -16,5 +17,5 @@ class Statistic(QObject):
     def remove_lesson(self, lesson):
         pass
 
-    def get_stats(self):
+    def get_stats(self, only_day=None):
         return None
