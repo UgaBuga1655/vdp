@@ -1,6 +1,6 @@
 from __future__ import annotations
 from PyQt5.QtWidgets import QGraphicsRectItem, QToolTip, QGraphicsScene, QMenu
-from PyQt5.QtGui import QBrush, QColor
+from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from data import Data, Class, LessonBlockDB
 from functions import snap_position, display_hour, contrast_ratio
@@ -157,3 +157,29 @@ class BasicBlock(QGraphicsRectItem):
     
     def set_filter(self, filter):
         self.filter = filter
+
+
+    def remove_collisions_with(self, block):
+        self.collisions[block] = ''
+        self.update_tooltip()
+
+    def add_collision(self, block, collision):
+        # print(collision)
+        self.collisions[block] = collision
+        self.update_tooltip()
+
+        # self.setToolTip('\n'.join([self.time()] + [col[1] for col in self.collisions]))
+
+    def update_tooltip(self):
+        # return
+        text = self.time() + '\n'
+        # print(self.collisions)
+        cols = '\n'.join([c for c in self.collisions.values() if c])
+        if cols:
+            self.setPen(QPen(QBrush(Qt.red),4))
+        else:
+            self.setPen(QPen())
+        self.setToolTip(text + cols)
+
+    def time(self):
+        return f'{self.block.print_time()} ({self.block.length*5})'

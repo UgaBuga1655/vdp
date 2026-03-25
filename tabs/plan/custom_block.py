@@ -56,6 +56,10 @@ class CustomBlock(BasicBlock):
             self.text_item0.setDefaultTextColor(QColor('#ffffff'))
         self.recenter_text()
 
+    # def add_collision(*args):
+    #     pass
+
+
     def mouseMoveEvent(self, event, show_tooltip=True):
         super().mouseMoveEvent(event, show_tooltip)
         self.recenter_text()

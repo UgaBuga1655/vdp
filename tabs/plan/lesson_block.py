@@ -98,27 +98,6 @@ class LessonBlock(BasicBlock):
     
    
 
-    def remove_collisions_with(self, block):
-        self.collisions[block] = ''
-        self.update_tooltip()
-
-    def add_collision(self, block, collision):
-        # print(collision)
-        self.collisions[block] = collision
-        self.update_tooltip()
-
-        # self.setToolTip('\n'.join([self.time()] + [col[1] for col in self.collisions]))
-
-    def update_tooltip(self):
-        # return
-        text = self.time() + '\n'
-        # print(self.collisions)
-        cols = '\n'.join([c for c in self.collisions.values() if c])
-        if cols:
-            self.setPen(QPen(QBrush(Qt.red),4))
-        else:
-            self.setPen(QPen())
-        self.setToolTip(text + cols)
 
 
     def add_subject(self):
@@ -317,5 +296,3 @@ class LessonBlock(BasicBlock):
                 and abs(bl.mapRectToScene(bl.boundingRect()).top() - self.mapRectToScene(self.boundingRect()).bottom()) > 3 \
                 and abs(bl.mapRectToScene(bl.boundingRect()).bottom() - self.mapRectToScene(self.boundingRect()).top()) > 3] 
     
-    def time(self):
-        return f'{self.block.print_time()} ({self.block.length*5})'

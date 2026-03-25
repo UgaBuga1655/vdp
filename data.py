@@ -1,3 +1,4 @@
+from numpy import less
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_
@@ -336,11 +337,18 @@ class Data(QObject):
                     and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
                 )).all()
     
+    def overlapping_custom_blocks(self, block: LessonBlockDB):
+        return self.session.query(CustomBlock).filter_by(day=block.day)\
+                .filter(or_(
+                    CustomBlock.start.between(block.start, block.start+block.length-1),
+                    and_(CustomBlock.start <= block.start, block.start < CustomBlock.start+CustomBlock.length)
+                )).all()
+    
     def update_block_start(self, block: LessonBlockDB, start: int):
-        pre_overlapping = set(self.overlapping_blocks(block))
+        pre_overlapping = set(self.overlapping_blocks(block) + self.overlapping_custom_blocks(block))
         block.start = start
         self.session.commit()
-        post_overlapping = set(self.overlapping_blocks(block))
+        post_overlapping = set(self.overlapping_blocks(block) + self.overlapping_custom_blocks(block))
         to_remove = pre_overlapping - post_overlapping
         # collisions = self.block_collisions(block)
         return to_remove
@@ -474,13 +482,11 @@ class Data(QObject):
         if not isinstance(block, LessonBlockDB):
             return {}
 
-        colliding_blocks = self.session.query(LessonBlockDB).filter(LessonBlockDB.day==block.day)\
-                    .filter(or_(
-                        LessonBlockDB.start.between(block.start, block.start+block.length),
-                        and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
-                    )).all()
+        colliding_blocks = self.overlapping_blocks(block)
         
-        collisions = {bl: [] for bl in colliding_blocks}
+        colliding_custom_blocks = self.overlapping_custom_blocks(block)
+        
+        collisions = {bl: [] for bl in colliding_blocks + colliding_custom_blocks}
         # collisions[None] = []
         colliding_lessons = []
         for bl in colliding_blocks:
@@ -522,6 +528,15 @@ class Data(QObject):
                       f'{lesson.subject.get_name()}: Niektórzy uczniowie mają {col_les.name_and_time()}',
                       f'{col_les.subject.get_name()}: Niektórzy uczniowie mają {lesson.name_and_time()}'
                     ))
+            for col_bl in colliding_custom_blocks:
+                for duty in col_bl.duties:
+                    if duty.teacher == teacher:
+                        collisions[col_bl].append((
+                            f'{lesson.subject.get_name()}: {duty.collision_text()}',
+                            f'{duty.classroom.name}: {teacher.name} prowadzi {lesson.name_and_time()}'
+                        ))
+
+
 
         
 

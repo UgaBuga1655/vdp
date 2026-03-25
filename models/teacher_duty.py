@@ -14,3 +14,6 @@ class TeacherDuty(Base):
     
     classroom_id = Column(Integer, ForeignKey('classrooms.id'))
     classroom = relationship('Classroom', back_populates='duties')
+
+    def collision_text(self):
+        return f'{self.teacher.name} ma dyżur w {self.classroom.name} ({self.block.print_time()})'
