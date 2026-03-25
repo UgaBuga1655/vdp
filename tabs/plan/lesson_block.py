@@ -141,6 +141,7 @@ class LessonBlock(BasicBlock):
                 old_block_item: LessonBlock = [bl for bl in self.parent.items() if isinstance(bl, LessonBlock) and bl.block==old_block][0]
                 old_block_item.draw_contents()
             self.draw_contents()
+            self.signal.block_updated.emit(self.block)
 
 
     def remove_lesson(self):
@@ -155,9 +156,10 @@ class LessonBlock(BasicBlock):
                 return False
             lesson = dialog.list.currentData()
         self.db.remove_lesson_from_block(lesson)
-        for block in self.collidingItems():
-            if isinstance(block, LessonBlock):
-                block.draw_collisions()
+        self.signal.block_updated.emit(self.block)
+        # for block in self.collidingItems():
+            # if isinstance(block, LessonBlock):
+                # block.draw_collisions()
         self.draw_contents()
 
     def manage_classrooms(self):

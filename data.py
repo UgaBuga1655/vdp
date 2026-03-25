@@ -334,8 +334,8 @@ class Data(QObject):
         self.session.commit()
         post_overlapping = set(self.overlapping_blocks(block))
         to_remove = pre_overlapping - post_overlapping
-        collisions = self.block_collisions(block)
-        return to_remove, collisions
+        # collisions = self.block_collisions(block)
+        return to_remove
 
     def add_lesson_to_block(self, lesson: Lesson, block: LessonBlockDB, lock=True):
         if not lesson :
@@ -452,6 +452,8 @@ class Data(QObject):
         return not(mask & ~teacher.__getattribute__(f'av{block.day+1}'))
     
     def block_collisions(self, block: LessonBlockDB):
+        if not isinstance(block, LessonBlockDB):
+            return {}
 
         colliding_blocks = self.session.query(LessonBlockDB).filter(LessonBlockDB.day==block.day)\
                     .filter(or_(

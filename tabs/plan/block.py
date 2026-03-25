@@ -10,6 +10,7 @@ from db_config import settings
 
 class BlockSignaler(QObject):
     block_moved = pyqtSignal(LessonBlockDB, int)
+    block_updated = pyqtSignal(LessonBlockDB)
 
 class BasicBlock(QGraphicsRectItem):
     

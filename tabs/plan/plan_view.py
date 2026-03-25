@@ -435,6 +435,7 @@ class MyView(QGraphicsView):
             block = LessonBlock(x, y, width, height, self.scene(), self.db, self.classes)
             block.signal.block_moved.connect(self.move_block)
             block.signal.block_moved.connect(block.move_and_check_collisions)
+            block.signal.block_updated.connect(self.redraw_block)
             return block
         else:
             if not settings.draw_custom_blocks:
@@ -445,28 +446,24 @@ class MyView(QGraphicsView):
     def draw_blocks(self, blocks):
         for z, block in enumerate(blocks): 
             self.draw_block(block, z)
+        for block in blocks:
+            self.update_collisions_around(block)
 
     def draw_block(self, block, z=0):
-        # if block in self.blocks:
-            # self.scene().removeItem(self.blocks[block])
         new_block = self.place_block(block)
         if not new_block:
             return
         self.blocks[block] = new_block
-        # print(self.blocks[block])
         new_block.block = block
+        new_block.start = block.start
         if isinstance(new_block, LessonBlock): 
             new_block.setZValue(z+5000)
-            # new_block.write(not self.draw_headers)
         else:
             new_block.setZValue(z+2000)
-        new_block.start = block.start
         new_block.set_filter(self.filter_func)
         new_block.draw_contents()
-
         new_block.set_movable(self.mode=='move', self.five_min_h, self.top_bar_h)
         new_block.set_selectable(True)
-        # new_block.update()
         self.scene().addItem(new_block)
 
     def narrow_overlapping_blocks(self):
@@ -483,7 +480,6 @@ class MyView(QGraphicsView):
             if not len(blocks):
                 continue
 
-
             # generate graph
             graph = Graph()
             for block in blocks:
@@ -494,9 +490,6 @@ class MyView(QGraphicsView):
                         continue
                     graph.add_edge(block.block.id, col_block.block.id)
 
-            # graph.
-
-            
             # color graph
             colored = gcol.node_coloring(graph)
             num_of_colors = max(list(colored.values()))+1
@@ -521,31 +514,36 @@ class MyView(QGraphicsView):
         self.draw()
 
     def redraw_block(self, block: LessonBlockDB | CustomBlock):
-        print(f'redrawing: {block.print_full_time()}')
         if not block:
             return
-        # print(len(self.blocks))
         to_update = self.blocks[block]
+        self.update_collisions_around(block)
         to_update.draw_contents()
         # print(len(self.blocks))
 
     def move_block(self, block, start):
-        # return
+        # remove lessons from stats
         for lesson in block.lessons:
             self.stat.remove_lesson(lesson)
-        # print(start)
-        no_longer_overlapping, collisions = self.db.update_block_start(block, start)
+        # move block in db
+        no_longer_overlapping = self.db.update_block_start(block, start)
+        # update collisions
+        for bl in no_longer_overlapping:
+            self.blocks[bl].remove_collisions_with(block)
+            self.blocks[block].remove_collisions_with(bl)
+        self.update_collisions_around(block)
+        # add lessons back to stats
+        for lesson in block.lessons:
+            self.stat.add_lesson(lesson)
+
+    def update_collisions_around(self, block):
+        collisions = self.db.block_collisions(block)
         for bl, cols in collisions.items():
             my_tooltip = '\n'.join([c[0] for c in cols])
             their_tooltip = '\n'.join([c[1] for c in cols])
             self.blocks[bl].add_collision(block, their_tooltip)
             self.blocks[block].add_collision(bl, my_tooltip)
-        for bl in no_longer_overlapping:
-            self.blocks[bl].remove_collisions_with(block)
-            self.blocks[block].remove_collisions_with(bl)
-        # collisions = self.db.block_collisions(block)
-        for lesson in block.lessons:
-            self.stat.add_lesson(lesson)
+
 
     def draw(self):
         scene = self.scene()
