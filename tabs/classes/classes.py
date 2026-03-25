@@ -99,9 +99,16 @@ class ClassesWidget(QWidget):
         if not ok:
             return
         
-        for i in range(dialog.class_list.count()):
-            class_ = dialog.class_list.item(i).data(Qt.UserRole)
-            self.db.update_class_order(class_, i)
+        new_order = [
+            dialog.class_list.item(i).data(Qt.UserRole)
+            for i in range(dialog.class_list.count())
+        ]
+
+        self.db.reorder_classes(new_order)
+        
+        # for i in range(dialog.class_list.count()):
+        #     class_ = dialog.class_list.item(i).data(Qt.UserRole)
+        #     self.db.update_class_order(class_, i)
 
         self.db.delete_unplaceable_custom_blocks()
         

@@ -11,6 +11,7 @@ from models import *
 
 class Data(QObject):
     update_block = pyqtSignal(LessonBlockDB)
+    redraw_plan = pyqtSignal()
 
 
     def __init__(self, filename="planer.vdp"):
@@ -108,11 +109,14 @@ class Data(QObject):
         self.session.add(subclass)
         self.session.add(new_class)
         self.session.commit()
+        self.redraw_plan.emit()
         return new_class
     
-    def update_class_order(self, class_: Class, order: int) -> None:
-        class_.order = order
+    def reorder_classes(self, new_order: List[Class]):
+        for order, class_ in enumerate(new_order):
+            class_.order = order
         self.session.commit()
+        self.redraw_plan.emit()
 
     def update_class_name(self, class_: Class, name: str) -> None:
         class_.name = name
@@ -125,6 +129,7 @@ class Data(QObject):
             self.session.delete(subject)
         self.session.delete(my_class)
         self.session.commit()
+        self.redraw_plan.emit()
     
     def create_subclass(self, my_class: Class) -> Subclass:
         names = [s.name for s in my_class.subclasses]
@@ -136,6 +141,7 @@ class Data(QObject):
                 custom_block.subclasses.append(subclass)
         self.session.add(subclass)
         self.session.commit()
+        self.redraw_plan.emit()
         return subclass
 
     
@@ -159,6 +165,7 @@ class Data(QObject):
                 block.subclass=None
                 block.my_class=my_class
         self.session.commit()
+        self.redraw_plan.emit()
 
 
     # students

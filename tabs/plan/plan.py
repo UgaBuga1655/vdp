@@ -115,6 +115,11 @@ class PlanWidget(QWidget):
         self.view.load_data(self.db)
         self.view.set_classes(self.db.all_subclasses())
         self.db.update_block.connect(self.view.redraw_block)
+        self.db.redraw_plan.connect(self.redraw)
+
+    def redraw(self):
+        self.class_filter.load_data(self.db)
+        self.class_filter.update_filter()
 
     def export(self):
         settings.alpha = 255 
