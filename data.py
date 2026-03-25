@@ -565,3 +565,24 @@ class Data(QObject):
             collisions.append(f'{subject.name} musi odbywać się w {subject.required_classroom.name}')
         
         return collisions
+    
+    # DUTIES
+    def new_duty(self, block: CustomBlock):
+        duty = TeacherDuty()
+        duty.block = block
+        self.session.add(duty)
+        self.session.commit()
+        return duty
+    
+    def update_duty_teacher(self, duty: TeacherDuty, teacher: Teacher):
+        duty.teacher = teacher
+        self.session.commit()
+    
+    def update_duty_classroom(self, duty: TeacherDuty, classroom: Classroom):
+        duty.classroom = classroom
+        self.session.commit()
+
+    def delete_duty(self, duty: TeacherDuty):
+        self.session.delete(duty)
+        self.session.commit()
+    

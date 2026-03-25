@@ -7,3 +7,4 @@ from .subject import *
 from .teacher import *
 from .lesson import *
 from .classroom import *
+from .teacher_duty import *

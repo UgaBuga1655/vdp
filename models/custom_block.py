@@ -13,6 +13,7 @@ class CustomBlock(Base):
     text = Column(String)
     class_id = Column(Integer, ForeignKey('classes.id'))
     subclasses = relationship("Subclass", secondary=subclass_customblock, back_populates="custom_blocks")
+    duties = relationship('TeacherDuty', back_populates='block')
 
     # def parent(self):
     #     if self.my_class:

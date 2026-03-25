@@ -12,6 +12,7 @@ class Teacher(Base):
     av4 = Column(Integer)
     av5 = Column(Integer)
     subjects = relationship("Subject", backref='teacher')
+    duties = relationship('TeacherDuty', back_populates='teacher')
 
     def __init__(self, name, av):
         self.name = name

@@ -1,6 +1,7 @@
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QColorDialog, QInputDialog, QLineEdit, QAction
 from .block import BasicBlock
+from .duty_dialog import DutyDialog
 from functions import contrast_ratio
 from db_config import settings
 
@@ -16,6 +17,9 @@ class CustomBlock(BasicBlock):
         set_text_action = QAction('Ustaw tekst')
         set_text_action.triggered.connect(self.set_text)
         self.menu.insertAction(self.remove_action, set_text_action)
+        duties_action = QAction('Dyżury')
+        duties_action.triggered.connect(self.edit_duties)
+        self.menu.insertAction(self.remove_action, duties_action)
         self.menu.exec(event.globalPos())
     
     def pick_color(self):
@@ -34,6 +38,12 @@ class CustomBlock(BasicBlock):
             self.text_item0.set_custom_text(text)
             self.recenter_text()
             self.db.update_custom_block_text(self.block, text)
+
+    def edit_duties(self):
+        if not self.block:
+            return False
+        dlg = DutyDialog(self.block, self.db)
+        dlg.exec()
 
     def draw_contents(self):
 

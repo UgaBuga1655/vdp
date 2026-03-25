@@ -9,3 +9,4 @@ class Classroom(Base):
     capacity = Column(Integer, nullable=False)
     subjects = relationship("Subject", backref="required_classroom")
     lessons = relationship("Lesson", backref='classroom')
+    duties = relationship('TeacherDuty', back_populates='classroom')
