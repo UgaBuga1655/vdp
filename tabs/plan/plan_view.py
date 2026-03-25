@@ -197,6 +197,7 @@ class MyView(QGraphicsView):
                     my_class = my_class.get_class()
             
                 block = self.db.create_block(day, start, length, my_class)
+                # self.blocks[block] = self.new_block
 
             elif self.mode =='new_custom':
                 n_of_classes = int(self.new_block.boundingRect().width()//self.block_w)
@@ -208,9 +209,12 @@ class MyView(QGraphicsView):
                 self.new_block.set_text()
 
             # print(my_class.full_name())
-            self.new_block.block = block
-            self.new_block.set_selectable(True)
-            self.new_block.draw_contents()
+            self.scene().removeItem(self.new_block)
+            # self.new_block.deleteLater()
+            self.draw_block(block)
+            # self.new_block.block = block
+            # self.new_block.set_selectable(True)
+            # self.new_block.draw_contents()
             # self.blocks.append(self.new_block)
         self.block_start = -1
         self.new_block = False
@@ -394,7 +398,6 @@ class MyView(QGraphicsView):
 
 
     def place_block(self, block):
-        # class_names = [c.full_name() for c in self.classes]
         if settings.draw_blocks_full_width:
             n = 0
             width_multiplier = len(self.classes)

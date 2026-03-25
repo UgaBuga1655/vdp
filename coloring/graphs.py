@@ -45,7 +45,7 @@ def generate_lesson_graph(db: Data):
                 #
                 if len(db.get_collisions_for_students_at_block(subject.students, block)):
                     continue
-                if len(db.get_collisions_for_teacher_at_block(subject.teacher, block)):
+                if len(db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block)):
                     continue
                 if block.day in [les.block.day for les in subject.lessons if les.block]:
                     continue

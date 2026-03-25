@@ -199,6 +199,8 @@ class Data(QObject):
             return
         student.subjects.append(subject)
         for lesson in subject.lessons:
+            if not lesson.block:
+                continue
             self.update_block.emit(lesson.block)
         self.session.commit()
 
@@ -294,7 +296,6 @@ class Data(QObject):
         self.session.commit()
 
     def create_block(self, day:int, start:int, length:int, my_class) -> LessonBlockDB:
-        print(length)
         if isinstance(my_class, Class):
             block = LessonBlockDB(day=day, start=start, length=length, my_class=my_class)
         else:
@@ -423,16 +424,27 @@ class Data(QObject):
             if classroom else []
 
    
-    def get_collisions_for_teacher_at_block(self, teacher: Teacher, block: LessonBlockDB) -> List[Lesson]:
+    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: LessonBlockDB|CustomBlock) -> List[Lesson]:
+        if not teacher:
+            return []
         return self.session.query(Lesson) \
                     .join(Lesson.subject).filter_by(teacher=teacher) \
                     .join(Lesson.block).filter(LessonBlockDB.day == block.day) \
                     .filter(or_(
                         LessonBlockDB.start.between(block.start, block.start+block.length), 
                         and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
-                    )).all() \
-        if teacher else []
+                    )).all()
     
+
+    def get_duty_collisions_for_teacher_at_block(self, teacher: Teacher, block: LessonBlockDB|CustomBlock) -> List[TeacherDuty]:
+        if not teacher:
+            return []
+        return self.session.query(TeacherDuty) \
+                        .join(TeacherDuty.block).filter(CustomBlock.day == block.day) \
+                        .filter(or_(
+                        CustomBlock.start.between(block.start, block.start+block.length), 
+                        and_(CustomBlock.start <= block.start, block.start <= CustomBlock.start+CustomBlock.length)
+                    )).all()
     
     def get_collisions_for_students_at_block(self, students: List[Student], block: LessonBlockDB) -> List[Lesson]:
         student_ids = [s.id for s in students]
@@ -536,7 +548,7 @@ class Data(QObject):
         # teacher
         collisions.extend([
             f'{subject.get_name()}: {subject.teacher.name} prowadzi {les.name_and_time()}'
-            for les in self.get_collisions_for_teacher_at_block(subject.teacher, lesson.block)
+            for les in self.get_lesson_collisions_for_teacher_at_block(subject.teacher, lesson.block)
             if les is not lesson])
         
         if subject.teacher and not self.is_teacher_available(subject.teacher, lesson.block):

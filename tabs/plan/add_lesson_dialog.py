@@ -68,8 +68,12 @@ class AddLessonToBlockDialog(QDialog):
             self.subject_list.addItem(subject.name, subject)
             collisions = [
                 f'{subject.teacher.name} prowadzi {l.name_and_time()}'
-                for l in self.db.get_collisions_for_teacher_at_block(subject.teacher, self.block)
+                for l in self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, self.block)
             ]
+            collisions.extend([
+                f'{subject.teacher.name} ma dyżur w {duty.classroom.name if duty.classroom else "-"} o {duty.block.print_time()}'
+                for duty in self.db.get_duty_collisions_for_teacher_at_block(subject.teacher, self.block)
+            ])
             collisions.extend([
                 f'Niektórzy uczniowie mają {l.name_and_time()}'
                 for l in self.db.get_collisions_for_students_at_block(subject.students, self.block)
