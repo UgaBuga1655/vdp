@@ -550,7 +550,7 @@ class Data(QObject):
                             if is_lesson_block else \
                             f'{duty.get_name()}: {content.collision_text()}',
                         ))
-                    if duty.classroom == content.classroom:
+                    if is_lesson_block and duty.classroom == content.classroom:
                         collisions[col_bl].append((
                             f'{content.get_name()}: W {content.classroom.name} trwa dyżur {duty.teacher.name}',
                             f'{duty.get_name()}: W {content.classroom.name} trwa {content.name_and_time()}' \
