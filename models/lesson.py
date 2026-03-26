@@ -16,4 +16,8 @@ class Lesson(Base):
 
     def get_name(self):
         return self.subject.get_name()
+    
+    @property
+    def teacher(self):
+        return self.subject.teacher
 

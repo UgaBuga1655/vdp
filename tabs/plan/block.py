@@ -154,6 +154,9 @@ class BasicBlock(QGraphicsRectItem):
     def set_filter(self, filter):
         self.filter = filter
 
+    def filter(self, l):
+        return True
+    
 
     def remove_collisions_with(self, block):
         self.collisions[block] = ''
@@ -167,6 +170,7 @@ class BasicBlock(QGraphicsRectItem):
         # self.setToolTip('\n'.join([self.time()] + [col[1] for col in self.collisions]))
 
     def update_tooltip(self):
+        # print(self)
         # return
         text = self.time() + '\n'
         # print(self.collisions)

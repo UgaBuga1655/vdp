@@ -82,7 +82,8 @@ class FilterWidget(QWidget):
             if button.isChecked() and hasattr(button, 'my_class')
         ]
         def filter(l):
-            return l.subject.subclass in display_names \
+            return not hasattr(l, 'subject') \
+                or l.subject.subclass in display_names \
                 or l.subject.my_class
         return display_names, filter
 
@@ -106,7 +107,7 @@ class FilterWidget(QWidget):
             return None, None
         classes = self.db.all_subclasses()
         def filter(l):
-            return l.subject.teacher == teacher
+            return l.teacher == teacher
         return classes, filter
     
     def update_classroom_filter(self):

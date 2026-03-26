@@ -23,9 +23,6 @@ class LessonBlock(BasicBlock):
         self.signal = BlockSignaler()
         # self.signal.block_moved.connect(self.move_and_check_collsions)
 
-    def filter(self, l):
-        return True
-    
     def mousePressEvent(self, event):
         source = None
         if settings.move_lessons_from:

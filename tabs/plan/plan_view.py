@@ -447,8 +447,8 @@ class MyView(QGraphicsView):
             block = LessonBlock(x, y, width, height, self.scene(), self.db, self.classes)
             block.signal.block_moved.connect(block.move_and_check_collisions)
         else:
-            if not settings.draw_custom_blocks:
-                return
+            # if not settings.draw_custom_blocks:
+            #     return
             block = CustomBlock(x, y, width, height, self.scene(), self.db, self.classes)
         block.signal.block_moved.connect(self.move_block)
         block.signal.block_updated.connect(self.redraw_block)

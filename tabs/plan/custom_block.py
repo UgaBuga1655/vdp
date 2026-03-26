@@ -16,6 +16,12 @@ class CustomBlock(BasicBlock):
         super().__init__(x, y, w, h, parent, db, visible_classes)
         self.signal = BlockSignaler()
 
+    def paint(self, painter, option, widget = ...):
+        super().paint(painter, option)
+        duties = list(filter(self.filter, self.block.duties))
+        if not (len(duties) or settings.draw_custom_blocks):
+            self.hide()
+
     def contextMenuEvent(self, event):
         super().contextMenuEvent(event)
         pick_color_action = QAction('Wybierz kolor')
