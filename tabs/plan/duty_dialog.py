@@ -1,13 +1,23 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox, QPushButton, QDialogButtonBox
-from numpy import delete
-from models import CustomBlock
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 from data import Data
+from db_config import settings
 
 class DutyDialog(QDialog):
     def __init__(self, custom_block, db: Data):
         super().__init__()
         self.custom_block = custom_block
         self.db = db
+        self.classrooms = self.db.all_classrooms()
+        self.classroom_collisions = {}
+        for classroom in self.classrooms:
+            collisions = self.db.get_collisions_for_classroom_at_block(classroom, custom_block)
+            self.classroom_collisions[classroom] = '/n'.join([
+                f'W {classroom.name} trwa {lesson.name_and_time()}'
+                for lesson in collisions]
+            )
+ 
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.duties = QGridLayout()
@@ -27,6 +37,7 @@ class DutyDialog(QDialog):
 
         buttonBox.setStandardButtons(QDialogButtonBox.Ok)
         buttonBox.accepted.connect(self.accept)
+       
 
     def add_duty(self):
         duty = self.db.new_duty(self.custom_block)
@@ -38,8 +49,17 @@ class DutyDialog(QDialog):
 
         classroom_select = QComboBox()
         classroom_select.addItem('---', None)
-        for classroom in self.db.all_classrooms():
+        for i, classroom in enumerate(self.classrooms):
             classroom_select.addItem(classroom.name, classroom)
+
+            collision = self.classroom_collisions[classroom]
+            if not collision:
+                continue
+            classroom_select.setItemData(i+1, collision, Qt.ToolTipRole)
+            if not settings.allow_creating_conflicts:
+                classroom_select.setItemData(i+1, 0, Qt.UserRole - 1)
+            else:
+                classroom_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
         classroom_select.currentIndexChanged.connect(
             self.update_duty_classroom(duty, classroom_select)
         )

@@ -17,3 +17,6 @@ class TeacherDuty(Base):
 
     def collision_text(self):
         return f'{self.teacher.name} ma dyżur w {self.classroom.name} ({self.block.print_time()})'
+    
+    def get_name(self):
+        return f'{self.classroom.name}'

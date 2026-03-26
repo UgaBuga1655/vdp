@@ -1,4 +1,5 @@
 from numpy import less
+from pyparsing import col
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_
@@ -331,10 +332,11 @@ class Data(QObject):
         self.session.commit()
     
     def overlapping_blocks(self, block: LessonBlockDB):
+        is_custom_block = isinstance(block, CustomBlock)
         return self.session.query(LessonBlockDB).filter_by(day=block.day)\
                 .filter(or_(
-                    LessonBlockDB.start.between(block.start, block.start+block.length),
-                    and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
+                    LessonBlockDB.start.between(block.start, block.start+block.length-is_custom_block),
+                    and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length-is_custom_block)
                 )).all()
     
     def overlapping_custom_blocks(self, block: LessonBlockDB):
@@ -478,10 +480,10 @@ class Data(QObject):
             mask |=  1 << shift
         return not(mask & ~teacher.__getattribute__(f'av{block.day+1}'))
     
-    def block_collisions(self, block: LessonBlockDB):
-        if not isinstance(block, LessonBlockDB):
-            return {}
-
+    def block_collisions(self, block: LessonBlockDB|CustomBlock):
+        # if not isinstance(block, LessonBlockDB):
+            # return {}
+        is_lesson_block = isinstance(block, LessonBlockDB)
         colliding_blocks = self.overlapping_blocks(block)
         
         colliding_custom_blocks = self.overlapping_custom_blocks(block)
@@ -492,51 +494,69 @@ class Data(QObject):
         for bl in colliding_blocks:
             colliding_lessons.extend(bl.lessons)
 
-        
-        lesson: Lesson
-        for lesson in block.lessons:
-            teacher = lesson.subject.teacher
+        contents = block.lessons if is_lesson_block else block.duties
+        content: Lesson
+        for content in contents:
+            if is_lesson_block:
+                teacher = content.subject.teacher  
+                students = set(content.subject.students) 
+            else:
+                teacher = content.teacher
+                students = set()
+
             if teacher and not self.is_teacher_available(teacher, block):
                 collisions[block].append((
-                    f'{lesson.subject.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
+                    f'{content.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
                     ''
                 ))
 
             col_les: Lesson
-            students = set(lesson.subject.students)
             for col_les in colliding_lessons:
-                if col_les == lesson:
+                if col_les == content:
                     continue
                 # teachers
                 if teacher and col_les.subject.teacher == teacher:
                     collisions[col_les.block].append((
-                        f'{lesson.subject.get_name()}: {teacher.name} prowadzi {col_les.name_and_time()}',
-                        f'{col_les.subject.get_name()}: {teacher.name} prowadzi {lesson.name_and_time()}',
+                        f'{content.get_name()}: {teacher.name} prowadzi {col_les.name_and_time()}',
+                        f'{col_les.get_name()}: {teacher.name} prowadzi {content.name_and_time()}'\
+                        if is_lesson_block else \
+                        f'{col_les.get_name()}: {content.collision_text()}',
                     ))
                 # classrooms
-                if lesson.classroom and col_les.classroom == lesson.classroom:
+                if content.classroom and col_les.classroom == content.classroom:
                     collisions[col_les.block].append((
-                      f'{lesson.subject.get_name()}: {lesson.classroom.name} jest zajęte przez {col_les.name_and_time()}',
-                      f'{col_les.subject.get_name()}: {lesson.classroom.name} jest zajęte przez {lesson.name_and_time()}'
+                        f'{content.get_name()}: {content.classroom.name} jest zajęte przez {col_les.name_and_time()}',
+                        f'{col_les.get_name()}: {content.classroom.name} jest zajęte przez {content.name_and_time()}'\
+                        if is_lesson_block else \
+                        f'{col_les.get_name()}: {content.collision_text()}',
                     ))
                 # students
                 # don't bother when classes are different
-                if col_les.subject.absolute_class() != lesson.subject.absolute_class():
+                if not is_lesson_block or col_les.subject.absolute_class() != content.subject.absolute_class():
                     continue
                 if len(students.intersection(col_les.subject.students)):
                     collisions[col_les.block].append(( 
-                      f'{lesson.subject.get_name()}: Niektórzy uczniowie mają {col_les.name_and_time()}',
-                      f'{col_les.subject.get_name()}: Niektórzy uczniowie mają {lesson.name_and_time()}'
+                      f'{content.get_name()}: Niektórzy uczniowie mają {col_les.name_and_time()}',
+                      f'{col_les.subject.get_name()}: Niektórzy uczniowie mają {content.name_and_time()}'
                     ))
             for col_bl in colliding_custom_blocks:
                 for duty in col_bl.duties:
+                    if duty == content:
+                        continue
                     if duty.teacher == teacher:
                         collisions[col_bl].append((
-                            f'{lesson.subject.get_name()}: {duty.collision_text()}',
-                            f'{duty.classroom.name}: {teacher.name} prowadzi {lesson.name_and_time()}'
+                            f'{content.get_name()}: {duty.collision_text()}',
+                            f'{duty.get_name()}: {teacher.name} prowadzi {content.name_and_time()}' \
+                            if is_lesson_block else \
+                            f'{duty.get_name()}: {content.collision_text()}',
                         ))
-
-
+                    if duty.classroom == content.classroom:
+                        collisions[col_bl].append((
+                            f'{content.get_name()}: W {content.classroom.name} trwa dyżur {duty.teacher.name}',
+                            f'{duty.get_name()}: W {content.classroom.name} trwa {content.name_and_time()}' \
+                            if is_lesson_block else \
+                            f'{duty.get_name()}: {content.collision_text()}',
+                        ))
 
         
 
@@ -545,7 +565,7 @@ class Data(QObject):
         
         # students
         
-        for lesson in block.lessons:
+        for content in block.lessons:
             pass
     
     def lesson_collisions(self, lesson):

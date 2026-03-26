@@ -2,15 +2,13 @@ from __future__ import annotations
 from PyQt5.QtWidgets import QGraphicsRectItem, QToolTip, QGraphicsScene, QMenu
 from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
-from data import Data, Class, LessonBlockDB
+from data import Data, Class, LessonBlockDB, CustomBlock
 from functions import snap_position, display_hour, contrast_ratio
+from models import custom_block
 from .block_text import BlockText
 from db_config import settings
 
 
-class BlockSignaler(QObject):
-    block_moved = pyqtSignal(LessonBlockDB, int)
-    block_updated = pyqtSignal(LessonBlockDB)
 
 class BasicBlock(QGraphicsRectItem):
     
@@ -42,7 +40,6 @@ class BasicBlock(QGraphicsRectItem):
         self.parent.addItem(self.text_item4)
         self.visible_classes = visible_classes
         self.setAcceptHoverEvents(True)
-        self.signal = BlockSignaler()
 
     def mousePressEvent(self, event):
         self.moved = True
@@ -126,7 +123,6 @@ class BasicBlock(QGraphicsRectItem):
 
             # update database
             if start_y != self.y():
-                # print('start before emitting:' ,start)
                 self.signal.block_moved.emit(self.block, int(start))
 
 

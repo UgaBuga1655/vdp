@@ -445,14 +445,14 @@ class MyView(QGraphicsView):
 
         if isinstance(block, LessonBlockDB):
             block = LessonBlock(x, y, width, height, self.scene(), self.db, self.classes)
-            block.signal.block_moved.connect(self.move_block)
             block.signal.block_moved.connect(block.move_and_check_collisions)
-            block.signal.block_updated.connect(self.redraw_block)
-            return block
         else:
             if not settings.draw_custom_blocks:
                 return
-            return CustomBlock(x, y, width, height, self.scene(), self.db, self.classes)
+            block = CustomBlock(x, y, width, height, self.scene(), self.db, self.classes)
+        block.signal.block_moved.connect(self.move_block)
+        block.signal.block_updated.connect(self.redraw_block)
+        return block
                 
 
     def draw_blocks(self, blocks):
@@ -535,8 +535,9 @@ class MyView(QGraphicsView):
 
     def move_block(self, block, start):
         # remove lessons from stats
-        for lesson in block.lessons:
-            self.stat.remove_lesson(lesson)
+        if hasattr(block, 'lessons'):
+            for lesson in block.lessons:
+                self.stat.remove_lesson(lesson)
         # move block in db
         no_longer_overlapping = self.db.update_block_start(block, start)
         # update collisions
@@ -545,8 +546,9 @@ class MyView(QGraphicsView):
             self.blocks[block].remove_collisions_with(bl)
         self.update_collisions_around(block)
         # add lessons back to stats
-        for lesson in block.lessons:
-            self.stat.add_lesson(lesson)
+        if hasattr(block, 'lessons'):
+            for lesson in block.lessons:
+                self.stat.add_lesson(lesson)
         # print(self.stat.get_stats(block.day))
         self.draw_stats(block.day)
 

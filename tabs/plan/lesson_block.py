@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QAction, QToolTip, QGraphicsRectItem, QMessageBox, QApplication
 from PyQt5.QtGui import QColor, QBrush, QPen, QPainter, QCursor
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtCore import Qt, QRectF, QObject, pyqtSignal
+from models import LessonBlockDB
 from .block import BasicBlock
 from .add_lesson_dialog import AddLessonToBlockDialog
 from .remove_lesson_dialog import RemoveLessonFromBlockDialog
@@ -10,11 +11,16 @@ from .block_text import BlockText
 from functions import contrast_ratio
 from db_config import settings
 
+class BlockSignaler(QObject):
+    block_moved = pyqtSignal(LessonBlockDB, int)
+    block_updated = pyqtSignal(LessonBlockDB)
+
 
 class LessonBlock(BasicBlock):
     def __init__(self, x, y, w, h, parent, db, visible_classes):
         super().__init__(x, y, w, h, parent, db, visible_classes)
         self.text_items = {}
+        self.signal = BlockSignaler()
         # self.signal.block_moved.connect(self.move_and_check_collsions)
 
     def filter(self, l):

@@ -14,3 +14,6 @@ class Lesson(Base):
     def name_and_time(self):
         return f'{self.subject.get_name()} o {self.block.print_time() if self.block else "(nieprzypisany)"}'
 
+    def get_name(self):
+        return self.subject.get_name()
+

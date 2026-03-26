@@ -1,13 +1,20 @@
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QColorDialog, QInputDialog, QLineEdit, QAction
+from PyQt5.QtCore import QObject, pyqtSignal
+from models import CustomBlock
 from .block import BasicBlock
 from .duty_dialog import DutyDialog
 from functions import contrast_ratio
 from db_config import settings
 
+class BlockSignaler(QObject):
+    block_moved = pyqtSignal(CustomBlock, int)
+    block_updated = pyqtSignal(CustomBlock)
+
 class CustomBlock(BasicBlock):
     def __init__(self, x, y, w, h, parent, db, visible_classes):
         super().__init__(x, y, w, h, parent, db, visible_classes)
+        self.signal = BlockSignaler()
 
     def contextMenuEvent(self, event):
         super().contextMenuEvent(event)
@@ -44,6 +51,7 @@ class CustomBlock(BasicBlock):
             return False
         dlg = DutyDialog(self.block, self.db)
         dlg.exec()
+        self.signal.block_updated.emit(self.block)
 
     def draw_contents(self):
 
