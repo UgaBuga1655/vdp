@@ -192,6 +192,8 @@ class Data(QObject):
     def remove_subject_from_student(self, subject: Subject, student: Student):
         student.subjects.remove(subject)
         for lesson in subject.lessons:
+            if not lesson.block:
+                continue
             self.update_block.emit(lesson.block)
 
         self.session.commit()

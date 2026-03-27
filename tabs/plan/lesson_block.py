@@ -234,8 +234,7 @@ class LessonBlock(BasicBlock):
     def write(self, specify_class=False):
         n=0
         rects, buckets, colors = self.get_rects()
-
-        for i in range(len(rects),5):
+        for i in range(5):
             self.__getattribute__(f'text_item{i}').setHtml('')
         for rect, subclass, lessons, color in zip(rects, buckets.keys(), buckets.values(), colors):
             if settings.hide_empty_blocks and not len(lessons):

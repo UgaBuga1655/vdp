@@ -463,9 +463,9 @@ class MyView(QGraphicsView):
 
     def draw_block(self, block, z=0):
         new_block = self.place_block(block)
+        self.blocks[block] = new_block
         if not new_block:
             return
-        self.blocks[block] = new_block
         new_block.block = block
         new_block.start = block.start
         if isinstance(new_block, LessonBlock): 
@@ -553,12 +553,15 @@ class MyView(QGraphicsView):
         self.draw_stats(block.day)
 
     def update_collisions_around(self, block):
+        if not self.blocks[block]:
+            return
         collisions = self.db.block_collisions(block)
         for bl, cols in collisions.items():
             my_tooltip = '\n'.join([c[0] for c in cols])
-            their_tooltip = '\n'.join([c[1] for c in cols])
-            self.blocks[bl].add_collision(block, their_tooltip)
             self.blocks[block].add_collision(bl, my_tooltip)
+            if self.blocks[bl]:
+                their_tooltip = '\n'.join([c[1] for c in cols])
+                self.blocks[bl].add_collision(block, their_tooltip)
 
 
     def draw(self):
