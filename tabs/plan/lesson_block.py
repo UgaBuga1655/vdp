@@ -149,9 +149,9 @@ class LessonBlock(BasicBlock):
             return
         ManageClassroomsDialog(self).exec()
         self.draw_contents()
-        for item in self.collidingItems():
-            if isinstance(item, LessonBlock):
-                item.draw_collisions()
+        # for item in self.collidingItems():
+            # if isinstance(item, LessonBlock):
+                # item.draw_collisions()
 
     def manage_locked(self):
         if not len(self.block.lessons):

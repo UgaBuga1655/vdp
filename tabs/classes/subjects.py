@@ -105,6 +105,7 @@ class SubjectsWindow(QWidget):
         # required classroom
         teacher_row.addWidget(QLabel('Wymagana sala:'))
         self.classroom_list = QComboBox()
+        self.classroom_list.addItem('---', None)
         for classroom in self.db.all_classrooms():
             self.classroom_list.addItem(classroom.name, classroom)
         self.classroom_list.currentTextChanged.connect(self.set_classroom)

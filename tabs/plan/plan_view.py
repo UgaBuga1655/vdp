@@ -559,7 +559,7 @@ class MyView(QGraphicsView):
         for bl, cols in collisions.items():
             my_tooltip = '\n'.join([c[0] for c in cols])
             self.blocks[block].add_collision(bl, my_tooltip)
-            if self.blocks[bl]:
+            if bl and self.blocks[bl]:
                 their_tooltip = '\n'.join([c[1] for c in cols])
                 self.blocks[bl].add_collision(block, their_tooltip)
 

@@ -289,6 +289,7 @@ class Data(QObject):
     def update_lesson_classroom(self, lesson: Lesson, classroom: Classroom) -> None:
         lesson.classroom = classroom
         self.session.commit()
+        self.update_block.emit(lesson.block)
 
     def update_lesson_locked(self, lesson: Lesson, locked: bool) -> None:
         lesson.block_locked = locked
@@ -491,7 +492,7 @@ class Data(QObject):
         colliding_custom_blocks = self.overlapping_custom_blocks(block)
         
         collisions = {bl: [] for bl in colliding_blocks + colliding_custom_blocks}
-        # collisions[None] = []
+        collisions[None] = []
         colliding_lessons = []
         for bl in colliding_blocks:
             colliding_lessons.extend(bl.lessons)
@@ -501,13 +502,19 @@ class Data(QObject):
         for content in contents:
             if is_lesson_block:
                 teacher = content.subject.teacher  
-                students = set(content.subject.students) 
+                students = set(content.subject.students)
+                required_classroom = content.subject.required_classroom
+                if required_classroom and content.classroom != required_classroom:
+                    collisions[None].append(([
+                        f'{content.get_name()} musi odbywać się w {required_classroom.name}',
+                        ''
+                    ]))
             else:
                 teacher = content.teacher
                 students = set()
 
             if teacher and not self.is_teacher_available(teacher, block):
-                collisions[block].append((
+                collisions[None].append((
                     f'{content.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
                     ''
                 ))
