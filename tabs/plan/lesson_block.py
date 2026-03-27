@@ -88,20 +88,6 @@ class LessonBlock(BasicBlock):
     def move_and_check_collisions(self, lesson_block, start: int):
         self.write()
         return
-        print(f'moving: {self.block.print_full_time()}')
-        if self.isSelected() and self.flags() & QGraphicsRectItem.ItemIsMovable:
-            colliding_blocks = self.get_colliding_blocks()
-            collisions = self.draw_collisions()
-            if collisions:
-                self.setToolTip(self.time() + '\n' + collisions)
-            else:
-                self.setToolTip(self.time())
-            for block in colliding_blocks:
-                block.draw_collisions()
-    
-   
-
-
 
     def add_subject(self):
         dialog = AddLessonToBlockDialog(self)
@@ -169,10 +155,7 @@ class LessonBlock(BasicBlock):
         settings.swap_lessons_from = self
         settings.move_lessons_from = None
 
-
-
     def paint(self, painter, option, widget = ...):
-        # super().paint(painter, option)
         if not hasattr(self, 'block'):
             return super().paint(painter, option)
         
@@ -181,20 +164,11 @@ class LessonBlock(BasicBlock):
         for rect, color in zip(rects, colors):
             if not color:
                 continue
-
             brush = QBrush(color)
             painter.fillRect(rect, brush)
             painter.drawRect(rect)
-        
-        adjust = self.pen().width()/2
-        inner = self.rect().adjusted(adjust, 0, -adjust, 0)
-        if 1==self.pen().width():
-            painter.setPen(QPen())
-            painter.drawLine(inner.topLeft(), inner.topRight())
-            painter.drawLine(inner.bottomLeft(), inner.bottomRight())
-        inner.adjust(0, adjust, 0, -adjust)
-        painter.setPen(self.pen())
-        painter.drawRect(inner)
+
+        super().paint(painter, option)
 
     def get_rects(self):
         lessons = list(filter(self.filter, self.block.lessons))

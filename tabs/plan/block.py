@@ -186,3 +186,14 @@ class BasicBlock(QGraphicsRectItem):
 
     def time(self):
         return f'{self.block.print_time()} ({self.block.length*5})'
+    
+    def paint(self, painter, option, widget = ...):
+        adjust = self.pen().width()/2
+        inner = self.rect().adjusted(adjust, 0, -adjust, 0)
+        if 1==self.pen().width():
+            painter.setPen(QPen())
+            painter.drawLine(inner.topLeft(), inner.topRight())
+            painter.drawLine(inner.bottomLeft(), inner.bottomRight())
+        inner.adjust(0, adjust, 0, -adjust)
+        painter.setPen(self.pen())
+        painter.drawRect(inner)

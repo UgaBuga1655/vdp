@@ -77,3 +77,9 @@ class CustomBlock(BasicBlock):
     def mouseMoveEvent(self, event, show_tooltip=True):
         super().mouseMoveEvent(event, show_tooltip)
         self.recenter_text()
+
+    
+    def paint(self, painter, option, widget = ...):
+
+        painter.fillRect(self.rect(), self.brush())
+        super().paint(painter, option)
