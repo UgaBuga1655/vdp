@@ -289,7 +289,8 @@ class Data(QObject):
     def update_lesson_classroom(self, lesson: Lesson, classroom: Classroom) -> None:
         lesson.classroom = classroom
         self.session.commit()
-        self.update_block.emit(lesson.block)
+        if lesson.block:
+            self.update_block.emit(lesson.block)
 
     def update_lesson_locked(self, lesson: Lesson, locked: bool) -> None:
         lesson.block_locked = locked

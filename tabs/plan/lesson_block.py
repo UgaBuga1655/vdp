@@ -172,11 +172,11 @@ class LessonBlock(BasicBlock):
 
 
     def paint(self, painter, option, widget = ...):
-        super().paint(painter, option)
+        # super().paint(painter, option)
         if not hasattr(self, 'block'):
             return super().paint(painter, option)
         
-
+        painter.setPen(QPen(Qt.NoPen))
         rects, buckets, colors = self.get_rects()
         for rect, color in zip(rects, colors):
             if not color:
@@ -185,17 +185,27 @@ class LessonBlock(BasicBlock):
             brush = QBrush(color)
             painter.fillRect(rect, brush)
             painter.drawRect(rect)
+        
+        adjust = self.pen().width()/2
+        inner = self.rect().adjusted(adjust, 0, -adjust, 0)
+        if 1==self.pen().width():
+            painter.setPen(QPen())
+            painter.drawLine(inner.topLeft(), inner.topRight())
+            painter.drawLine(inner.bottomLeft(), inner.bottomRight())
+        inner.adjust(0, adjust, 0, -adjust)
+        painter.setPen(self.pen())
+        painter.drawRect(inner)
 
     def get_rects(self):
         lessons = list(filter(self.filter, self.block.lessons))
         if settings.hide_empty_blocks and not len(lessons):
             self.hide()
         show_full_subject_names = False
-
+        rect = self.rect().adjusted(0.5,0,-0.5,0)
         if self.block.my_class \
           and not len([l for l in lessons if not l.subject.my_class is None]):
             rects = []
-            r = self.rect()
+
             buckets = {sub_class:[] for sub_class in self.block.my_class.subclasses if sub_class in self.visible_classes}
             for lesson in lessons:
                 buckets[lesson.subject.parent()].append(lesson)
@@ -203,18 +213,18 @@ class LessonBlock(BasicBlock):
             if not n_of_buckets:
                 return
             
-            width = r.width()/n_of_buckets
-            height = r.height() 
-            y = r.top()
+            width = rect.width()/n_of_buckets
+            height = rect.height() 
+            y = rect.top()
             for n in range(n_of_buckets):
                 if settings.draw_blocks_full_width:
-                    rects.append(self.rect())
+                    rects.append(rect)
                 else:
-                    x = r.left()
+                    x = rect.left()
                     x += width * n
                     rects.append(QRectF(x, y, width, height))
         else:
-            rects = [self.rect()]
+            rects = [rect]
             buckets = {self.block.subclass: lessons}
             show_full_subject_names = True
         final_colors = []
@@ -277,19 +287,19 @@ class LessonBlock(BasicBlock):
         self.write()
         # self.update()
     
-    def draw_collisions(self):
-        collisions = self.db.block_collisions(self.block)
+    # def draw_collisions(self):
+    #     collisions = self.db.block_collisions(self.block)
 
-        display_collisions = '\n'.join([c[1] for c in collisions])
+    #     display_collisions = '\n'.join([c[1] for c in collisions])
 
-        if display_collisions:
-            self.setPen(QPen(QBrush(Qt.red),4))
-            # QToolTip.showText(self.mapRectToScene(self.boundingRect().topLeft().toPoint()), self.time() + '\n' + collisions)
-            self.setToolTip(self.time() + '\n' + display_collisions)
-        else:
-            self.setPen(QPen())
-            self.setToolTip(self.time())
-        return display_collisions
+    #     if display_collisions:
+    #         self.setPen(QPen(QBrush(Qt.red),4))
+    #         # QToolTip.showText(self.mapRectToScene(self.boundingRect().topLeft().toPoint()), self.time() + '\n' + collisions)
+    #         self.setToolTip(self.time() + '\n' + display_collisions)
+    #     else:
+    #         self.setPen(QPen())
+    #         self.setToolTip(self.time())
+    #     return display_collisions
 
     def overlapping_lesson_blocks(self):
         return [bl for bl in self.collidingItems() \

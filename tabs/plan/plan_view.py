@@ -528,9 +528,9 @@ class MyView(QGraphicsView):
     def redraw_block(self, block: LessonBlockDB | CustomBlock):
         if not block:
             return
-        to_update = self.blocks[block]
+        # to_update = self.blocks[block]
         self.update_collisions_around(block)
-        to_update.draw_contents()
+        # to_update.draw_contents()
         # print(len(self.blocks))
 
     def move_block(self, block, start):
@@ -559,6 +559,7 @@ class MyView(QGraphicsView):
         for bl, cols in collisions.items():
             my_tooltip = '\n'.join([c[0] for c in cols])
             self.blocks[block].add_collision(bl, my_tooltip)
+            self.blocks[block].draw_contents()
             if bl and self.blocks[bl]:
                 their_tooltip = '\n'.join([c[1] for c in cols])
                 self.blocks[bl].add_collision(block, their_tooltip)

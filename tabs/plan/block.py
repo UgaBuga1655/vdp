@@ -3,8 +3,7 @@ from PyQt5.QtWidgets import QGraphicsRectItem, QToolTip, QGraphicsScene, QMenu
 from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from data import Data, Class, LessonBlockDB, CustomBlock
-from functions import snap_position, display_hour, contrast_ratio
-from models import custom_block
+from functions import snap_position, display_hour
 from .block_text import BlockText
 from db_config import settings
 
@@ -93,7 +92,7 @@ class BasicBlock(QGraphicsRectItem):
 
 
     def y_in_scene(self):
-        return self.mapToScene(self.boundingRect()).boundingRect().y() 
+        return self.mapToScene(self.boundingRect()).boundingRect().y() + self.pen().width()
     
     def mouseMoveEvent(self, event, show_tooltip=True):
         super().mouseMoveEvent(event)
@@ -106,11 +105,11 @@ class BasicBlock(QGraphicsRectItem):
             # correct if out of bounds
             while self.y_in_scene() + self.five_min_h/2 < self.top_bar_h:
                 self.moveBy(0, self.five_min_h)
-            while self.y_in_scene() + self.block.length*self.five_min_h > self.parent.height():
+            while self.y_in_scene() + (self.block.length-0.5)*self.five_min_h >= self.parent.height():
                 self.moveBy(0, -self.five_min_h)
             self.bring_forward()
             # show tooltip
-            start = (self.y_in_scene() - self.top_bar_h) // self.five_min_h + 1
+            start = (self.y_in_scene() - self.top_bar_h) // self.five_min_h
             duration = self.block.length
             times = [start, start+duration]
             time = '-'.join([display_hour(t) for t in times])
@@ -122,8 +121,7 @@ class BasicBlock(QGraphicsRectItem):
             # self.recenter_text()
 
             # update database
-            if start_y != self.y():
-                self.signal.block_moved.emit(self.block, int(start))
+            self.signal.block_moved.emit(self.block, int(start))
 
 
     def recenter_text(self, text_item=None, rect=None):
@@ -176,10 +174,14 @@ class BasicBlock(QGraphicsRectItem):
         # print(self.collisions)
         cols = '\n'.join([c for c in self.collisions.values() if c])
         if cols:
-            self.setPen(QPen(QBrush(Qt.red),4))
+            pen = QPen(QBrush(Qt.red),4)
+            pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
+            self.setPen(pen)
             text += '\n' + cols
         else:
-            self.setPen(QPen())
+            pen = QPen()
+            # pen.setBrush(QBrush(Qt.GlobalColor.green))
+            self.setPen(QPen(Qt.NoPen))
         self.setToolTip(text)
 
     def time(self):
