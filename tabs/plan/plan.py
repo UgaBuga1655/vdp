@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSli
       QGraphicsTextItem, QCheckBox, QApplication, QMessageBox, QComboBox
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import Qt
+from sqlalchemy import HasSuffixes
 from data import Data
 from .mode_btn import ModeBtn
 from .plan_view import MyView
@@ -115,6 +116,7 @@ class PlanWidget(QWidget):
         self.view.load_data(self.db)
         self.view.set_classes(self.db.all_subclasses())
         self.db.update_block.connect(self.view.redraw_block)
+        self.db.update_custom_block.connect(self.view.redraw_block)
         self.db.redraw_plan.connect(self.redraw)
 
     def redraw(self):
@@ -146,7 +148,8 @@ class PlanWidget(QWidget):
         for subclass in self.db.all_subclasses():
             os.makedirs(f'{parent_folder}/{subclass.full_name()}', exist_ok=True)
             def filter_func(l):
-                return l.subject.parent() in [subclass, subclass.my_class]
+                return not hasattr(l, 'subject') \
+                    or l.subject.parent() in [subclass, subclass.my_class]
             self.hidden_view.filter_func = filter_func
             self.hidden_view.set_classes([subclass])
             self.hidden_view.draw()
@@ -158,7 +161,8 @@ class PlanWidget(QWidget):
             for student in subclass.students:
                 filename = f'{parent_folder}/{subclass.full_name()}/{student.name}'
                 def filter_func(l):
-                    return student in l.subject.students
+                    return not hasattr(l, 'subject')\
+                        or student in l.subject.students
                 self.hidden_view.filter_func = filter_func
                 self.hidden_view.set_classes([subclass])
                 self.hidden_view.draw()
@@ -172,7 +176,7 @@ class PlanWidget(QWidget):
         for teacher in self.db.read_all_teachers():
             filename = f'{parent_folder}/nauczyciele/{teacher.name}'
             def filter_func(l):
-                return l.subject.teacher == teacher
+                return l.teacher == teacher
             self.hidden_view.filter_func = filter_func
             self.hidden_view.set_classes(self.db.all_subclasses())
             self.hidden_view.draw()

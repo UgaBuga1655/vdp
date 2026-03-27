@@ -205,8 +205,10 @@ class MyView(QGraphicsView):
                 subclasses = [s.subclasses[0] if isinstance(s, Class) else s for s in classes]
                 block: CustomBlock = self.db.create_custom_block(day, start, length, subclasses)
                 self.new_block.block = block
+                self.blocks[block] = self.new_block
                 self.new_block.pick_color()
                 self.new_block.set_text()
+                self.scene().removeItem(self.new_block.text_item0)
 
             # print(my_class.full_name())
             self.scene().removeItem(self.new_block)

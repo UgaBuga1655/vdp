@@ -38,7 +38,7 @@ class BlockText(QGraphicsTextItem):
         font = QFont()
         font.setPointSize(size)
         self.setFont(font)
-        while self.text_too_big() and size >=4:
+        while self.text_too_big() and size >=5:
             size -= 0.2
             font.setPointSizeF(size)
             self.setFont(font)

@@ -95,7 +95,8 @@ class FilterWidget(QWidget):
         if not student:
             return None, None
         def filter(l):
-            return l.subject in student.subjects
+            return not hasattr(l, 'subject') \
+                or l.subject in student.subjects
         return [student.subclass], filter
     
     def update_teacher_filter(self):

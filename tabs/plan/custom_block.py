@@ -17,9 +17,13 @@ class CustomBlock(BasicBlock):
         self.signal = BlockSignaler()
 
     def paint(self, painter, option, widget = ...):
+        painter.fillRect(self.rect().adjusted(0.5,0,-0.5,0), self.brush())
         super().paint(painter, option)
+        if not hasattr(self, 'block'):
+            return
         duties = list(filter(self.filter, self.block.duties))
         if not (len(duties) or settings.draw_custom_blocks):
+            self.text_item0.hide()
             self.hide()
 
     def contextMenuEvent(self, event):
@@ -65,7 +69,18 @@ class CustomBlock(BasicBlock):
         color.setAlpha(settings.alpha)
         # color.setAlpha(210)
         self.setBrush(color)
-        self.text_item0.set_custom_text(self.block.text)
+        text = self.block.text
+        duties = filter(self.filter, self.block.duties)
+        classrooms = [duty.classroom.name for duty in duties if duty.classroom]
+        classrooms = list(set(classrooms))
+        classrooms.sort()
+        classrooms = '/'.join(classrooms)
+        if classrooms:
+            if self.block.length <= 2:
+                text = f'{classrooms} ({self.block.print_time()})'
+            else:
+                text += '<br>' + self.block.print_time() + '<br>' + classrooms
+        self.text_item0.set_custom_text(text)
         if contrast_ratio(color, QColor('black')) < 4.5:
             self.text_item0.setDefaultTextColor(QColor('#ffffff'))
         self.recenter_text()
@@ -77,9 +92,3 @@ class CustomBlock(BasicBlock):
     def mouseMoveEvent(self, event, show_tooltip=True):
         super().mouseMoveEvent(event, show_tooltip)
         self.recenter_text()
-
-    
-    def paint(self, painter, option, widget = ...):
-
-        painter.fillRect(self.rect(), self.brush())
-        super().paint(painter, option)

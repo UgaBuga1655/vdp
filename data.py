@@ -12,6 +12,7 @@ from models import *
 
 
 class Data(QObject):
+    update_custom_block = pyqtSignal(CustomBlock)
     update_block = pyqtSignal(LessonBlockDB)
     redraw_plan = pyqtSignal()
 
@@ -393,6 +394,8 @@ class Data(QObject):
     def update_custom_block_text(self, block: CustomBlock, text):
         block.text = text
         self.session.commit()
+        if block:
+            self.update_custom_block.emit(block)
 
     def delete_unplaceable_custom_blocks(self):
         for custom_block in self.all_custom_blocks():
