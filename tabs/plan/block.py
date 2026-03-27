@@ -172,14 +172,15 @@ class BasicBlock(QGraphicsRectItem):
     def update_tooltip(self):
         # print(self)
         # return
-        text = self.time() + '\n'
+        text = self.time()
         # print(self.collisions)
         cols = '\n'.join([c for c in self.collisions.values() if c])
         if cols:
             self.setPen(QPen(QBrush(Qt.red),4))
+            text += '\n' + cols
         else:
             self.setPen(QPen())
-        self.setToolTip(text + cols)
+        self.setToolTip(text)
 
     def time(self):
         return f'{self.block.print_time()} ({self.block.length*5})'
