@@ -20,3 +20,6 @@ class TeacherDuty(Base):
     
     def get_name(self):
         return f'{self.classroom.name}'
+    
+    def name_and_time(self):
+        return f'Dyżur {self.teacher.name} w {self.classroom.name} ({self.block.print_time()})'
