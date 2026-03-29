@@ -10,13 +10,8 @@ class DutyDialog(QDialog):
         self.custom_block = custom_block
         self.db = db
         self.classrooms = self.db.all_classrooms()
-        self.classroom_collisions = {}
-        for classroom in self.classrooms:
-            collisions = self.db.get_collisions_for_classroom_at_block(classroom, custom_block)
-            self.classroom_collisions[classroom] = '/n'.join([
-                f'W {classroom.name} trwa {lesson.name_and_time()}'
-                for lesson in collisions]
-            )
+        self.classroom_collisions = self.db.potential_clasroom_collisions_at_block(custom_block)
+      
  
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -52,7 +47,7 @@ class DutyDialog(QDialog):
         for i, classroom in enumerate(self.classrooms):
             classroom_select.addItem(classroom.name, classroom)
 
-            collision = self.classroom_collisions[classroom]
+            collision = '\n'.join(self.classroom_collisions[classroom])
             if not collision:
                 continue
             classroom_select.setItemData(i+1, collision, Qt.ToolTipRole)

@@ -19,6 +19,7 @@ class ClassroomsWidget(QWidget):
         self.grid.setColumnStretch(4, 1)
         self.layout().addStretch()
         self.classrooms = []
+        self.load_data(self.db)
         # self.setLayout(self.grid)
 
     def load_data(self, db):

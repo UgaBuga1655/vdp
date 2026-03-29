@@ -15,6 +15,8 @@ class ManageClassroomsDialog(QDialog):
         self.db: 'Data' = parent_block.db
         self.block = parent_block.block
         self.lessons = self.block.lessons
+        self.collisions = self.db.potential_clasroom_collisions_at_block(self.block)
+        # print(self.collisions)
 
 
 
@@ -51,7 +53,7 @@ class ManageClassroomsDialog(QDialog):
         list.clear()
         for i, classroom in enumerate(self.db.all_classrooms()):
             list.addItem(classroom.name, classroom)
-            collisions = '\n'.join(self.db.classroom_collisions(classroom, self.block, lesson))
+            collisions = '\n'.join(self.db.classroom_collisions(classroom, lesson.subject) + self.collisions[classroom])
             if collisions:
                 list.setItemData(i, collisions, Qt.ToolTipRole)
                 if not settings.allow_creating_conflicts:

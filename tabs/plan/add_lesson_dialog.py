@@ -12,6 +12,7 @@ class AddLessonToBlockDialog(QDialog):
         self.db: Data = parent.db
         self.subclass: Subclass = parent.block.parent()
         self.block = parent.block
+        self.collisions = self.db.potential_collisions_at_lesson_block(self.block)
         
 
         self.setWindowTitle('Wybierz przedmiot')
@@ -66,24 +67,7 @@ class AddLessonToBlockDialog(QDialog):
         self.select_next_subject = False
         for i, subject in enumerate(subjects):
             self.subject_list.addItem(subject.name, subject)
-            collisions = [
-                f'{subject.teacher.name} prowadzi {l.name_and_time()}'
-                for l in self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, self.block)
-            ]
-            collisions.extend([
-                f'{subject.teacher.name} ma dyżur w {duty.classroom.name if duty.classroom else "-"} o {duty.block.print_time()}'
-                for duty in self.db.get_duty_collisions_for_teacher_at_block(subject.teacher, self.block)
-            ])
-            collisions.extend([
-                f'Niektórzy uczniowie mają {l.name_and_time()}'
-                for l in self.db.get_collisions_for_students_at_block(subject.students, self.block)
-            ])
-            if subject.teacher and not self.db.is_teacher_available(subject.teacher, self.block):
-                collisions.append(f'{subject.teacher.name} nie jest dostępny w tych godzinach.')
-
-            if self.block.length*5 not in [l.length for l in subject.lessons]:
-                collisions.append('Blok nie ma właściwej długości dla żadnej z lekcji')
-            collisions = '\n'.join(collisions)
+            collisions = '\n'.join(self.collisions[subject])
 
             if collisions:
                 if self.subject_list.currentIndex() == i and i < self.subject_list.count():
@@ -133,46 +117,31 @@ class AddLessonToBlockDialog(QDialog):
             self.lesson_list.setCurrentIndex(-1)
             # self.no_lessons_viable()
 
-    def no_lessons_viable(self):
-        current_index = self.subject_list.currentIndex()
-        self.subject_list.setItemData(current_index, 0, Qt.UserRole - 1)
-        self.subject_list.setCurrentIndex(current_index+1)
-        
-        # # if self.subject_list.count() == current_index + 1:
-        # #     print('deselect')
-        # #     self.subject_list.setCurrentIndex(-1)
-        # # else:
-        # #     print('select_next')
-        #     self.subject_list.setCurrentIndex(current_index+1)
 
     def update_classroom_list(self):
         self.classroom_list.clear()
         # subject = self.subject_list.currentData(Qt.UserRole)
-        lesson = self.lesson_list.currentData()
-        if not lesson:
+        subject = self.subject_list.currentData()
+        if not subject:
             return
-        none_viable = True
-        select_next = False
+        
         for i, classroom in enumerate(self.db.all_classrooms()):
             self.classroom_list.addItem(classroom.name, classroom)
 
-            collisions = self.db.classroom_collisions(classroom, self.block, lesson)
-
+            collisions = self.db.classroom_fit_collisions(classroom, subject) + self.collisions[classroom]
             collisions = '\n'.join(collisions)
+            select_next = False
             if collisions:
-                if self.classroom_list.currentIndex() == i and i < self.classroom_list.count():
-                    select_next = True
+                # if self.classroom_list.currentIndex() == i and i < self.classroom_list.count():
+                select_next = True
                 self.classroom_list.setItemData(i, collisions, Qt.ToolTipRole)
                 if not settings.allow_creating_conflicts:
                     self.classroom_list.setItemData(i, 0, Qt.UserRole - 1)
                 else:
                     self.classroom_list.setItemData(i, QColor('red'), Qt.BackgroundRole)
             else:
-                none_viable = False
                 if select_next:
                     self.classroom_list.setCurrentIndex(i)
                     select_next = False
-        if none_viable:
-            self.classroom_list.setCurrentIndex(-1)
 
 
