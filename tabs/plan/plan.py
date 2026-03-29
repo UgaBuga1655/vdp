@@ -173,7 +173,7 @@ class PlanWidget(QWidget):
 
 
         os.makedirs(f'{parent_folder}/nauczyciele', exist_ok=True)
-        for teacher in self.db.read_all_teachers():
+        for teacher in self.db.all_teachers():
             filename = f'{parent_folder}/nauczyciele/{teacher.name}'
             def filter_func(l):
                 return l.teacher == teacher

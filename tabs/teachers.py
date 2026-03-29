@@ -197,7 +197,7 @@ class TeachersWidget(QWidget):
         opened_teacher = self.list.currentText()
         self.db = db
         self.list.clear()
-        for teacher in self.db.read_all_teachers():
+        for teacher in self.db.all_teachers():
             self.list.addItem(teacher.name, teacher)
         if self.list.currentText():
             self.frame.show()

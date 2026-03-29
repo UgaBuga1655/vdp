@@ -54,7 +54,7 @@ class Data(QObject):
         t.name = name
         self.session.commit()
 
-    def read_all_teachers(self):
+    def all_teachers(self):
         return self.session.query(Teacher).order_by(Teacher.name).all()
 
     def delete_teacher(self, t):
@@ -499,89 +499,117 @@ class Data(QObject):
             mask |=  1 << shift
         return not(mask & ~teacher.__getattribute__(f'av{block.day+1}'))
     
-    def potential_clasroom_collisions(self, events: List[Lesson|TeacherDuty]):
-        collisions = {cr: [] for cr in self.all_classrooms()}
-        for event in events:
-            if event.classroom:
-                collisions[event.classroom].append(event.name_and_time())
-        return collisions
+    # def potential_clasroom_collisions(self, events: List[Lesson|TeacherDuty]):
+    #     collisions = {cr: [] for cr in self.all_classrooms()}
+    #     for event in events:
+    #         if event.classroom:
+    #             collisions[event.classroom].append(event.name_and_time())
+    #     return collisions
 
-    def potential_clasroom_collisions_at_block(self, block):
-        events = []
-        for bl in self.overlapping_blocks(block):
-            if bl == block:
-                continue
-            events.extend(bl.lessons)
+    # def potential_clasroom_collisions_at_block(self, block):
+    #     events = []
+    #     for bl in self.overlapping_blocks(block):
+    #         if bl == block:
+    #             continue
+    #         events.extend(bl.lessons)
         
-        for bl in self.overlapping_custom_blocks(block):
-            if bl == block:
-                continue
-            events.extend(bl.duties)
+    #     for bl in self.overlapping_custom_blocks(block):
+    #         if bl == block:
+    #             continue
+    #         events.extend(bl.duties)
 
-        return self.potential_clasroom_collisions(events)
+    #     return self.potential_clasroom_collisions(events)
     
-    def potential_collisions_at_lesson_block(self, block: LessonBlockDB):
+    def potential_collisions_at_block(self, block: LessonBlockDB|CustomBlock, exclude_self = False, get_subjects = False, get_classrooms = False, get_teachers = False):
+        if isinstance(block, CustomBlock) and get_subjects:
+            raise ValueError('Custom block do not have subjects')
         # get all subjects
-        if block.subclass:
-            subjects = [s for s in block.subclass.subjects]
-        else:
-            subjects = [s for s in block.my_class.subjects]
-            for subclass in block.my_class.subclasses:
-                subjects.extend(subclass.subjects)
+        items = []
 
-        # get all classrooms
-        collisions = {item: [] for item in subjects}
+        if get_subjects:
+            if block.subclass:
+                subjects = [s for s in block.subclass.subjects]
+            else:
+                subjects = [s for s in block.my_class.subjects]
+                for subclass in block.my_class.subclasses:
+                    subjects.extend(subclass.subjects)
+            items.extend(subjects)
+
+        if get_classrooms: 
+            items.extend(self.all_classrooms())
+
+        if get_teachers:
+            items.extend(self.all_teachers())
+
+        collisions = {item: [] for item in items}
+
 
         events = []
         for bl in self.overlapping_blocks(block):
+            if exclude_self and bl == block:
+                continue
             events.extend(bl.lessons)
         
         for bl in self.overlapping_custom_blocks(block):
+            if exclude_self and bl == block:
+                continue
             events.extend(bl.duties)
+
+        
 
         event: TeacherDuty | Lesson
         for event in events:
             # find busy teachers
             teacher = event.teacher
-            if not teacher:
-                continue
-            for subject in event.teacher.subjects:
-                if subject in collisions:
-                    collisions[subject].append(event.collision_text())
+            if teacher:
+                for subject in teacher.subjects:
+                    if subject in collisions:
+                        collisions[subject].append(event.collision_text())
+                if teacher in collisions:
+                    collisions[teacher].append(event.collision_text())
 
             # find busy students
-            if not hasattr(event, 'subject'):
-                continue
-            for subject in subjects:
-                if len(set(subject.students).intersection(event.subject.students)):
-                    collisions[subject].append(f'Niektórzy uczniowie mają {event.name_and_time()}')
+            if get_subjects:
+                for subject in subjects:
+                    if len(set(subject.students).intersection(event.subject.students)):
+                        collisions[subject].append(f'Niektórzy uczniowie mają {event.name_and_time()}')
 
-        collisions.update(self.potential_clasroom_collisions(events))
-
-
-        available_classrooms = {cr for cr in self.all_classrooms() if not collisions[cr]}
-        subject: Subject
-        for subject in subjects:
-            # teacher
-            if not self.is_teacher_available(subject.teacher, block):
-                collisions[subject].append(f'{subject.teacher.name} nie jest dostępny w tych godzinach')
-
-            # is required classroom available
-            if subject.required_classroom:
-                collisions[subject].extend([
-                    f'{subject.required_classroom.name} jest zajęte przez {les}'
-                    for les in collisions[subject.required_classroom]
-                ])
             
-            # is there an available classroom with enough capacity
-            n_of_students = len(subject.students)
-            if not len([cr for cr in available_classrooms
-                        if cr.capacity >= n_of_students]) and not collisions[subject]:
-                collisions[subject].append('Żadna odpowiednio duża sala nie jest dostępna')
+            # find occupied classrooms
+            if get_classrooms:
+                if event.classroom and not (isinstance(event, TeacherDuty) and isinstance(block, CustomBlock)):
+                    collisions[event.classroom].append(event.name_and_time())
 
-            # is the block long enough
-            if block.length*5 not in [l.length for l in subject.lessons]:
-                collisions[subject].append(f'Żadna lekcja nie ma odpowiedniej długości')
+        # positive subject requirements
+        if get_subjects:
+            available_classrooms = {cr for cr in self.all_classrooms() if not collisions[cr]}
+            subject: Subject
+            for subject in subjects:
+                # teacher
+                if not self.is_teacher_available(subject.teacher, block):
+                    collisions[subject].append(f'{subject.teacher.name} nie jest dostępny w tych godzinach')
+
+                # is required classroom available
+                if subject.required_classroom:
+                    collisions[subject].extend([
+                        f'{subject.required_classroom.name} jest zajęte przez {les}'
+                        for les in collisions[subject.required_classroom]
+                    ])
+                
+                # is there an available classroom with enough capacity
+                n_of_students = len(subject.students)
+                if not len([cr for cr in available_classrooms
+                            if cr.capacity >= n_of_students]) and not collisions[subject]:
+                    collisions[subject].append('Żadna odpowiednio duża sala nie jest dostępna')
+
+                # is the block long enough
+                if block.length*5 not in [l.length for l in subject.lessons]:
+                    collisions[subject].append(f'Żadna lekcja nie ma odpowiedniej długości')
+
+        if get_teachers:
+            for teacher in self.all_teachers():
+                if not self.is_teacher_available(teacher, block):
+                    collisions[teacher].append(f'{teacher.name} nie jest dostępny w tych godzinach')
 
         return collisions
         

@@ -12,7 +12,7 @@ class AddLessonToBlockDialog(QDialog):
         self.db: Data = parent.db
         self.subclass: Subclass = parent.block.parent()
         self.block = parent.block
-        self.collisions = self.db.potential_collisions_at_lesson_block(self.block)
+        self.collisions = self.db.potential_collisions_at_block(self.block, get_subjects=True, get_classrooms=True)
         
 
         self.setWindowTitle('Wybierz przedmiot')
@@ -44,9 +44,9 @@ class AddLessonToBlockDialog(QDialog):
 
         self.classroom_list = QComboBox()
         layout.addWidget(self.classroom_list)
-        self.classroom_list.addItem('')
-        for classroom in self.db.all_classrooms():
-            self.classroom_list.addItem(classroom.name, classroom)
+        # self.classroom_list.addItem('')
+        # for classroom in self.db.all_classrooms():
+            # self.classroom_list.addItem(classroom.name, classroom)
 
         buttonBox = QDialogButtonBox()
         layout.addWidget(buttonBox)
@@ -55,6 +55,7 @@ class AddLessonToBlockDialog(QDialog):
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         self.update_subject_list()
+        self.update_classroom_list()
 
         self.move(QCursor.pos() + QPoint(10,10))
 
@@ -120,19 +121,16 @@ class AddLessonToBlockDialog(QDialog):
 
     def update_classroom_list(self):
         self.classroom_list.clear()
-        # subject = self.subject_list.currentData(Qt.UserRole)
         subject = self.subject_list.currentData()
         if not subject:
             return
-        
+        select_next = False
         for i, classroom in enumerate(self.db.all_classrooms()):
             self.classroom_list.addItem(classroom.name, classroom)
 
             collisions = self.db.classroom_fit_collisions(classroom, subject) + self.collisions[classroom]
             collisions = '\n'.join(collisions)
-            select_next = False
             if collisions:
-                # if self.classroom_list.currentIndex() == i and i < self.classroom_list.count():
                 select_next = True
                 self.classroom_list.setItemData(i, collisions, Qt.ToolTipRole)
                 if not settings.allow_creating_conflicts:
@@ -140,6 +138,7 @@ class AddLessonToBlockDialog(QDialog):
                 else:
                     self.classroom_list.setItemData(i, QColor('red'), Qt.BackgroundRole)
             else:
+                # print(select_next)
                 if select_next:
                     self.classroom_list.setCurrentIndex(i)
                     select_next = False

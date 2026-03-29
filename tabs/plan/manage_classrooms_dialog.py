@@ -15,7 +15,7 @@ class ManageClassroomsDialog(QDialog):
         self.db: 'Data' = parent_block.db
         self.block = parent_block.block
         self.lessons = self.block.lessons
-        self.collisions = self.db.potential_clasroom_collisions_at_block(self.block)
+        self.collisions = self.db.potential_collisions_at_block(self.block, exclude_self=True, get_classrooms=True)
         # print(self.collisions)
 
 

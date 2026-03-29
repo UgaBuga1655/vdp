@@ -10,7 +10,7 @@ class DutyDialog(QDialog):
         self.custom_block = custom_block
         self.db = db
         self.classrooms = self.db.all_classrooms()
-        self.classroom_collisions = self.db.potential_clasroom_collisions_at_block(custom_block)
+        self.classroom_collisions = self.db.potential_collisions_at_block(custom_block, exclude_self=True, get_classrooms=True, get_teachers=True)
       
  
         layout = QVBoxLayout()
@@ -64,8 +64,16 @@ class DutyDialog(QDialog):
 
         teacher_select = QComboBox()
         teacher_select.addItem('---', None)
-        for teacher in self.db.read_all_teachers():
+        for i, teacher in enumerate(self.db.all_teachers()):
             teacher_select.addItem(teacher.name, teacher)
+            collision = '\n'.join(self.classroom_collisions[teacher])
+            if not collision:
+                continue
+            teacher_select.setItemData(i+1, collision, Qt.ToolTipRole)
+            if not settings.allow_creating_conflicts:
+                teacher_select.setItemData(i+1, 0, Qt.UserRole - 1)
+            else:
+                teacher_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
         teacher_select.currentIndexChanged.connect(
             self.update_duty_teacher(duty, teacher_select)
         )

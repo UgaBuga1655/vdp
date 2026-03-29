@@ -178,7 +178,7 @@ class FilterWidget(QWidget):
             button.clicked.connect(self.filter_btn_clicked)
             self.class_filter.layout().insertWidget(index, button)
 
-        for teacher in self.db.read_all_teachers():
+        for teacher in self.db.all_teachers():
             self.teacher_list.addItem(teacher.name, teacher)
 
         for classroom in self.db.all_classrooms():
