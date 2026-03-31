@@ -53,7 +53,7 @@ class ManageClassroomsDialog(QDialog):
         list.clear()
         for i, classroom in enumerate(self.db.all_classrooms()):
             list.addItem(classroom.name, classroom)
-            collisions = '\n'.join(self.db.classroom_collisions(classroom, lesson.subject) + self.collisions[classroom])
+            collisions = '\n'.join(self.db.classroom_fit_collisions(classroom, lesson.subject) + self.collisions[classroom])
             if collisions:
                 list.setItemData(i, collisions, Qt.ToolTipRole)
                 if not settings.allow_creating_conflicts:

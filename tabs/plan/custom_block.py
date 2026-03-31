@@ -49,7 +49,7 @@ class CustomBlock(BasicBlock):
                 self.text_item0.setDefaultTextColor(QColor('#ffffff'))
 
     def set_text(self):
-        placeholder = self.text_item0.toPlainText().replace('\n', '<br>')
+        placeholder = self.block.text.replace('\n', '<br>')
         text, ok = QInputDialog.getText(None, 'Podaj tekst', 'Tekst:', QLineEdit.Normal, placeholder) 
         if ok:
             self.text_item0.set_custom_text(text)

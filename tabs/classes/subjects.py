@@ -96,7 +96,7 @@ class SubjectsWindow(QWidget):
         teacher_row.addWidget(QLabel('Nauczyciel:'))
         self.teacher_list = QComboBox()
         self.teacher_list.addItem('')
-        for t in self.db.read_all_teachers():
+        for t in self.db.all_teachers():
             self.teacher_list.addItem(t.name, t)
         self.teacher_list.currentTextChanged.connect(self.set_teacher)
         self.teacher_list.setSizeAdjustPolicy(QComboBox.AdjustToContents)
