@@ -137,7 +137,7 @@ class MyView(QGraphicsView):
                 self.new_block_top = snap_position(self.mapToScene(event.pos()).y(), self.five_min_h, self.top_bar_h)
                 self.new_block_left = snap_position(self.mapToScene(event.pos()).x(), self.block_w, self.left_bar_w)
                 # don't draw anything on stats column
-                i = (self.new_block_left-self.left_bar_w + self.block_w/2)//self.block_w
+                i = ((self.new_block_left-self.left_bar_w + self.block_w/2)//self.block_w)%self.l
                 if i >= l:
                     return
                 if self.mode == 'new':
