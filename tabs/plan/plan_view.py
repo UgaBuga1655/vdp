@@ -140,12 +140,13 @@ class MyView(QGraphicsView):
                 i = ((self.new_block_left-self.left_bar_w + self.block_w/2)//self.block_w)%self.l
                 if i >= l:
                     return
-                if self.mode == 'new':
-                    self.new_block = LessonBlock(self.new_block_left, self.new_block_top, self.block_w, self.five_min_h, self.scene(), self.db, self.classes)
-                elif self.mode == 'new_custom':
-                    self.new_block = CustomBlock(self.new_block_left, self.new_block_top, self.block_w, self.five_min_h, self.scene(), self.db, self.classes)
+                self.new_block = BasicBlock(self.new_block_left, self.new_block_top, self.block_w, self.five_min_h, self.scene(), self.db, self.classes)
+                # if self.mode == 'new':
+                #     self.new_block = LessonBlock(self.new_block_left, self.new_block_top, self.block_w, self.five_min_h, self.scene(), self.db, self.classes)
+                # elif self.mode == 'new_custom':
+                #     self.new_block = CustomBlock(self.new_block_left, self.new_block_top, self.block_w, self.five_min_h, self.scene(), self.db, self.classes)
                 self.new_block.bring_forward()
-                self.new_block.setBrush(QBrush(QColor('#c0c0c0')))
+                # self.new_block.setBrush(QBrush(QColor('#c0c0c0')))
                 
                 self.scene().addItem(self.new_block)
             elif event.button() == Qt.MouseButton.RightButton:
@@ -170,7 +171,6 @@ class MyView(QGraphicsView):
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         if self.new_block:
-            self.new_block.setBrush(QColor(0,0,0,0))
             # drop block if it has no length:
             if self.new_block.boundingRect().height() < self.five_min_h:
                 self.new_block.delete()
@@ -186,6 +186,7 @@ class MyView(QGraphicsView):
             # find (sub)class
             i = x // self.block_w
             i = int(i%self.l)
+
             if self.mode == 'new':
                 my_class = self.classes[i]
                 # find if block spans entire class
@@ -195,29 +196,19 @@ class MyView(QGraphicsView):
                 # ... or is the only subclass
                 if len(my_class.get_class().subclasses)==1:
                     my_class = my_class.get_class()
-            
+
                 block = self.db.create_block(day, start, length, my_class)
-                # self.blocks[block] = self.new_block
 
             elif self.mode =='new_custom':
                 n_of_classes = int(self.new_block.boundingRect().width()//self.block_w)
                 classes = self.classes[i:i+n_of_classes]
                 subclasses = [s.subclasses[0] if isinstance(s, Class) else s for s in classes]
                 block: CustomBlock = self.db.create_custom_block(day, start, length, subclasses)
-                self.new_block.block = block
-                self.blocks[block] = self.new_block
-                self.new_block.pick_color()
-                self.new_block.set_text()
-                self.scene().removeItem(self.new_block.text_item0)
 
-            # print(my_class.full_name())
             self.scene().removeItem(self.new_block)
-            # self.new_block.deleteLater()
             self.draw_block(block)
-            # self.new_block.block = block
-            # self.new_block.set_selectable(True)
-            # self.new_block.draw_contents()
-            # self.blocks.append(self.new_block)
+
+            self.blocks[block].bring_forward()
         self.block_start = -1
         self.new_block = False
 
@@ -257,7 +248,7 @@ class MyView(QGraphicsView):
                 self.drop_new_block()
                 return
             
-                        # update block
+            # update block
             if self.new_block:
                 self.new_block.bring_forward()
                 cursor_x = snap_position(self.mapToScene(event.pos()).x(), self.block_w, self.left_bar_w)

@@ -21,9 +21,10 @@ class BasicBlock(QGraphicsRectItem):
         self.db: Data = db
         super().__init__(x,y,w,h)
         self.five_min_h = h
-        # color = QColor('#c0c0c0')
-        # color.setAlpha(210)
-        # self.setBrush(QBrush(color))
+        color = QColor('#c0c0c0')
+        color.setAlpha(210)
+        self.setBrush(QBrush(color))
+        self.setPen(QPen(Qt.NoPen))
         self.moved = False
         self.block: LessonBlockDB
         self.collisions = dict()
@@ -188,6 +189,10 @@ class BasicBlock(QGraphicsRectItem):
         return f'{self.block.print_time()} ({self.block.length*5})'
     
     def paint(self, painter, option, widget = ...):
+        if not hasattr(self, 'block'):
+            super().paint(painter, option)
+            return
+
         adjust = self.pen().width()/2
         inner = self.rect().adjusted(adjust, 0, -adjust, 0)
         if 1==self.pen().width():
