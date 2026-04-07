@@ -63,7 +63,11 @@ class FilterWidget(QWidget):
         self.classroom_list.currentIndexChanged.connect(self.update_filter)
 
     def go_to_class_filter(self):
-        self.filter_selection.setCurrentIndex(0)
+        if self.filter_selection.currentIndex() != 0:
+            self.filter_selection.setCurrentIndex(0)
+            for button in self.findChildren(QPushButton):
+                button.setChecked(True)
+            self.update_filter() 
 
 
 

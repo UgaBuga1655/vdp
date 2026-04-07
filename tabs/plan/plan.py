@@ -252,9 +252,7 @@ class PlanWidget(QWidget):
         if checked:
             self.class_filter.go_to_class_filter()
             self.view.set_mode('new_custom')
-            for button in self.class_filter.findChildren(QPushButton):
-                button.setChecked(True)
-            self.class_filter.update_filter() 
+
         else:
             self.view.set_mode('normal')
     
