@@ -364,14 +364,22 @@ class Data(QObject):
     def add_lesson_to_block(self, lesson: Lesson, block: LessonBlockDB, lock=True):
         if not lesson :
             return False
-
-        if block:
-            lesson.block = block
-            block.lessons.append(lesson)
-            lesson.block_locked = lock
-        else:
+        
+        if not block:
             self.remove_lesson_from_block(lesson)
+            return
+        
+        lesson.block = block
+        block.lessons.append(lesson)
+        lesson.block_locked = lock
         self.session.commit()
+        self.update_block.emit(block)
+
+    def swap_lessons(self, source, block):
+        source.lessons, block.lessons = block.lessons, source.lessons
+        self.session.commit()
+        self.update_block.emit(source)
+        self.update_block.emit(block)
 
     def remove_lesson_from_block(self, lesson: Lesson):
         lesson.classroom = None

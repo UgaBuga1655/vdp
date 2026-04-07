@@ -40,8 +40,7 @@ class LessonBlock(BasicBlock):
                     for lesson in lessons:
                         self.db.add_lesson_to_block(lesson, self.block, lesson.block_locked)
                 else:
-                    source_block.lessons, self.block.lessons = self.block.lessons, source_block.lessons
-                    self.db.session.commit()
+                    self.db.swap_lessons(self.block, source.block)
 
                 QApplication.restoreOverrideCursor()
                 source.draw_contents()
@@ -77,13 +76,13 @@ class LessonBlock(BasicBlock):
             swap_lessons_action.triggered.connect(self.swap_lessons)
         action = self.menu.exec(event.globalPos())
 
-    def get_colliding_blocks(self):
-        rect = self.mapRectToScene(self.boundingRect())
+    # def get_colliding_blocks(self):
+    #     rect = self.mapRectToScene(self.boundingRect())
 
-        return [bl for bl in self.scene().items() \
-                            if isinstance(bl, LessonBlock) \
-                            and (rect.top() <= bl.boundingRect().top() <= rect.bottom() \
-                            or rect.top() <= bl.boundingRect().bottom() <= rect.bottom())]
+    #     return [bl for bl in self.scene().items() \
+    #                         if isinstance(bl, LessonBlock) \
+    #                         and (rect.top() <= bl.boundingRect().top() <= rect.bottom() \
+    #                         or rect.top() <= bl.boundingRect().bottom() <= rect.bottom())]
     
     def move_and_check_collisions(self, lesson_block, start: int):
         self.write()
