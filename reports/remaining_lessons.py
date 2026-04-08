@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeWidget, QPushButton, QSizePolicy, QTreeWidgetItem
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeWidget, QPushButton, QSizePolicy, QTreeWidgetItem, QHBoxLayout, QComboBox
 from PyQt5.QtCore import QSize, Qt, QPoint
 from PyQt5.QtGui import QCursor
 from data import Data
@@ -20,10 +20,12 @@ class RemainingLessonsWindow(QWidget):
         refresh_btn = QPushButton('Odśwież')
         refresh_btn.clicked.connect(self.load)
         self.layout().addWidget(refresh_btn)
+
+
+
+            
+
         
-        
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        self.move(QCursor.pos() + QPoint(10,10))
 
     def load(self):
         self.tree.clear()
@@ -57,4 +59,4 @@ class RemainingLessonsWindow(QWidget):
                     item.removeChild(subject_item)
             
 
-        
+      

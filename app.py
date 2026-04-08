@@ -12,7 +12,7 @@ from data import Data
 from tabs import Tabs
 from functions import get_user_data_dir
 from settings_dialog import SettingsDialog
-
+from reports import RemainingLessonsWindow, TimeReport
 
 
 
@@ -95,6 +95,16 @@ class MainWindow(QMainWindow):
             settings_action
         ])
 
+        reports_menu = menu.addMenu('&Raporty')
+        remaining_action = QAction('&Pozostałe lekcje', self)
+        remaining_action.triggered.connect(self.remaining_lessons_report)
+        time_rep_action = QAction('&Czas w szkole', self)
+        time_rep_action.triggered.connect(self.time_report)
+
+        reports_menu.addActions([
+            remaining_action,
+            time_rep_action
+        ])
 
         self.setCentralWidget(self.tabs)
 
@@ -146,6 +156,18 @@ class MainWindow(QMainWindow):
         if self.col_set is None:
             self.col_set = SettingsDialog()
         self.col_set.show()
+
+    def remaining_lessons_report(self):
+        if not hasattr(self, 'rem_les_win') or self.rem_les_win is None:
+            self.rem_les_win = RemainingLessonsWindow(self.db)
+        self.rem_les_win.show()
+        self.rem_les_win.load()
+
+    def time_report(self):
+        if not hasattr(self, 'time_report_win') or self.time_report_win is None:
+            self.time_report_win = TimeReport(self.db)
+        self.time_report_win.show()
+        self.time_report_win.load()
 
 
 

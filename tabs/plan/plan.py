@@ -2,12 +2,10 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSli
       QGraphicsTextItem, QCheckBox, QApplication, QMessageBox, QComboBox
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import Qt
-from sqlalchemy import HasSuffixes
 from data import Data
 from .mode_btn import ModeBtn
 from .plan_view import MyView
 from .filter import FilterWidget
-from .remaining_lessons import RemainingLessonsWindow
 from .stats import Statistic, StudentDensityStat
 from db_config import settings
 from coloring import ColoringThread, generate_lesson_graph, generate_block_graph
@@ -79,9 +77,6 @@ class PlanWidget(QWidget):
         toolbar.layout().addWidget(allow_conflicts)
         toolbar.layout().addWidget(QLabel('Zezwalaj na konflikty'))
 
-        show_remaining_lessons = QPushButton('Pozostałe lekcje')
-        show_remaining_lessons.clicked.connect(self.show_remaining_lessons_window)
-        toolbar.layout().addWidget(show_remaining_lessons)
 
         toolbar.layout().addWidget(QLabel('Statystyki:'))
         self.stats = QComboBox()
@@ -279,12 +274,6 @@ class PlanWidget(QWidget):
     def toggle_allow_conflicts(self):
         settings.allow_creating_conflicts = self.sender().isChecked()
 
-    def show_remaining_lessons_window(self):
-        if self.rem_les_win is None:
-            self.rem_les_win = RemainingLessonsWindow(self.db)
-        self.rem_les_win.show()
-        self.rem_les_win.load()
-
     def set_stat(self):
         stat = self.stats.currentData()
         self.view.set_stat(self.stats.currentData())
@@ -334,11 +323,4 @@ class PlanWidget(QWidget):
 
     def load_data(self, db):
         self.db = db
-        # self.class_filter.load_data(db)
-        # self.view.load_data(db)
-        # self.hidden_view.load_data(db)
-        # if self.class_filter.filter_selection.currentText() == 'Klasy':
-            # self.view.set_classes(self.class_filter.classes)
-            # self.view.draw()
-            # # self.hidden_view.set_classes(self.class_filter.classes)
-            # self.hidden_view.draw()
+

@@ -180,7 +180,6 @@ class Data(QObject):
     
     def student_count(self) -> int:
         return self.session.query(Student).count()
-    
 
     def delete_student(self, student):
         self.session.delete(student)
