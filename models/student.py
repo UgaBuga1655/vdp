@@ -39,17 +39,20 @@ class Student(Base):
                     end_time = time
                     if start_time is None:
                         start_time = time
+                        time_before_lessons = curr_break_time
                     if curr_break_time >= min_free_work_time:
                         free_work_time += curr_break_time
                     curr_break_time = 0
                 else:
                     curr_break_time += 1
+            free_work_between_lessons = free_work_time - time_before_lessons
             free_work_time+=curr_break_time
             if start_time is None:
                 stats[day].time_in_school = 0
             else:
                 stats[day].time_in_school = end_time - start_time + 1
-            stats[day].time_of_free_work = free_work_time - 12
+            stats[day].free_work_time = free_work_time - 12
+            stats[day].free_work_time_between_lessons = free_work_between_lessons
 
         return stats
                         

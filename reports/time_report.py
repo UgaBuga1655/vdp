@@ -29,7 +29,7 @@ class TimeReport(QWidget):
         # self.layout().addWidget(scroll_area)
         self.table = QTableWidget()
         main_layout.addWidget(self.table)
-        self.table.setRowCount(4)
+        self.table.setRowCount(5)
         self.table.setColumnCount(6)
         self.table.setItem(0,1,QTableWidgetItem('Poniedziałek'))
         self.table.setItem(0,2,QTableWidgetItem('Wtorek'))
@@ -37,9 +37,10 @@ class TimeReport(QWidget):
         self.table.setItem(0,4,QTableWidgetItem('Czwartek'))
         self.table.setItem(0,5,QTableWidgetItem('Piątek'))
 
-        self.table.setItem(1, 0, QTableWidgetItem('Łączny czas od początku do końca lekcji'))
-        self.table.setItem(2, 0, QTableWidgetItem('Łączny czas lekcji'))
-        self.table.setItem(3, 0, QTableWidgetItem('Łączny czas pracy własnej'))
+        self.table.setItem(1, 0, QTableWidgetItem('Od początku do końca lekcji'))
+        self.table.setItem(2, 0, QTableWidgetItem('Lekcje'))
+        self.table.setItem(3, 0, QTableWidgetItem('Praca własna'))
+        self.table.setItem(4, 0, QTableWidgetItem('Praca własna między lekcjami'))
 
         refresh_btn = QPushButton('Odśwież')
         refresh_btn.clicked.connect(self.load)
@@ -57,7 +58,8 @@ class TimeReport(QWidget):
         for day, stat in enumerate(stats):
             self.table.setItem(1,day+1, QTableWidgetItem(display_hour(stat.time_in_school, as_absolute=False)))
             self.table.setItem(2,day+1, QTableWidgetItem(display_hour(stat.time_in_lessons, as_absolute=False)))
-            self.table.setItem(3,day+1, QTableWidgetItem(display_hour(stat.time_of_free_work, as_absolute=False)))
+            self.table.setItem(3,day+1, QTableWidgetItem(display_hour(stat.free_work_time, as_absolute=False)))
+            self.table.setItem(4,day+1, QTableWidgetItem(display_hour(stat.free_work_time_between_lessons, as_absolute=False)))
 
 
     def load(self):
