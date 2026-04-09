@@ -1,14 +1,14 @@
-from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QToolTip, QGraphicsTextItem, QGraphicsRectItem
-from PyQt5.QtGui import QPen, QColor, QBrush, QTransform
-from PyQt5.QtCore import QPoint, Qt, QRectF, QEvent
+from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QToolTip, QGraphicsTextItem, QApplication
+from PyQt5.QtGui import QPen, QColor, QTransform
+from PyQt5.QtCore import QPoint, Qt, QRectF
 from networkx import Graph
 import gcol
 from .lesson_block import LessonBlock
 from .custom_block import CustomBlock
 from .block import BasicBlock
 from .stats import Statistic, StudentDensityStat
-from functions import snap_position, display_hour, contrast_ratio
-from data import Data, Class, Subclass, LessonBlockDB
+from functions import snap_position, display_hour
+from data import Data, Class, LessonBlockDB
 from db_config import settings
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import to_hex
@@ -559,6 +559,8 @@ class MyView(QGraphicsView):
 
 
     def draw(self):
+
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         scene = self.scene()
         scene.clear()
         scene.setSceneRect(0,0, self.scene_width, self.scene_height)
@@ -570,6 +572,7 @@ class MyView(QGraphicsView):
 
             # self.draw_blocks(self.db.all_lesson_blocks())
             # self.draw_blocks(self.db.all_custom_blocks())
+        QApplication.restoreOverrideCursor()
 
     def load_data(self, db):
         self.db = db

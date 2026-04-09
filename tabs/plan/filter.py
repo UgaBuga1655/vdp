@@ -63,10 +63,13 @@ class FilterWidget(QWidget):
         self.classroom_list.currentIndexChanged.connect(self.update_filter)
 
     def go_to_class_filter(self):
-        if self.filter_selection.currentIndex() != 0:
+        need_to_update = False
+        for button in self.findChildren(QPushButton):
+            if button.isChecked():
+                need_to_update = True
+            button.setChecked(True)
+        if self.filter_selection.currentIndex() != 0 or need_to_update:
             self.filter_selection.setCurrentIndex(0)
-            for button in self.findChildren(QPushButton):
-                button.setChecked(True)
             self.update_filter() 
 
 
@@ -157,7 +160,9 @@ class FilterWidget(QWidget):
         if not subclass:
             return
         self.student_list.clear()
-        for student in subclass.students:
+        students = subclass.students
+        students.sort(key=lambda s: s.name)
+        for student in students:
             self.student_list.addItem(student.name, student)
 
     def load_data(self, db):
@@ -188,6 +193,4 @@ class FilterWidget(QWidget):
         for classroom in self.db.all_classrooms():
             self.classroom_list.addItem(classroom.name, classroom)
 
-        selected_class = self.student_class_selection.currentData()
-        for student in selected_class.students:
-            self.student_list.addItem(student.name, student)
+        self.load_students()
