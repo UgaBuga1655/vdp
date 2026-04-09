@@ -182,7 +182,7 @@ class MyView(QGraphicsView):
             day = int(x // self.day_w)
             y = self.new_block.boundingRect().y() - self.top_bar_h + 1
             start = int(y // self.five_min_h)
-            length = int(self.new_block.boundingRect().height() // self.five_min_h)
+            length = int((self.new_block.boundingRect().height()+1)// self.five_min_h)
             # find (sub)class
             i = x // self.block_w
             i = int(i%self.l)
@@ -200,7 +200,7 @@ class MyView(QGraphicsView):
                 block = self.db.create_block(day, start, length, my_class)
 
             elif self.mode =='new_custom':
-                n_of_classes = int(self.new_block.boundingRect().width()//self.block_w)
+                n_of_classes = int((self.new_block.boundingRect().width()+1)//self.block_w)
                 classes = self.classes[i:i+n_of_classes]
                 subclasses = [s.subclasses[0] if isinstance(s, Class) else s for s in classes]
                 block: CustomBlock = self.db.create_custom_block(day, start, length, subclasses)

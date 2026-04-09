@@ -398,6 +398,8 @@ class Data(QObject):
     def update_custom_block_color(self, block, color):
         block.color = color
         self.session.commit()
+        if block:
+            self.update_custom_block.emit(block)
 
     def update_custom_block_text(self, block: CustomBlock, text):
         block.text = text

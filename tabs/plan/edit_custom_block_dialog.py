@@ -1,27 +1,42 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox, QPushButton, QDialogButtonBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox, QPushButton, QDialogButtonBox,\
+    QLineEdit, QColorDialog
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-from data import Data
+from data import Data, CustomBlock
 from db_config import settings
 
-class DutyDialog(QDialog):
-    def __init__(self, custom_block, db: Data):
+class EditCustomBlockDialog(QDialog):
+    def __init__(self, custom_block: CustomBlock, db: Data):
         super().__init__()
+        self.setWindowTitle(custom_block.print_full_time())
         self.custom_block = custom_block
         self.db = db
         self.classrooms = self.db.all_classrooms()
         self.classroom_collisions = self.db.potential_collisions_at_block(custom_block, exclude_self=True, get_classrooms=True, get_teachers=True)
       
  
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        
+        self.name_row = QHBoxLayout()
+        self.main_layout.addLayout(self.name_row)
+        self.color_btn = QPushButton()
+        self.color_btn.setFixedSize(20, 20)
+        self.color_btn.setStyleSheet(f'background-color: {self.custom_block.color}')
+        self.color_btn.clicked.connect(self.set_color)
+        self.name_row.addWidget(self.color_btn)
+
+        text_edit = QLineEdit(custom_block.text)
+        self.name_row.addWidget(text_edit)
+        text_edit.textChanged.connect(self.update_text)
+
         self.duties = QGridLayout()
-        layout.addLayout(self.duties)
+        self.main_layout.addLayout(self.duties)
         for duty in custom_block.duties:
             self.place_duty(duty)
             
         row = QHBoxLayout()
-        layout.addLayout(row)
+        self.main_layout.addLayout(row)
         new_button = QPushButton('+')
         new_button.clicked.connect(self.add_duty)
         row.addWidget(new_button)
@@ -100,6 +115,17 @@ class DutyDialog(QDialog):
             self.db.update_duty_teacher(duty, teacher)
         return func
     
+    def update_text(self, text):
+        self.db.update_custom_block_text(self.custom_block, text)
+
+    def set_color(self):
+        color = QColorDialog.getColor(QColor(self.custom_block.color))
+        if color.isValid():
+            # self.setBrush(color)
+            self.db.update_custom_block_color(self.custom_block, color.name())
+            self.color_btn.setStyleSheet(f'background-color: {color.name()}')
+
+
     def delete_duty(self, duty, widgets):
         def func():
             self.db.delete_duty(duty)
