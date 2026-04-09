@@ -1,13 +1,9 @@
-from PyQt5.QtWidgets import QAction, QToolTip, QGraphicsRectItem, QMessageBox, QApplication
-from PyQt5.QtGui import QColor, QBrush, QPen, QPainter, QCursor
+from PyQt5.QtWidgets import QAction, QMessageBox, QApplication
+from PyQt5.QtGui import QColor, QBrush, QPen
 from PyQt5.QtCore import Qt, QRectF, QObject, pyqtSignal
 from models import LessonBlockDB
 from .block import BasicBlock
-from .add_lesson_dialog import AddLessonToBlockDialog
-from .remove_lesson_dialog import RemoveLessonFromBlockDialog
-from .manage_classrooms_dialog import ManageClassroomsDialog
-from .locked_dialog import ManageLockedDialog
-from .block_text import BlockText
+from .manage_classrooms_dialog import EditLessonBlockDialog
 from functions import contrast_ratio
 from db_config import settings
 
@@ -54,19 +50,20 @@ class LessonBlock(BasicBlock):
 
     def contextMenuEvent(self, event):
         super().contextMenuEvent(event)
-        add_lesson_action =  QAction('Dodaj lekcję')
-        self.menu.insertAction(self.remove_action, add_lesson_action)
-        add_lesson_action.triggered.connect(self.add_subject)
+        # add_lesson_action =  QAction('Dodaj lekcję')
+        # self.menu.insertAction(self.remove_action, add_lesson_action)
+        # add_lesson_action.triggered.connect(self.add_subject)
+        manage_classrooms_action =  QAction('Edytuj')
+        self.menu.insertAction(self.remove_action, manage_classrooms_action)
+        manage_classrooms_action.triggered.connect(self.edit)
+        
         if len(self.block.lessons):
-            manage_classrooms_action =  QAction('Zarządzaj salami')
-            self.menu.insertAction(self.remove_action, manage_classrooms_action)
-            manage_classrooms_action.triggered.connect(self.manage_classrooms)
-            remove_lesson_action =  QAction('Usuń lekcję')
-            self.menu.insertAction(self.remove_action, remove_lesson_action)
-            remove_lesson_action.triggered.connect(self.remove_lesson)
-            manage_locked_action = QAction('Blokowanie lekcji')
-            self.menu.insertAction(self.remove_action, manage_locked_action)
-            manage_locked_action.triggered.connect(self.manage_locked)
+            # remove_lesson_action =  QAction('Usuń lekcję')
+            # self.menu.insertAction(self.remove_action, remove_lesson_action)
+            # remove_lesson_action.triggered.connect(self.remove_lesson)
+            # manage_locked_action = QAction('Blokowanie lekcji')
+            # self.menu.insertAction(self.remove_action, manage_locked_action)
+            # manage_locked_action.triggered.connect(self.manage_locked)
 
             move_lessons_action = QAction('Przenieś lekcje')
             self.menu.insertAction(self.remove_action, move_lessons_action)
@@ -87,62 +84,9 @@ class LessonBlock(BasicBlock):
     def move_and_check_collisions(self, lesson_block, start: int):
         self.write()
         return
-
-    def add_subject(self):
-        dialog = AddLessonToBlockDialog(self)
-        ok = dialog.exec()
-        if not ok:
-            return False
-        subject = dialog.subject_list.currentData()
-        lesson = dialog.lesson_list.currentData()
-        classroom = dialog.classroom_list.currentData()
-        if subject and lesson and classroom:
-            old_block: LessonBlock = lesson.block
-                
-            # update db
-            self.db.update_lesson_classroom(lesson, classroom)
-            self.db.add_lesson_to_block(lesson, self.block)
-        
-            # update visuals
-            if old_block:
-                old_block_item: LessonBlock = [bl for bl in self.parent.items() if isinstance(bl, LessonBlock) and bl.block==old_block][0]
-                old_block_item.draw_contents()
-            self.draw_contents()
-            self.signal.block_updated.emit(self.block)
-
-
-    def remove_lesson(self):
-        if not self.block.lessons:
-            return False
-        if len(self.block.lessons) == 1:
-            lesson = self.block.lessons[0]
-        else:
-            dialog = RemoveLessonFromBlockDialog(self.block.lessons)
-            ok = dialog.exec()
-            if not ok:
-                return False
-            lesson = dialog.list.currentData()
-        self.db.remove_lesson_from_block(lesson)
-        self.signal.block_updated.emit(self.block)
-        # for block in self.collidingItems():
-            # if isinstance(block, LessonBlock):
-                # block.draw_collisions()
-        self.draw_contents()
-
-    def manage_classrooms(self):
-        if not len(self.block.lessons):
-            return
-        ManageClassroomsDialog(self).exec()
-        self.draw_contents()
-        # for item in self.collidingItems():
-            # if isinstance(item, LessonBlock):
-                # item.draw_collisions()
-
-    def manage_locked(self):
-        if not len(self.block.lessons):
-            return
-        ManageLockedDialog(self).exec()
-        self.draw_contents()
+    
+    def edit(self):
+        EditLessonBlockDialog(self).exec()
 
     def move_lessons(self):
         QApplication.setOverrideCursor(Qt.DragMoveCursor)

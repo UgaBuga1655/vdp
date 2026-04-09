@@ -293,9 +293,10 @@ class Data(QObject):
         if lesson.block:
             self.update_block.emit(lesson.block)
 
-    def update_lesson_locked(self, lesson: Lesson, locked: bool) -> None:
+    def update_lesson_pinned(self, lesson: Lesson, locked: bool) -> None:
         lesson.block_locked = locked
         self.session.commit()
+        self.update_block.emit(lesson.block)
     
     def delete_lesson(self, lesson: Lesson) -> None:
         self.update_block.emit(lesson.block)
