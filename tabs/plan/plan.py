@@ -245,7 +245,8 @@ class PlanWidget(QWidget):
 
     def set_mode_new_custom(self, checked):
         if checked:
-            self.class_filter.go_to_class_filter()
+            self.class_filter.go_to_class_filter(True)
+            self.class_filter
             self.view.set_mode('new_custom')
 
         else:

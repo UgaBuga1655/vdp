@@ -205,7 +205,7 @@ class MyView(QGraphicsView):
                 subclasses = [s.subclasses[0] if isinstance(s, Class) else s for s in classes]
                 block: CustomBlock = self.db.create_custom_block(day, start, length, subclasses)
 
-            self.scene().removeItem(self.new_block)
+            self.new_block.delete()
             self.draw_block(block)
 
             self.blocks[block].bring_forward()
@@ -522,6 +522,7 @@ class MyView(QGraphicsView):
         if not block:
             return
         # to_update = self.blocks[block]
+        self.blocks[block].show()
         self.update_collisions_around(block)
         # to_update.draw_contents()
         # print(len(self.blocks))
