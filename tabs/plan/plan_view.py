@@ -536,7 +536,9 @@ class MyView(QGraphicsView):
         no_longer_overlapping = self.db.update_block_start(block, start)
         # update collisions
         for bl in no_longer_overlapping:
-            self.blocks[bl].remove_collisions_with(block)
+            other_block = self.blocks[bl]
+            if other_block:
+                other_block.remove_collisions_with(block)
             self.blocks[block].remove_collisions_with(bl)
         self.update_collisions_around(block)
         # add lessons back to stats

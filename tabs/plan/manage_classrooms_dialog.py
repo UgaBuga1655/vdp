@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QCursor
 from data import Data, LessonBlockDB
 from db_config import settings
+from models.lesson import Lesson
 from .add_lesson_dialog import AddLessonToBlockDialog
 
 
@@ -79,12 +80,13 @@ class EditLessonBlockDialog(QDialog):
             self.place_lesson(lesson)
             
 
-    def place_lesson(self, lesson):
+    def place_lesson(self, lesson: Lesson):
         row = self.main_grid.rowCount()
         del_btn = QPushButton('X')
         del_btn.setFixedSize(20,20)
         self.main_grid.addWidget(del_btn, row, 0)
         label = QLabel(lesson.subject.full_name(True))
+        label.setToolTip(lesson.teacher.name)
         self.main_grid.addWidget(label, row, 1)
         combobox = QComboBox()
         combobox.lesson = lesson

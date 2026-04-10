@@ -282,10 +282,19 @@ class Data(QObject):
     def all_lessons(self) -> List[Lesson]:
         return self.session.query(Lesson).all()
     
-    def set_all_lessons_locked(self, locked=True) -> None:
+    def pin_all_lessons(self, locked=True) -> None:
         for lesson in self.session.query(Lesson).all():
             lesson.block_locked = locked and (lesson.block is not None)
         self.session.commit()
+        self.redraw_plan.emit()
+
+    def pin_lessons_without_classrooms(self, pinned=True) -> None:
+        for lesson in self.session.query(Lesson).all():
+            if lesson.classroom:
+                continue
+            lesson.block_locked = pinned and (lesson.block is not None)
+        self.session.commit()
+        self.redraw_plan.emit()
     
     def update_lesson_classroom(self, lesson: Lesson, classroom: Classroom) -> None:
         lesson.classroom = classroom
@@ -299,7 +308,8 @@ class Data(QObject):
         self.update_block.emit(lesson.block)
     
     def delete_lesson(self, lesson: Lesson) -> None:
-        self.update_block.emit(lesson.block)
+        if lesson.block:
+            self.update_block.emit(lesson.block)
         self.session.delete(lesson)
         self.session.commit()
 

@@ -74,14 +74,17 @@ class MainWindow(QMainWindow):
         clear_all_les_action.triggered.connect(self.clear_all_lessons)
         clear_menu.addActions([clear_unl_les_action, clear_all_les_action])
 
-        lock_all_action = QAction('&Zablokuj wszystkie', self)
+        lock_all_action = QAction('&Przypnij wszystkie', self)
         lock_all_action.triggered.connect(self.lock_all_lessons)
-        unlock_all_action = QAction('&Odblokuj wszystkie', self)
+        unlock_all_action = QAction('&Odepnij wszystkie', self)
         unlock_all_action.triggered.connect(self.unlock_all_lessons)
+        unlock_all_without_classroom = QAction('Odepnij nieprzypisane do sali', self)
+        unlock_all_without_classroom.triggered.connect(self.unlock_all_lessons_without_classrooms)
 
         plan_menu.addActions([
             lock_all_action,
-            unlock_all_action
+            unlock_all_action,
+            unlock_all_without_classroom
         ])
 
         coloring_menu = menu.addMenu('&Uzupełnianie')
@@ -145,12 +148,15 @@ class MainWindow(QMainWindow):
         QApplication.restoreOverrideCursor()
 
     def lock_all_lessons(self):
-        self.db.set_all_lessons_locked()
-        self.tabs.refresh()
+        self.db.pin_all_lessons()
+        # self.tabs.refresh()
 
     def unlock_all_lessons(self):
-        self.db.set_all_lessons_locked(False)
-        self.tabs.refresh()
+        self.db.pin_all_lessons(False)
+        # self.tabs.refresh()
+
+    def unlock_all_lessons_without_classrooms(self):
+        self.db.pin_lessons_without_classrooms(False)
 
     def coloring_settings(self): 
         if self.col_set is None:
