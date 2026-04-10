@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QInputDialog, QPushButton, \
 from PyQt5.QtCore import Qt
 from data import Data, Class, Subclass, Student, Subject
 from sqlalchemy.exc import IntegrityError
+from pathlib import Path
 from .reorder_classes_dialog import ReorderClassesDialog
 from .subject_label import SubjectLabel
 from .new_subject_label import NewSubjectLabel
@@ -12,6 +13,7 @@ from .colorwidget import Color
 from .name_label import NameLabel
 from .subjects import SubjectsWindow
 from .subject_label import CopySubjectsDialog
+from .import_window import ImportFormatWindow
 
 class ClassesWidget(QWidget):
     def __init__(self,parent):
@@ -40,6 +42,10 @@ class ClassesWidget(QWidget):
         export_class_btn = QPushButton('Eksport do csv')
         export_class_btn.clicked.connect(self.export_class)
         layout.addWidget(export_class_btn)
+        
+        import_class_btn = QPushButton('Import z csv')
+        import_class_btn.clicked.connect(self.import_class)
+        layout.addWidget(import_class_btn)
         
         delete_class_btn = QPushButton('Usuń klasę')
         delete_class_btn.clicked.connect(self.delete_class)
@@ -359,6 +365,26 @@ class ClassesWidget(QWidget):
                                                 caption=f'Exportuj {class_.name}', 
                                                 directory=f'{class_.name}.csv')
         class_.to_csv(filename=filename)
+
+    def import_class(self):
+        filename, _ = QFileDialog.getOpenFileName(self, 'Wybierz plik', '', f'Pliki csv (*.csv)')
+        class_name = Path(filename)
+        class_name = class_name.name.split('.')[0]
+        class_names = {class_.name for class_ in self.db.all_classes()}
+        while class_name in class_names:
+            class_name += '_copy'
+
+        format_dialog = ImportFormatWindow(self, filename)
+        format_dialog.exec()
+
+        name_cols = format_dialog.n_of_name_cols.value()
+        n_of_subclasses = format_dialog.n_of_subclasses.value()
+
+        class_ = self.db.create_class(class_name)
+        for _ in range(n_of_subclasses):
+            self.db.create_subclass(class_)
+
+        self.list.addItem(class_.name, class_)
             
                     
                 

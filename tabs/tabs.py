@@ -26,6 +26,8 @@ class Tabs(QTabWidget):
         self.addTab(self.classrooms, 'Pomieszczenia')
         # self.currentChanged.connect(self.refresh)
 
+        self.currentChanged.connect(self.on_tab_change)
+
     def refresh(self):
         try:
             self.currentWidget().load_data(self.db)
@@ -35,3 +37,10 @@ class Tabs(QTabWidget):
     def load_data(self, db):
         self.db = db
         self.refresh()
+
+    # refreshing plan
+    def on_tab_change(self, index):
+        if index != 0:
+            return
+        self.plan.redraw()
+        

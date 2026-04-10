@@ -21,6 +21,7 @@ class PlanWidget(QWidget):
         super().__init__(parent)
         self.db: Data = parent.db
         self.rem_les_win = None
+        self.need_redrawing = False
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
@@ -112,11 +113,17 @@ class PlanWidget(QWidget):
         self.view.set_classes(self.db.all_subclasses())
         self.db.update_block.connect(self.view.redraw_block)
         self.db.update_custom_block.connect(self.view.redraw_block)
-        self.db.redraw_plan.connect(self.redraw)
+        self.db.redraw_plan.connect(self.stage_redraw)
+
+    def stage_redraw(self):
+        self.need_redrawing = True
+
 
     def redraw(self):
-        self.class_filter.load_data(self.db)
-        self.class_filter.update_filter()
+        if self.need_redrawing:
+            self.class_filter.load_data(self.db)
+            self.class_filter.update_filter()
+            self.need_redrawing = False
 
     def export(self):
         settings.alpha = 255 

@@ -161,13 +161,21 @@ class FilterWidget(QWidget):
         subclass = self.student_class_selection.currentData()
         if not subclass:
             return
+        self.student_list.blockSignals(True)
         self.student_list.clear()
         students = subclass.students
         students.sort(key=lambda s: s.name)
         for student in students:
             self.student_list.addItem(student.name, student)
+        self.student_list.blockSignals(False)
+        
 
     def load_data(self, db):
+        self.student_list.blockSignals(True)
+        self.classroom_list.blockSignals(True)
+        self.teacher_list.blockSignals(True)
+        self.student_class_selection.blockSignals(True)
+
         self.db = db
         self.classes = self.db.all_subclasses()
         
@@ -194,5 +202,11 @@ class FilterWidget(QWidget):
 
         for classroom in self.db.all_classrooms():
             self.classroom_list.addItem(classroom.name, classroom)
+
+
+        self.student_list.blockSignals(False)
+        self.classroom_list.blockSignals(False)
+        self.teacher_list.blockSignals(False)
+        self.student_class_selection.blockSignals(False)
 
         self.load_students()

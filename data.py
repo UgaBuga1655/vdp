@@ -104,14 +104,16 @@ class Data(QObject):
     def all_classes(self) -> List[Class]:
         return self.session.query(Class).order_by(Class.order).all()
 
-    def create_class(self, name: str) -> Class:
-        subclass = Subclass(name='a')
+    def create_class(self, name: str, n_of_subclasses=1) -> Class:
         classes = self.all_classes()
         order = classes[-1].order + 1 if classes else 1
-        new_class = Class(name=name, subclasses=[subclass], order=order)
-        self.session.add(subclass)
+        new_class = Class(name=name, order=order)
         self.session.add(new_class)
         self.session.commit()
+        for _ in range(n_of_subclasses):
+            print('creating subclass')
+            self.create_subclass(new_class, redraw=False)
+        print(len(new_class.subclasses))
         self.redraw_plan.emit()
         return new_class
     
@@ -127,28 +129,30 @@ class Data(QObject):
     
     def delete_class(self, my_class: Class) -> None:
         for subclass in my_class.subclasses:
-            self.delete_subclass(subclass)
+            self.delete_subclass(subclass, redraw=False)
         for subject in my_class.subjects:
             self.session.delete(subject)
         self.session.delete(my_class)
         self.session.commit()
         self.redraw_plan.emit()
     
-    def create_subclass(self, my_class: Class) -> Subclass:
+    def create_subclass(self, my_class: Class, redraw=True) -> Subclass:
         names = [s.name for s in my_class.subclasses]
-        last_subclass = my_class.subclasses[-1]
-        name = ascii_lowercase[len(names)] 
+        name = ascii_lowercase[len(names)]
         subclass = Subclass(name=name, class_id=my_class.id)
-        for custom_block in self.all_custom_blocks():
-            if last_subclass in custom_block.subclasses:
-                custom_block.subclasses.append(subclass)
+        if len(my_class.subclasses):
+            last_subclass = my_class.subclasses[-1]
+            for custom_block in self.all_custom_blocks():
+                if last_subclass in custom_block.subclasses:
+                    custom_block.subclasses.append(subclass)
         self.session.add(subclass)
         self.session.commit()
-        self.redraw_plan.emit()
+        if redraw:
+            self.redraw_plan.emit()
         return subclass
 
     
-    def delete_subclass(self, subclass: Subclass) -> None:
+    def delete_subclass(self, subclass: Subclass, redraw=True) -> None:
         my_class: Class = subclass.my_class
         for student in subclass.students:
             self.delete_student(student)
@@ -380,12 +384,15 @@ class Data(QObject):
         if not block:
             self.remove_lesson_from_block(lesson)
             return
+        old_block = lesson.block
         
         lesson.block = block
         block.lessons.append(lesson)
         lesson.block_locked = lock
         self.session.commit()
         self.update_block.emit(block)
+        if old_block:
+            self.update_block.emit(old_block)
 
     def swap_lessons(self, source, block):
         source.lessons, block.lessons = block.lessons, source.lessons
@@ -591,7 +598,7 @@ class Data(QObject):
                     collisions[teacher].append(event.collision_text())
 
             # find busy students
-            if get_subjects:
+            if get_subjects and not isinstance(event, TeacherDuty):
                 for subject in subjects:
                     if len(set(subject.students).intersection(event.subject.students)):
                         collisions[subject].append(f'Niektórzy uczniowie mają {event.name_and_time()}')

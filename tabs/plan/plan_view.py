@@ -10,7 +10,7 @@ from .custom_block import CustomBlock
 from .block import BasicBlock
 from .stats import Statistic, StudentDensityStat
 from functions import snap_position, display_hour
-from data import Data, Class, LessonBlockDB, CustomBlock
+from data import Data, Class, LessonBlockDB
 from db_config import settings
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import to_hex
@@ -25,7 +25,7 @@ class MyView(QGraphicsView):
         self.setScene(QGraphicsScene())
         self.db: Data = parent.db
         self.classes = []
-        self.blocks = Dict[BasicBlock]
+        self.blocks: Dict[BasicBlock] = dict()
         self.mode = 'normal'
         self.widths = [0]
         self.block_start = -1
@@ -82,7 +82,7 @@ class MyView(QGraphicsView):
 
     def set_ready(self):
         self.ready = True
-        self.draw()
+        # self.draw()
 
 
     def resizeEvent(self, event):
@@ -196,7 +196,7 @@ class MyView(QGraphicsView):
                 if self.new_block.boundingRect().width() -1 > self.block_w:
                     my_class = my_class.get_class()
                 # ... or is the only subclass
-                if len(my_class.get_class().subclasses)==1:
+                elif len(my_class.get_class().subclasses)==1:
                     my_class = my_class.get_class()
 
                 block = self.db.create_block(day, start, length, my_class)
@@ -564,7 +564,8 @@ class MyView(QGraphicsView):
 
 
     def draw(self):
-
+        if not self.ready:
+            return
         QApplication.setOverrideCursor(Qt.WaitCursor)
         scene = self.scene()
         scene.clear()
