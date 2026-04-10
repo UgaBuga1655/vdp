@@ -12,7 +12,7 @@ class Tabs(QTabWidget):
         self.setMovable(True)
 
         self.db = parent.db
-        self.subjects = SubjectsWidget(self)
+        # self.subjects = SubjectsWidget(self)
         self.classes = ClassesWidget(self)
         self.teachers = TeachersWidget(self)
         self.plan = PlanWidget(self)
@@ -20,7 +20,7 @@ class Tabs(QTabWidget):
 
 
         self.addTab(self.plan, "Plan")
-        self.addTab(self.subjects, 'Przedmioty')
+        # self.addTab(self.subjects, 'Przedmioty')
         self.addTab(self.classes, 'Klasy')
         self.addTab(self.teachers, "Nauczyciele")
         self.addTab(self.classrooms, 'Pomieszczenia')

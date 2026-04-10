@@ -1,6 +1,7 @@
 from db_config import Base
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
+import csv
 
 class Class(Base):
     __tablename__ = 'classes'
@@ -15,6 +16,9 @@ class Class(Base):
     def full_name(self):
         return self.name
     
-    def get_class(self):
-        return self
-
+    
+    def to_csv(self, filename):
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quotechar='|')
+            for student in self.students:
+                writer.writerow([student.name] + [subject.get_name(show_subclass_name=True) for subject in student.subjects])

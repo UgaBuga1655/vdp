@@ -20,4 +20,3 @@ class Subclass(Base):
     
     def get_class(self):
         return self.my_class
-

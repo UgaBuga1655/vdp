@@ -1,3 +1,5 @@
+from typing import Dict
+
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QToolTip, QGraphicsTextItem, QApplication
 from PyQt5.QtGui import QPen, QColor, QTransform
 from PyQt5.QtCore import QPoint, Qt, QRectF
@@ -8,7 +10,7 @@ from .custom_block import CustomBlock
 from .block import BasicBlock
 from .stats import Statistic, StudentDensityStat
 from functions import snap_position, display_hour
-from data import Data, Class, LessonBlockDB
+from data import Data, Class, LessonBlockDB, CustomBlock
 from db_config import settings
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import to_hex
@@ -23,7 +25,7 @@ class MyView(QGraphicsView):
         self.setScene(QGraphicsScene())
         self.db: Data = parent.db
         self.classes = []
-        self.blocks = {}
+        self.blocks = Dict[BasicBlock]
         self.mode = 'normal'
         self.widths = [0]
         self.block_start = -1

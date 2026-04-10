@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QInputDialog, QPushButton, \
     QComboBox, QMessageBox, QVBoxLayout, QCheckBox, QGridLayout, QLabel, \
-    QLineEdit, QScrollArea
+    QLineEdit, QScrollArea, QFileDialog
 
 from PyQt5.QtCore import Qt
 from data import Data, Class, Subclass, Student, Subject
@@ -35,6 +35,11 @@ class ClassesWidget(QWidget):
         layout.addWidget(new_subclass_btn)
 
         layout.addStretch()
+
+
+        export_class_btn = QPushButton('Eksport do csv')
+        export_class_btn.clicked.connect(self.export_class)
+        layout.addWidget(export_class_btn)
         
         delete_class_btn = QPushButton('Usuń klasę')
         delete_class_btn.clicked.connect(self.delete_class)
@@ -347,5 +352,13 @@ class ClassesWidget(QWidget):
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chcesz usunąć klasę: {my_class.name}') == QMessageBox.StandardButton.Yes:
             self.db.delete_class(my_class)
         self.load_data(self.db)
+
+    def export_class(self):
+        class_ = self.list.currentData()
+        filename, _ = QFileDialog.getSaveFileName(self, 
+                                                caption=f'Exportuj {class_.name}', 
+                                                directory=f'{class_.name}.csv')
+        class_.to_csv(filename=filename)
+            
                     
                 
