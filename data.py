@@ -283,18 +283,20 @@ class Data(QObject):
         return self.session.query(Lesson).all()
     
     def pin_all_lessons(self, locked=True) -> None:
-        for lesson in self.session.query(Lesson).all():
-            lesson.block_locked = locked and (lesson.block is not None)
+        for block in self.all_lesson_blocks():
+            for lesson in block.lessons:
+                lesson.block_locked = locked
+            self.update_block.emit(block)
         self.session.commit()
-        self.redraw_plan.emit()
 
     def pin_lessons_without_classrooms(self, pinned=True) -> None:
-        for lesson in self.session.query(Lesson).all():
-            if lesson.classroom:
-                continue
-            lesson.block_locked = pinned and (lesson.block is not None)
+        for block in self.all_lesson_blocks():
+            for lesson in block.lessons:
+                if lesson.classroom:
+                    continue
+                lesson.block_locked = pinned
+            self.update_block.emit(block)
         self.session.commit()
-        self.redraw_plan.emit()
     
     def update_lesson_classroom(self, lesson: Lesson, classroom: Classroom) -> None:
         lesson.classroom = classroom
