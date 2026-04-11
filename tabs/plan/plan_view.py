@@ -521,8 +521,9 @@ class MyView(QGraphicsView):
         self.draw()
 
     def redraw_block(self, block: LessonBlockDB | CustomBlock):
-        if not block:
+        if not block or not self.blocks[block]:
             return
+        
         # to_update = self.blocks[block]
         self.blocks[block].show()
         self.update_collisions_around(block)

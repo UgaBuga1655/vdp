@@ -128,7 +128,7 @@ class LessonBlock(BasicBlock):
                 buckets[lesson.subject.parent()].append(lesson)
             n_of_buckets = len(buckets)
             if not n_of_buckets:
-                return
+                return (None, None, None)
             
             width = rect.width()/n_of_buckets
             height = rect.height() 
@@ -161,6 +161,8 @@ class LessonBlock(BasicBlock):
     def write(self, specify_class=False):
         n=0
         rects, buckets, colors = self.get_rects()
+        if not rects:
+            return
         for i in range(5):
             self.__getattribute__(f'text_item{i}').setHtml('')
         for rect, subclass, lessons, color in zip(rects, buckets.keys(), buckets.values(), colors):

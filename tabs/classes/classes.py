@@ -6,6 +6,9 @@ from PyQt5.QtCore import Qt
 from data import Data, Class, Subclass, Student, Subject
 from sqlalchemy.exc import IntegrityError
 from pathlib import Path
+from csv import reader
+
+from models import student
 from .reorder_classes_dialog import ReorderClassesDialog
 from .subject_label import SubjectLabel
 from .new_subject_label import NewSubjectLabel
@@ -13,7 +16,7 @@ from .colorwidget import Color
 from .name_label import NameLabel
 from .subjects import SubjectsWindow
 from .subject_label import CopySubjectsDialog
-from .import_window import ImportFormatWindow
+from .class_import import *
 
 class ClassesWidget(QWidget):
     def __init__(self,parent):
@@ -368,23 +371,50 @@ class ClassesWidget(QWidget):
 
     def import_class(self):
         filename, _ = QFileDialog.getOpenFileName(self, 'Wybierz plik', '', f'Pliki csv (*.csv)')
+        if not filename:
+            return
         class_name = Path(filename)
         class_name = class_name.name.split('.')[0]
         class_names = {class_.name for class_ in self.db.all_classes()}
         while class_name in class_names:
             class_name += '_copy'
 
-        format_dialog = ImportFormatWindow(self, filename)
-        format_dialog.exec()
+        format_dialog = ImportFormatDialog(self, filename)
+        ok = format_dialog.exec()
+        if not ok:
+            return
 
         name_cols = format_dialog.n_of_name_cols.value()
         n_of_subclasses = format_dialog.n_of_subclasses.value()
 
         class_ = self.db.create_class(class_name)
-        for _ in range(n_of_subclasses):
+        for _ in range(n_of_subclasses-1):
             self.db.create_subclass(class_)
 
         self.list.addItem(class_.name, class_)
+
+        with open(filename) as csvfile:
+            csvreader = reader(csvfile)
+            students = []
+            # student_names = []
+            subject_names = set()
+            for row in csvreader:
+                name = ' '.join(row[:name_cols])
+                students.append((name, row[name_cols:]))
+                for subject_name in row[name_cols:]:
+                    subject_names.add(subject_name)
+        subject_names = list(subject_names)
+        subject_names.sort()
+
+        import_dialog = ImportDialog(self, students, subject_names, class_)
+        ok = import_dialog.exec()
+        if not ok:
+            self.db.delete_class(class_)
+
+            self.load_data(self.db)
+            return
+        
+
             
                     
                 

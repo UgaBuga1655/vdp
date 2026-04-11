@@ -2,7 +2,7 @@ from numpy import less
 from pyparsing import col
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import create_engine, or_, and_
+from sqlalchemy import create_engine, or_, and_, func, literal
 from PyQt5.QtCore import pyqtSignal, QObject
 from string import ascii_lowercase
 from typing import List
@@ -98,6 +98,15 @@ class Data(QObject):
             self.create_lesson(lesson.length, copy)
         self.session.commit()
 
+    def move_subject(self, subject: Subject, target: Class | Subclass):
+        subject.my_class = None
+        subject.subclass = None
+        if isinstance(target, Subclass):
+            subject.subclass = target
+        else:
+            subject.my_class = target
+        self.session.commit()
+
 
 
     # classes
@@ -111,9 +120,7 @@ class Data(QObject):
         self.session.add(new_class)
         self.session.commit()
         for _ in range(n_of_subclasses):
-            print('creating subclass')
             self.create_subclass(new_class, redraw=False)
-        print(len(new_class.subclasses))
         self.redraw_plan.emit()
         return new_class
     
@@ -131,7 +138,9 @@ class Data(QObject):
         for subclass in my_class.subclasses:
             self.delete_subclass(subclass, redraw=False)
         for subject in my_class.subjects:
-            self.session.delete(subject)
+            self.delete_subject(subject)
+        for block in my_class.blocks:
+            self.delete_block(block)
         self.session.delete(my_class)
         self.session.commit()
         self.redraw_plan.emit()
@@ -215,22 +224,44 @@ class Data(QObject):
     def student_exists(self, name):
         student = self.session.query(Student).filter_by(name=name).first()
         return student.subclass.full_name() if student else None
+    
+    def move_student(self, student: Student, target_subclass: Subclass):
+        if target_subclass.class_id != student.class_id:
+            return
+        student.subclass = target_subclass
+        old_subject: Subject
+        for old_subject in student.subjects:
+            if old_subject.class_id or old_subject.subclass == target_subclass:
+                continue
+
+            self.remove_subject_from_student(old_subject, student)
+            for new_subject in target_subclass.subjects:
+                if new_subject.name == old_subject.name:
+                    self.add_subject_to_student(new_subject, student)
+                    break
+
 
     # subjects
-    def create_subject(self, name, basic, my_sub_class) -> Subject:
+    def get_matching_subject(self, name):
+        return self.session.query(Subject).filter(
+            or_(Subject.name.contains(name), 
+                literal(name).like('%' + Subject.name + '%'))).first()
+
+    def create_subject(self, name, basic, my_sub_class, color=None, teacher=None, short_name=None) -> Subject:
         # copy values if subject with same name exists or load deafaults
-        same_name_subject = self.session.query(Subject).filter_by(name=name).first()
-        if same_name_subject:
-            color = same_name_subject.color
-            teacher = same_name_subject.teacher
-            short_name = same_name_subject.short_name
-        else:
-            color = '#c0c0c0'
-            teacher = None
-            short_name = shorten_name(name)
+        if not (color or teacher or short_name):
+            same_name_subject = self.get_matching_subject(name)
+            if same_name_subject:
+                color = same_name_subject.color
+                teacher = same_name_subject.teacher
+                short_name = same_name_subject.short_name
+            else:
+                color = '#c0c0c0'
+                teacher = None
+                short_name = shorten_name(name)
         subject = Subject(name=name, basic=basic, color=color, short_name=short_name, teacher=teacher)
-        my_sub_class.subjects.append(subject)
         self.session.add(subject)
+        my_sub_class.subjects.append(subject)
         self.session.commit()
         return subject
     
@@ -271,7 +302,8 @@ class Data(QObject):
     def delete_subject(self, subject: Subject) -> None:
         for lesson in subject.lessons:
             self.session.delete(lesson)
-            self.update_block.emit(lesson.block)
+            if lesson.block:
+                self.update_block.emit(lesson.block)
         self.session.delete(subject)
         self.session.commit()
     
@@ -347,10 +379,10 @@ class Data(QObject):
 
     
     def delete_block(self, block):
-        self.session.delete(block)
         if hasattr(block, 'lessons'):
             for lesson in block.lessons:
                 lesson.classroom = None
+        self.session.delete(block)
         self.session.commit()
     
     def overlapping_blocks(self, block: LessonBlockDB):

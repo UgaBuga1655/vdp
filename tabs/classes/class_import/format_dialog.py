@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QDialog, QVBoxLayout, QSpinBox, QHBoxLayout, QLabel, QGridLayout, QDialogButtonBox
 
-class ImportFormatWindow(QDialog):
+class ImportFormatDialog(QDialog):
     def __init__(self, parent, filename):
         super().__init__(parent=parent)
 
