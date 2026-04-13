@@ -89,7 +89,7 @@ class ColoringThread(QThread):
         print(f'Wygenerowano populację w {sum(pop_times)}s')
         print(f'średni czas tworzenia osobnika: {average(pop_times)}s')
         print(f'total time: {sum(times)}s')
-        print(f'avg: f{average(times)}s')
+        print(f'avg: {average(times)}s')
         self.finished.emit(coloring, best_scores, cutoffs)
 
         
