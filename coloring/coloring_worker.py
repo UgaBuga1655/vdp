@@ -1,14 +1,14 @@
-from numpy import add, average
+from numpy import average
 
-from .functions import crazy, mutate
-from PyQt5.QtCore import QThread, pyqtSignal, QThreadPool, pyqtSlot
+from .functions import mutate
+from PyQt5.QtCore import QThread, pyqtSignal
 from db_config import settings
 from networkx import Graph
 import math
 from itertools import combinations
 from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass
 from time import perf_counter
-from .pop_worker import Birther, random_coloring, QueueListener
+from .pop_worker import random_coloring, QueueListener
 import multiprocessing as mp
 
 class ColoringThread(QThread):
@@ -22,30 +22,14 @@ class ColoringThread(QThread):
     def __init__(self, db: Data):
         super().__init__()
         self.db = db
-        # self.feas = feas
         self.session = self.db.get_scoped_session()
 
-    
 
-    def add_to_population(self, data):
-        for specimen in data:
-            self.population.append(specimen)
-        self.increment_bar.emit(len(data))
-        
-            # self.foo() 
-
-    def finished_pop(self):
-        for p in self.processes:
-            p.join()
-        duration = perf_counter() - self.pop_start_time
-        avg = duration/settings.pop_size
-        print(f'Wygenerowano populację w {duration}s ({avg} na osobnika)')
 
     def run(self): 
         # create graphs
         self.les_g, _, self.feas = self.generate_lesson_graph()
         self.bl_g = self.generate_block_graph()
-        # les_g, bl_g, feas = self.les_g, self.bl_g, self.feas
         
         self.pop_start_time = perf_counter()
         
@@ -54,12 +38,11 @@ class ColoringThread(QThread):
         self.population = []
         self.update_bar.emit('Generowanie początkowej populacji')
         self.update_bar_total.emit(pop_size)
-        self.pop_times = []
+
         cores_count = mp.cpu_count()
         chunk_size = math.ceil(pop_size/cores_count)
         queue = mp.Queue()
         self.processes = []
-        # pool = QThreadPool.globalInstance()
         for _ in range(cores_count):
             p = mp.Process(
                 target=random_coloring,
@@ -67,17 +50,29 @@ class ColoringThread(QThread):
             )
             self.processes.append(p)
             p.start()
-        #     birther = Birther(min(chunk_size, pop_size), self.les_g, self.bl_g, self.feas)
-        #     birther.signals.new_chromosome.connect(self.add_to_population)
             pop_size -= chunk_size
-            # print(pop_size)
-        self.listener = QueueListener(queue, settings.pop_size, cores_count)
+        self.listener = QueueListener(queue, cores_count)
         self.listener.signals.new_chromosomes.connect(self.add_to_population)
         self.listener.signals.finished.connect(self.finished_pop)
         self.listener.start()
+    
 
-        #     pool.start(birther)
-            # print(f'Rozwiązanie {i+1}: {duration}ns')
+    def add_to_population(self, data):
+        for specimen in data:
+            self.population.append(specimen)
+        self.increment_bar.emit(len(data))
+        
+
+    def finished_pop(self):
+        for p in self.processes:
+            p.join()
+        duration = perf_counter() - self.pop_start_time
+        avg = duration/settings.pop_size
+        print(f'Wygenerowano populację w {duration}s ({avg} na osobnika)')
+        # self.foo()
+
+    
+
 
     def foo(self):
         pop_size = settings.pop_size
@@ -121,6 +116,7 @@ class ColoringThread(QThread):
         coloring = goat[0]
         print(f'total time: {sum(times)}s')
         print(f'avg: {average(times)}s')
+        self.session.close()
         self.finished.emit(coloring, best_scores, cutoffs)
 
 
@@ -137,6 +133,7 @@ class ColoringThread(QThread):
         self.update_bar_total.emit(subclass_count)
         # i = 0
 
+        tick_1 = perf_counter()
         # create subject graph
         for class_ in self.db.all_classes(self.session):
             # find all subjects in class and subclasses
@@ -158,58 +155,66 @@ class ColoringThread(QThread):
                 continue
         
         feasible_blocks = {}
-        self.update_bar.emit('Generowanie grafu przedmiotów')
+        tick_2 = perf_counter()
+        print(f'Naniesiono przedmioty w {tick_2-tick_1}s')
+        self.update_bar.emit('Generowanie grafu lekcji')
         lesson_count = self.session.query(Lesson).count()
         self.update_bar_total.emit(lesson_count)
         for subject in self.session.query(Subject).all():
             for lesson in subject.lessons:
                 feasible_blocks[lesson] = []
-                for block in self.session.query(LessonBlockDB).all():
+            for block in self.session.query(LessonBlockDB).all():
+                # teacher not available
+                if not self.db.is_teacher_available(lesson.subject.teacher, block):
+                    continue
+
+                # block is in the wrong class
+                possible_sub_classes = [block.parent()]
+                if isinstance(possible_sub_classes[0], Class):
+                    possible_sub_classes.extend(block.parent().subclasses)
+                if subject.parent() not in possible_sub_classes:
+                    continue
+                # teacher is busy
+                if len(self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block, self.session)):
+                    continue
+                # students are busy
+                if len(self.db.get_collisions_for_students_at_block(subject.students, block, self.session)):
+                    continue
+                if block.day in [les.block.day for les in subject.lessons if les.block]:
+                    continue
+                for lesson in subject.lessons:
+                    if lesson.block_locked:
+                        continue
                     # wrong length
                     if block.length*5 != lesson.length:
                         continue
-                    # teacher doesn't work at that time
-                    if not self.db.is_teacher_available(lesson.subject.teacher, block):
-                        continue
-                    # block is in the wrong class
-                    possible_sub_classes = [block.parent()]
-                    if isinstance(possible_sub_classes[0], Class):
-                        possible_sub_classes.extend(block.parent().subclasses)
-                    if lesson.subject.parent() not in possible_sub_classes:
-                        continue
-                    #
-                    if len(self.db.get_collisions_for_students_at_block(subject.students, block, self.session)):
-                        continue
-                    if len(self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block, self.session)):
-                        continue
-                    if block.day in [les.block.day for les in subject.lessons if les.block]:
-                        continue
                     # else block is feasible
                     feasible_blocks[lesson].append(block)
+            for lesson in subject.lessons:
                 # if there is no possible blocks dont put it in graph
                 if len(feasible_blocks[lesson]) == 0:
-                    continue
-                if lesson.block_locked:
                     continue
                 # add lesson to graph with the same neigbours as subject
                 graph.add_node(lesson, weight=len(subject.students))
                 labels[lesson] = f'{subject.get_name()} ({lesson.length})'
                 for neighbour in graph[subject]:
                     graph.add_edge(lesson, neighbour)
-                self.increment_bar.emit(1)
+            self.increment_bar.emit(len(subject.lessons))
             # lessons of the same subject are obviously connected
             for pair in combinations(subject.lessons, 2):
                 graph.add_edge(*pair)
             # subject is no longer needed
             if subject in graph.nodes:
                 graph.remove_node(subject)
-        to_remove = []
-        for lesson in graph.nodes:
-            if len(feasible_blocks[lesson]) == 0 \
-            or lesson.block_locked:
-                to_remove.append(lesson)
-        graph.remove_nodes_from(to_remove)
-                
+        tick_3 = perf_counter()
+        print(f'Naniesiono lekcje w {tick_3-tick_2}s')
+        # to_remove = []
+        # for lesson in graph.nodes:
+        #     if len(feasible_blocks[lesson]) == 0 \
+        #     or lesson.block_locked:
+        #         to_remove.append(lesson)
+        # graph.remove_nodes_from(to_remove)
+        
         return graph, labels, feasible_blocks
 
     def generate_block_graph(self):

@@ -50,6 +50,7 @@ def crazy(les_g, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
             colors[lesson] = choice(feasible)
         else:
             colors[lesson] = None
+        block = colors[lesson]
         if block:
             # print(block in bl_g)
             for neighbour in les_g[lesson]:

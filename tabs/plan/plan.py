@@ -291,7 +291,7 @@ class PlanWidget(QWidget):
         self.db.clear_all_lesson_blocks(leave_locked=True)
         self.bar = ProgressDialog('Uzupełnianie planu zajęć', 0)
         self.bar.show()
-        session = self.db.get_scoped_session()
+        # session = self.db.get_scoped_session()
         # les_g, _ , feas = generate_lesson_graph(self.db, session)
         # bl_g = generate_block_graph(self.db, session)
         self.thread = ColoringThread(self.db)
