@@ -1,6 +1,6 @@
 from numpy import less
 from pyparsing import col
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_, func, literal
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -21,8 +21,12 @@ class Data(QObject):
         super().__init__()
         engine = create_engine('sqlite:///' + filename)
         Base.metadata.create_all(engine)
-        DBsession = sessionmaker(bind=engine)
-        self.session = DBsession()
+        self.session_factory = sessionmaker(bind=engine)
+        self.session = self.session_factory()
+
+    def get_scoped_session(self):
+        Session = scoped_session(session_factory=self.session_factory)
+        return Session()
         
     def table_names(self):
         return Base.metadata.tables.keys()
@@ -110,8 +114,10 @@ class Data(QObject):
 
 
     # classes
-    def all_classes(self) -> List[Class]:
-        return self.session.query(Class).order_by(Class.order).all()
+    def all_classes(self, session=None) -> List[Class]:
+        if not session:
+            session = self.session
+        return session.query(Class).order_by(Class.order).all()
 
     def create_class(self, name: str, n_of_subclasses=1) -> Class:
         classes = self.all_classes()
@@ -425,6 +431,24 @@ class Data(QObject):
         self.update_block.emit(block)
         if old_block:
             self.update_block.emit(old_block)
+            
+    def add_lesson_to_block_id_mode(self, lesson_id: int, block_id: int, lock=True):
+        if not lesson_id :
+            return False
+        lesson = self.session.query(Lesson).filter_by(id=lesson_id).first()
+        block = self.session.query(LessonBlockDB).filter_by(id=block_id).first()
+        if not block:
+            self.remove_lesson_from_block(lesson)
+            return
+        # old_block = lesson.block
+        block.lessons.append(lesson)
+        lesson.block = block
+        
+        self.session.commit()
+        # lesson.block_locked = lock
+        # self.update_block.emit(block)
+        # if old_block:
+        #     self.update_block.emit(old_block)
 
     def swap_lessons(self, source, block):
         source.lessons, block.lessons = block.lessons, source.lessons
@@ -514,7 +538,9 @@ class Data(QObject):
  
 
    
-    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: LessonBlockDB|CustomBlock) -> List[Lesson]:
+    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: LessonBlockDB|CustomBlock, session=None) -> List[Lesson]:
+        if not session:
+            session = self.session
         if not teacher:
             return []
         return self.session.query(Lesson) \
@@ -536,9 +562,11 @@ class Data(QObject):
     #                     and_(CustomBlock.start <= block.start, block.start < CustomBlock.start+CustomBlock.length)
     #                 )).all()
     
-    def get_collisions_for_students_at_block(self, students: List[Student], block: LessonBlockDB) -> List[Lesson]:
+    def get_collisions_for_students_at_block(self, students: List[Student], block: LessonBlockDB, session=None) -> List[Lesson]:
+        if not session:
+            session = self.session
         student_ids = [s.id for s in students]
-        return self.session.query(Lesson) \
+        return session.query(Lesson) \
                     .join(Lesson.subject).filter(Subject.students.any(Student.id.in_(student_ids)))\
                     .join(Lesson.block).filter(LessonBlockDB.day == block.day)\
                     .filter(or_(
@@ -552,10 +580,6 @@ class Data(QObject):
         mask_start = int(block.start//6)
         mask_end = int((block.start+block.length-0.5)//6) + 1
         mask = 0
-        if mask_start<0:
-            self.session.delete(block)
-            self.session.commit()
-            return True
         for shift in range(mask_start, mask_end):
             mask |=  1 << shift
         return not(mask & ~teacher.__getattribute__(f'av{block.day+1}'))

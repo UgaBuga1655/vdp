@@ -2,12 +2,14 @@ from networkx import Graph
 from itertools import combinations
 from data import Data, Class, LessonBlockDB, Subject
 
-def generate_lesson_graph(db: Data):
+def generate_lesson_graph(db: Data, session):
     graph = Graph()
     labels = {}
 
+    # session = db.get_scoped_session()
+
     # create subject graph
-    for class_ in db.all_classes():
+    for class_ in db.all_classes(session):
         # find all subjects in class and subclasses
         total_subjects = []
         total_subjects.extend(class_.subjects)
@@ -26,10 +28,10 @@ def generate_lesson_graph(db: Data):
             continue
     
     feasible_blocks = {}
-    for subject in db.session.query(Subject).all():
+    for subject in session.query(Subject).all():
         for lesson in subject.lessons:
             feasible_blocks[lesson] = []
-            for block in db.all_lesson_blocks():
+            for block in session.query(LessonBlockDB).all():
                 # wrong length
                 if block.length*5 != lesson.length:
                     continue
@@ -43,9 +45,9 @@ def generate_lesson_graph(db: Data):
                 if lesson.subject.parent() not in possible_sub_classes:
                     continue
                 #
-                if len(db.get_collisions_for_students_at_block(subject.students, block)):
+                if len(db.get_collisions_for_students_at_block(subject.students, block, session)):
                     continue
-                if len(db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block)):
+                if len(db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block, session)):
                     continue
                 if block.day in [les.block.day for les in subject.lessons if les.block]:
                     continue
@@ -76,11 +78,13 @@ def generate_lesson_graph(db: Data):
              
     return graph, labels, feasible_blocks
 
-def generate_block_graph(db: Data):
+def generate_block_graph(db: Data, session):
+    # session = db.get_scoped_session()
     graph = Graph()
     # blocks taking place in different days can't possibly colide
     for day in range(5):
-        blocks = db.session.query(LessonBlockDB).filter_by(day=day)
+        blocks = session.query(LessonBlockDB).filter_by(day=day).all()
+        print(len(blocks))
         graph.add_nodes_from(blocks)
         
         for b1, b2 in combinations(blocks, 2):
@@ -90,6 +94,7 @@ def generate_block_graph(db: Data):
                 # ...the blocks don't collide
                 continue
             graph.add_edge(b1, b2)
+    # print(len(graph))
     return graph
 
 

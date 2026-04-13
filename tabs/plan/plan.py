@@ -289,19 +289,25 @@ class PlanWidget(QWidget):
     def color(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         self.db.clear_all_lesson_blocks(leave_locked=True)
-        self.bar = ProgressDialog('Uzupełnianie', settings.generations)
-        les_g, _ , feas = generate_lesson_graph(self.db)
-        bl_g = generate_block_graph(self.db)
-        self.thread = ColoringThread(les_g, bl_g, feas)
-        self.thread.next_generation.connect(self.update_bar)
+        self.bar = ProgressDialog('Uzupełnianie planu zajęć', 0)
+        self.bar.show()
+        session = self.db.get_scoped_session()
+        # les_g, _ , feas = generate_lesson_graph(self.db, session)
+        # bl_g = generate_block_graph(self.db, session)
+        self.thread = ColoringThread(self.db)
+        self.thread.update_bar.connect(self.update_bar)
+        self.thread.update_bar_total.connect(self.bar.set_total)
+        self.thread.increment_bar.connect(self.bar.next)
+        # self.thread.next_generation.connect(self.update_bar)
         self.thread.finished.connect(self.show_solution)
         self.thread.start()
 
 
-    def update_bar(self, gen, score):
+    def update_bar(self, label):
         self.bar.show()
-        self.bar.set_label(f'Pokolenie {gen}: {score}')
-        self.bar.next()
+        self.bar.set_label(label)
+
+
 
 
     def show_solution(self, c, best_scores, cutoffs): 
@@ -311,7 +317,7 @@ class PlanWidget(QWidget):
                 print('dupadupa')
             if lesson.block == block:
                 continue
-            self.db.add_lesson_to_block(lesson, block, lock=False)
+            self.db.add_lesson_to_block_id_mode(lesson.id, block.id, lock=False)
         self.view.draw()
         QApplication.restoreOverrideCursor()
         if settings.verbose:

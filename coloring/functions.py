@@ -9,6 +9,8 @@ from db_config import settings
 
 
 def crazy(les_g, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
+    # print(len(bl_g))
+    # print('dupa')
     
             
     # initialize data structures
@@ -49,6 +51,7 @@ def crazy(les_g, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
         else:
             colors[lesson] = None
         if block:
+            # print(block in bl_g)
             for neighbour in les_g[lesson]:
                 adj_colors[neighbour].add(block)
                 adj_colors[neighbour].update(bl_g[block])
