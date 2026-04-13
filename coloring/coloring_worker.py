@@ -1,10 +1,13 @@
 # from .graphs import generate_block_graph, generate_lesson_graph
+from numpy import average
+
 from .functions import crazy, mutate
 from PyQt5.QtCore import QThread, pyqtSignal
 from db_config import settings
 from networkx import Graph
 from itertools import combinations
 from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass
+from time import perf_counter
 
 class ColoringThread(QThread):
     update_bar = pyqtSignal(str)
@@ -37,10 +40,16 @@ class ColoringThread(QThread):
         population = []
         self.update_bar.emit('Generowanie początkowej populacji')
         self.update_bar_total.emit(pop_size)
-        for _ in range(pop_size):
+        pop_times = []
+        for i in range(pop_size):
+            start = perf_counter()
             coloring = crazy(les_g, bl_g, feas)
             cost = sum([len(les.subject.students) for les, block in coloring.items() if block is None])
             population.append((coloring, cost))
+            end = perf_counter()
+            duration = end - start
+            pop_times.append(duration)
+            # print(f'Rozwiązanie {i+1}: {duration}ns')
             self.increment_bar.emit()
             
         # for _ in range(1,pop_size):
@@ -49,10 +58,12 @@ class ColoringThread(QThread):
         best_scores = [population[0][1]]
         cutoffs = [population[cutoff][1]]
         goat = (population[0])
-        self.update_bar.emit(f'Pokolenie {i+1}, ({population[0][1]})')
+        self.update_bar.emit(f'Pokolenie {0}, ({population[0][1]})')
         self.update_bar_total.emit(generations)
         # self.increment_bar.emit()
+        times = []
         for i in range(generations):
+            start = perf_counter()
             new_pop = []
             for col in population[:cutoff]:
                 # new_pop.append(col)
@@ -65,13 +76,20 @@ class ColoringThread(QThread):
                 goat = population[0]
             best_scores.append(bs)
             cutoffs.append(population[cutoff][1])
+            end = perf_counter()
+            duration = end - start
+            times.append(duration)
+            print(f'Generation {i+1}: {duration}s')
             self.update_bar.emit(f'Pokolenie {i+1}, ({population[0][1]})')
             self.increment_bar.emit()
             # self.next_generation.emit(i+1, population[0][1])
 
         
         coloring = goat[0]
-
+        print(f'Wygenerowano populację w {sum(pop_times)}s')
+        print(f'średni czas tworzenia osobnika: {average(pop_times)}s')
+        print(f'total time: {sum(times)}s')
+        print(f'avg: f{average(times)}s')
         self.finished.emit(coloring, best_scores, cutoffs)
 
         
