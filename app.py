@@ -47,6 +47,9 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(QSize(800, 800))
         self.tabs = Tabs(self)
 
+        new_action = QAction('Nowy', self)
+        new_action.triggered.connect(self.new_data)
+
         load_action = QAction('Wczytaj', self)
         load_action.triggered.connect(self.load_data)
 
@@ -60,6 +63,7 @@ class MainWindow(QMainWindow):
         menu = self.menuBar()
         file_menu = menu.addMenu('&Plik')
         file_menu.addActions([
+            new_action,
             load_action,
             backup_action,
             export_action
@@ -132,6 +136,21 @@ class MainWindow(QMainWindow):
             return
         shutil.copy(self.db_name, path)
         return True
+    
+    def new_data(self):
+        directory = os.path.join(user_data_dir, 'planer.vdp')
+        path, _ = QFileDialog.getSaveFileName(self, 'Stwórz kopię zapasową', directory, '*.vdp', '*.vdp')
+        if not path:
+            return
+        self.db_name = path
+        self.db = Data(self.db_name)
+        self.tabs.load_data(self.db)
+        with open(db_name_path, mode='w') as f:
+            f.write(self.db_name)
+        filename = self.db_name.split('/')[-1]
+        self.setWindowTitle(f"VDP - {filename}")
+        return True
+
     
     def clear_unl_lessons(self):
         self.db.clear_all_lesson_blocks(leave_locked=True)

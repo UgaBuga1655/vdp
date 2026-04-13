@@ -2,6 +2,7 @@ from turtle import color
 
 from PyQt5.QtWidgets import QWidget, QButtonGroup, QPushButton, QLineEdit,\
       QComboBox, QVBoxLayout, QGridLayout, QScrollArea, QSizePolicy, QLabel, QColorDialog
+from PyQt5.QtGui import QColor
 from typing import List
 
 from functions import shorten_name
@@ -87,7 +88,7 @@ class ImportSubjectsWidget(QWidget):
             # new name
             
             line_edit = QLineEdit(subject.name)
-            line_edit.textChanged.connect(self.set_subject_name(name))
+            line_edit.textChanged.connect(self.set_subject_name(subject))
             self.grid.addWidget(line_edit, row, col)
             col+=1
 
@@ -138,7 +139,7 @@ class ImportSubjectsWidget(QWidget):
     
     def set_subject_color(self, subject, btn):
         def func():
-            color = QColorDialog.getColor(subject.color)
+            color = QColorDialog.getColor(QColor(subject.color))
             if not color.isValid():
                 return
             color = color.name()

@@ -36,6 +36,10 @@ class Tabs(QTabWidget):
 
     def load_data(self, db):
         self.db = db
+        self.plan.load_data(db)
+        self.teachers.load_data(db)
+        self.classrooms.load_data(db)
+        self.classes.load_data(db)
         self.refresh()
 
     # refreshing plan

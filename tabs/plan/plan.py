@@ -326,9 +326,14 @@ class PlanWidget(QWidget):
 
     def clear_blocks(self):
         self.db.clear_all_lesson_blocks()
-        self.view.draw()
+        # self.view.draw()
 
 
     def load_data(self, db):
         self.db = db
+        self.class_filter.load_data(db)
+        self.view.load_data(db)
+        self.class_filter.update_filter()
+        # self.view.draw()
+        # self.hidden_view.load
 

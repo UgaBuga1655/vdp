@@ -31,6 +31,8 @@ class ImportDialog(QDialog):
         for name, subjects in self.students:
             student = self.students_tab.students[name]
             for subject_name in subjects:
+                if not subject_name:
+                    continue
                 subject: Subject = self.subjects_tab.subjects[subject_name]
                 self.db.add_subject_to_student(subject, student)
             self.db.move_student(student, student.subclass)

@@ -583,4 +583,5 @@ class MyView(QGraphicsView):
 
     def load_data(self, db):
         self.db = db
+        self.draw()
 

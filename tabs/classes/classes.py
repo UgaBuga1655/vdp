@@ -402,6 +402,8 @@ class ClassesWidget(QWidget):
                 name = ' '.join(row[:name_cols])
                 students.append((name, row[name_cols:]))
                 for subject_name in row[name_cols:]:
+                    if not subject_name:
+                        continue
                     subject_names.add(subject_name)
         subject_names = list(subject_names)
         subject_names.sort()

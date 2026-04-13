@@ -26,6 +26,8 @@ class ImportStudentsWidget(QWidget):
             subclasses = {subclass.name.upper(): subclass for subclass in class_.subclasses}
             students_subclass = default_subclass
             for subject_name in subjects:
+                if not subject_name:
+                    continue
                 last_letter = subject_name[-1].upper()
                 last_word_is_short = len(subject_name.split()[-1]) <= 2
                 if last_word_is_short and last_letter in subclasses:
