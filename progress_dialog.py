@@ -23,7 +23,8 @@ class ProgressDialog(QWidget):
     def set_total(self, total):
         self.total = total
         self.curr = 0
+        self.bar.setValue(0)
 
-    def next(self):
-        self.curr += 1
+    def next(self, n=1):
+        self.curr += n
         self.bar.setValue(int(self.curr/self.total*100))

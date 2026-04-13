@@ -1,20 +1,23 @@
-# from .graphs import generate_block_graph, generate_lesson_graph
-from numpy import average
+from numpy import add, average
 
 from .functions import crazy, mutate
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QThreadPool, pyqtSlot
 from db_config import settings
 from networkx import Graph
+import math
 from itertools import combinations
 from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass
 from time import perf_counter
+from .pop_worker import Birther, random_coloring, QueueListener
+import multiprocessing as mp
 
 class ColoringThread(QThread):
     update_bar = pyqtSignal(str)
     next_generation = pyqtSignal(int, int)
     update_bar_total = pyqtSignal(int)
-    increment_bar = pyqtSignal()
+    increment_bar = pyqtSignal(int)
     finished = pyqtSignal(dict, list, list)
+    
 
     def __init__(self, db: Data):
         super().__init__()
@@ -24,75 +27,105 @@ class ColoringThread(QThread):
 
     
 
-    def run(self):
+    def add_to_population(self, data):
+        for specimen in data:
+            self.population.append(specimen)
+        self.increment_bar.emit(len(data))
+        
+            # self.foo() 
+
+    def finished_pop(self):
+        for p in self.processes:
+            p.join()
+        duration = perf_counter() - self.pop_start_time
+        avg = duration/settings.pop_size
+        print(f'Wygenerowano populację w {duration}s ({avg} na osobnika)')
+
+    def run(self): 
         # create graphs
-        les_g, _, feas = self.generate_lesson_graph()
-        bl_g = self.generate_block_graph()
+        self.les_g, _, self.feas = self.generate_lesson_graph()
+        self.bl_g = self.generate_block_graph()
         # les_g, bl_g, feas = self.les_g, self.bl_g, self.feas
         
-
+        self.pop_start_time = perf_counter()
         
         # genetic loop
+        pop_size = settings.pop_size
+        self.population = []
+        self.update_bar.emit('Generowanie początkowej populacji')
+        self.update_bar_total.emit(pop_size)
+        self.pop_times = []
+        cores_count = mp.cpu_count()
+        chunk_size = math.ceil(pop_size/cores_count)
+        queue = mp.Queue()
+        self.processes = []
+        # pool = QThreadPool.globalInstance()
+        for _ in range(cores_count):
+            p = mp.Process(
+                target=random_coloring,
+                args = ((self.les_g, self.bl_g, self.feas, min(pop_size,chunk_size)), queue)
+            )
+            self.processes.append(p)
+            p.start()
+        #     birther = Birther(min(chunk_size, pop_size), self.les_g, self.bl_g, self.feas)
+        #     birther.signals.new_chromosome.connect(self.add_to_population)
+            pop_size -= chunk_size
+            # print(pop_size)
+        self.listener = QueueListener(queue, settings.pop_size, cores_count)
+        self.listener.signals.new_chromosomes.connect(self.add_to_population)
+        self.listener.signals.finished.connect(self.finished_pop)
+        self.listener.start()
+
+        #     pool.start(birther)
+            # print(f'Rozwiązanie {i+1}: {duration}ns')
+
+    def foo(self):
         pop_size = settings.pop_size
         generations = settings.generations
         cutoff = int(settings.cutoff*pop_size)
         num_of_children = int(pop_size/cutoff)
-        population = []
-        self.update_bar.emit('Generowanie początkowej populacji')
-        self.update_bar_total.emit(pop_size)
-        pop_times = []
-        for i in range(pop_size):
-            start = perf_counter()
-            coloring = crazy(les_g, bl_g, feas)
-            cost = sum([len(les.subject.students) for les, block in coloring.items() if block is None])
-            population.append((coloring, cost))
-            end = perf_counter()
-            duration = end - start
-            pop_times.append(duration)
-            # print(f'Rozwiązanie {i+1}: {duration}ns')
-            self.increment_bar.emit()
-            
+    
         # for _ in range(1,pop_size):
             # population.append(mutate(les_g, bl_g, feas, coloring))
-        population.sort(key= lambda x: x[1])
-        best_scores = [population[0][1]]
-        cutoffs = [population[cutoff][1]]
-        goat = (population[0])
-        self.update_bar.emit(f'Pokolenie {0}, ({population[0][1]})')
+        self.population.sort(key= lambda x: x[1])
+        best_scores = [self.population[0][1]]
+        cutoffs = [self.population[cutoff][1]]
+        goat = (self.population[0])
+        self.update_bar.emit(f'Pokolenie {0}, ({self.population[0][1]})')
         self.update_bar_total.emit(generations)
         # self.increment_bar.emit()
         times = []
         for i in range(generations):
             start = perf_counter()
-            new_pop = []
-            for col in population[:cutoff]:
+            self.new_pop = []
+            for col in self.population[:cutoff]:
                 # new_pop.append(col)
                 for _ in range(num_of_children):
-                    new_pop.append(mutate(les_g, bl_g, feas, col[0]))
-            new_pop.sort(key=lambda x: x[1])
-            population = new_pop
-            bs = population[0][1]
+                    self.new_pop.append(mutate(self.les_g, self.bl_g, self.feas, col[0]))
+            self.new_pop.sort(key=lambda x: x[1])
+            self.population = self.new_pop
+            bs = self.population[0][1]
             if bs < goat[1]:
-                goat = population[0]
+                goat = self.population[0]
             best_scores.append(bs)
-            cutoffs.append(population[cutoff][1])
+            cutoffs.append(self.population[cutoff][1])
             end = perf_counter()
             duration = end - start
             times.append(duration)
             print(f'Generation {i+1}: {duration}s')
-            self.update_bar.emit(f'Pokolenie {i+1}, ({population[0][1]})')
+            self.update_bar.emit(f'Pokolenie {i+1}, ({self.population[0][1]})')
             self.increment_bar.emit()
             # self.next_generation.emit(i+1, population[0][1])
 
-        
+    
         coloring = goat[0]
-        print(f'Wygenerowano populację w {sum(pop_times)}s')
-        print(f'średni czas tworzenia osobnika: {average(pop_times)}s')
         print(f'total time: {sum(times)}s')
         print(f'avg: {average(times)}s')
         self.finished.emit(coloring, best_scores, cutoffs)
 
-        
+
+
+
 
     def generate_lesson_graph(self):
         graph = Graph()
@@ -110,7 +143,7 @@ class ColoringThread(QThread):
             total_subjects = []
             total_subjects.extend(class_.subjects)
             for subclass in class_.subclasses:
-                self.increment_bar.emit()
+                self.increment_bar.emit(1)
                 total_subjects.extend(subclass.subjects)
 
             graph.add_nodes_from(total_subjects)
@@ -163,7 +196,7 @@ class ColoringThread(QThread):
                 labels[lesson] = f'{subject.get_name()} ({lesson.length})'
                 for neighbour in graph[subject]:
                     graph.add_edge(lesson, neighbour)
-                self.increment_bar.emit()
+                self.increment_bar.emit(1)
             # lessons of the same subject are obviously connected
             for pair in combinations(subject.lessons, 2):
                 graph.add_edge(*pair)
@@ -191,7 +224,7 @@ class ColoringThread(QThread):
             self.update_bar_total.emit(x * (x-1) // 2)
 
             for b1, b2 in combinations(blocks, 2):
-                self.increment_bar.emit()
+                self.increment_bar.emit(1)
                 # if one block starts after the second has ended...
                 if b1.start+b1.length < b2.start \
                 or b2.start+b2.length < b1.start:

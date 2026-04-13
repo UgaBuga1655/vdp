@@ -318,7 +318,7 @@ class PlanWidget(QWidget):
             if lesson.block == block:
                 continue
             self.db.add_lesson_to_block_id_mode(lesson.id, block.id, lock=False)
-        self.view.draw()
+        # self.view.draw()
         QApplication.restoreOverrideCursor()
         if settings.verbose:
             l1, = plt.plot(best_scores)

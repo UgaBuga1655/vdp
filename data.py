@@ -443,6 +443,7 @@ class Data(QObject):
         # old_block = lesson.block
         block.lessons.append(lesson)
         lesson.block = block
+        self.update_block.emit(block)
         
         self.session.commit()
         # lesson.block_locked = lock
@@ -458,8 +459,11 @@ class Data(QObject):
 
     def remove_lesson_from_block(self, lesson: Lesson):
         lesson.classroom = None
+        block = lesson.block
         lesson.block = None
         lesson.block_locked = False
+        if block:
+            self.update_block.emit(block)
         self.session.commit()
 
     def all_custom_blocks(self) -> List[CustomBlock]:
