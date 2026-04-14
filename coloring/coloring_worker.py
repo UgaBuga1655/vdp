@@ -1,19 +1,15 @@
-from os import cpu_count
-import queue
-
 from numpy import average
-
-from .functions import mutate, mutate_batch
+from .functions import mutate_batch
 from PyQt5.QtCore import QThread, pyqtSignal
 from db_config import settings
 from networkx import Graph
-import math
 from itertools import combinations
-from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass
+from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom
 from time import perf_counter
 from .queue_listener import QueueListener
-from .functions import random_coloring
+from .functions import random_coloring, mutate_batch
 import multiprocessing as mp
+import math
 
 class ColoringThread(QThread):
     update_bar = pyqtSignal(str)
@@ -105,7 +101,7 @@ class ColoringThread(QThread):
 
         cores_count = mp.cpu_count()
         chunk_size = math.ceil(self.cutoff/cores_count)
-        processes = []
+        self.processes = []
         queue = mp.Queue()
         for _ in range(cores_count):
             if chunk_size < len(survivors):
@@ -117,11 +113,8 @@ class ColoringThread(QThread):
                 target=mutate_batch,
                 args= ((self.les_g, self.bl_g, self.feas, chunk), queue)
             )
+            self.processes.append(p)
             p.start()
-            # for col in survivors:
-            #     # new_pop.append(col)
-            #     for _ in range(num_of_children):
-            #         self.new_pop.append(mutate(self.les_g, self.bl_g, self.feas, col[0]))
         self.queue_listener = QueueListener(queue, cores_count)
         self.queue_listener.signals.progress.connect(self.population.extend)
         self.queue_listener.signals.finished.connect(self.finished_generation)
@@ -196,8 +189,14 @@ class ColoringThread(QThread):
         self.update_bar.emit('Generowanie grafu lekcji')
         lesson_count = self.session.query(Lesson).count()
         self.update_bar_total.emit(lesson_count)
+        classrooms = self.session.query(Classroom).all()
         blocks = self.session.query(LessonBlockDB).all()
         for subject in self.session.query(Subject).all():
+            feasible_classrooms = [
+                cr.id 
+                for cr in classrooms 
+                if cr.capacity >= len(subject.students)
+            ] if not subject.classroom_id else [subject.classroom_id]
             unpinned_lessons = []
             for lesson in subject.lessons:
                 feasible_blocks[lesson.id] = []
@@ -224,7 +223,8 @@ class ColoringThread(QThread):
                 # lesson happening this day
                 if block.day in [les.block.day for les in subject.lessons if les.block]:
                     continue
-
+                
+                many_blocks = [(block.id, cl_id) for cl_id in feasible_classrooms]
                 # differing for lessons
                 for lesson in subject.lessons:
                     if lesson.block_locked:
@@ -233,7 +233,7 @@ class ColoringThread(QThread):
                     if block.length*5 != lesson.length:
                         continue
                     # else block is feasible
-                    feasible_blocks[lesson.id].append(block.id)
+                    feasible_blocks[lesson.id].extend(many_blocks)
             for lesson in subject.lessons:
                 # if there is no possible blocks dont put it in graph
                 if len(feasible_blocks[lesson.id]) == 0:

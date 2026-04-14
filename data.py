@@ -430,20 +430,22 @@ class Data(QObject):
         if old_block:
             self.update_block.emit(old_block)
             
-    def add_lesson_to_block_id_mode(self, lesson_id: int, block_id: int, lock=True):
+    def place_lesson_id_mode(self, lesson_id: int, block_id: int, classroom_id: int, lock=True):
         if not lesson_id :
             return False
         lesson = self.session.query(Lesson).filter_by(id=lesson_id).first()
         block = self.session.query(LessonBlockDB).filter_by(id=block_id).first()
+        classroom = self.session.query(Classroom).filter_by(id=classroom_id).first()
         if not block:
             self.remove_lesson_from_block(lesson)
             return
         # old_block = lesson.block
         block.lessons.append(lesson)
         lesson.block = block
+        lesson.classroom = classroom
+        self.session.commit()
         self.update_block.emit(block)
         
-        self.session.commit()
         # lesson.block_locked = lock
         # self.update_block.emit(block)
         # if old_block:
@@ -780,7 +782,7 @@ class Data(QObject):
                         ))
                     if is_lesson_block and event.classroom and duty.classroom == event.classroom:
                         collisions[col_bl].append((
-                            f'{event.get_name()}: W {event.classroom.name} trwa dyżur {duty.teacher.name}',
+                            f'{event.get_name()}: W {event.classroom.name} trwa dyżur {duty.teacher.name if duty.teacher else "---"}',
                             f'{duty.get_name()}: W {event.classroom.name} trwa {event.name_and_time()}' \
                             if is_lesson_block else \
                             f'{duty.get_name()}: {event.collision_text()}',

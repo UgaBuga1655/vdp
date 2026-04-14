@@ -16,7 +16,7 @@ class TeacherDuty(Base):
     classroom = relationship('Classroom', back_populates='duties')
 
     def collision_text(self):
-        return f'{self.teacher.name} ma dyżur w {self.classroom.name} ({self.block.print_time()})'
+        return f'{self.teacher.name if self.teacher else "---"} ma dyżur w {self.classroom.name} ({self.block.print_time()})'
     
     def get_name(self):
         return f'{self.classroom.name}'

@@ -15,11 +15,11 @@ class QueueListener(QThread):
     def run(self):
         finished = 0
         while True:
-            data = self.queue.get()
+            msg, data = self.queue.get()
             self.signals.progress.emit(data)
-
-            finished += 1
-            # print(f'job {finished} finished')
-            if finished == self.n_of_workers:
-                self.signals.finished.emit()
-                break
+            if msg == 'done':
+                finished += 1
+                # print(f'job {finished} finished')
+                if finished == self.n_of_workers:
+                    self.signals.finished.emit()
+                    break
