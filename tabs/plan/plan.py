@@ -313,11 +313,11 @@ class PlanWidget(QWidget):
     def show_solution(self, c, best_scores, cutoffs): 
         self.bar = None
         for lesson, block in c.items():
-            if lesson.block_locked:
-                print('dupadupa')
-            if lesson.block == block:
-                continue
-            self.db.add_lesson_to_block_id_mode(lesson.id, block.id, lock=False)
+            # if lesson.block_locked:
+            #     print('dupadupa')
+            # if lesson.block == block:
+            #     continue
+            self.db.add_lesson_to_block_id_mode(lesson, block, lock=False)
         # self.view.draw()
         QApplication.restoreOverrideCursor()
         if settings.verbose:

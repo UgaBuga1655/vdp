@@ -69,7 +69,7 @@ class ColoringThread(QThread):
         duration = perf_counter() - self.pop_start_time
         avg = duration/settings.pop_size
         print(f'Wygenerowano populację w {duration}s ({avg} na osobnika)')
-        # self.foo()
+        self.foo()
 
     
 
@@ -83,6 +83,7 @@ class ColoringThread(QThread):
         # for _ in range(1,pop_size):
             # population.append(mutate(les_g, bl_g, feas, coloring))
         self.population.sort(key= lambda x: x[1])
+        # print(self.population[-1])
         best_scores = [self.population[0][1]]
         cutoffs = [self.population[cutoff][1]]
         goat = (self.population[0])
@@ -109,7 +110,7 @@ class ColoringThread(QThread):
             times.append(duration)
             print(f'Generation {i+1}: {duration}s')
             self.update_bar.emit(f'Pokolenie {i+1}, ({self.population[0][1]})')
-            self.increment_bar.emit()
+            self.increment_bar.emit(1)
             # self.next_generation.emit(i+1, population[0][1])
 
     
@@ -161,11 +162,12 @@ class ColoringThread(QThread):
         lesson_count = self.session.query(Lesson).count()
         self.update_bar_total.emit(lesson_count)
         for subject in self.session.query(Subject).all():
+            unpinned_lessons = []
             for lesson in subject.lessons:
-                feasible_blocks[lesson] = []
+                feasible_blocks[lesson.id] = []
             for block in self.session.query(LessonBlockDB).all():
                 # teacher not available
-                if not self.db.is_teacher_available(lesson.subject.teacher, block):
+                if not self.db.is_teacher_available(subject.teacher, block):
                     continue
 
                 # block is in the wrong class
@@ -174,14 +176,20 @@ class ColoringThread(QThread):
                     possible_sub_classes.extend(block.parent().subclasses)
                 if subject.parent() not in possible_sub_classes:
                     continue
+
                 # teacher is busy
                 if len(self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block, self.session)):
                     continue
+
                 # students are busy
                 if len(self.db.get_collisions_for_students_at_block(subject.students, block, self.session)):
                     continue
+
+                # lesson happening this day
                 if block.day in [les.block.day for les in subject.lessons if les.block]:
                     continue
+
+                # differing for lessons
                 for lesson in subject.lessons:
                     if lesson.block_locked:
                         continue
@@ -189,20 +197,24 @@ class ColoringThread(QThread):
                     if block.length*5 != lesson.length:
                         continue
                     # else block is feasible
-                    feasible_blocks[lesson].append(block)
+                    feasible_blocks[lesson.id].append(block.id)
             for lesson in subject.lessons:
                 # if there is no possible blocks dont put it in graph
-                if len(feasible_blocks[lesson]) == 0:
+                if len(feasible_blocks[lesson.id]) == 0:
                     continue
                 # add lesson to graph with the same neigbours as subject
-                graph.add_node(lesson, weight=len(subject.students))
+                graph.add_node(lesson.id, weight=len(subject.students), subject=subject.id)
+                unpinned_lessons.append(lesson.id)
                 labels[lesson] = f'{subject.get_name()} ({lesson.length})'
                 for neighbour in graph[subject]:
-                    graph.add_edge(lesson, neighbour)
+                    graph.add_edge(lesson.id, neighbour)
             self.increment_bar.emit(len(subject.lessons))
             # lessons of the same subject are obviously connected
-            for pair in combinations(subject.lessons, 2):
-                graph.add_edge(*pair)
+        
+            for l1, l2 in combinations(unpinned_lessons, 2):
+                # if l1.block_locked or l2.block_locked:
+                    # continue
+                graph.add_edge(l1, l2)
             # subject is no longer needed
             if subject in graph.nodes:
                 graph.remove_node(subject)
@@ -224,7 +236,8 @@ class ColoringThread(QThread):
         for day in range(5):
             self.update_bar.emit(f'Generowanie grafu bloków (dzień {day+1})')
             blocks = self.session.query(LessonBlockDB).filter_by(day=day).all()
-            graph.add_nodes_from(blocks)
+            for block in blocks:
+                graph.add_node(block.id, day=block.day)
             x = len(blocks)
             self.update_bar_total.emit(x * (x-1) // 2)
 
@@ -235,7 +248,7 @@ class ColoringThread(QThread):
                 or b2.start+b2.length < b1.start:
                     # ...the blocks don't collide
                     continue
-                graph.add_edge(b1, b2)
+                graph.add_edge(b1.id, b2.id)
         # print(len(graph))
         return graph
 

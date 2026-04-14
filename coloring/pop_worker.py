@@ -12,7 +12,7 @@ def random_coloring(params, queue):
     data = []
     for _ in range(chunk_size):
         coloring = crazy(lg, bg, feas)
-        cost = sum([len(les.subject.students) for les, block in coloring.items() if block is None])
+        cost = sum([lg.nodes[les]['weight'] for les, block in coloring.items() if block is None])
         data.append((coloring, cost))
 
     queue.put(data)
