@@ -1,12 +1,20 @@
-from turtle import color
-
-from .graphs import *
 from data import Data, LessonBlockDB, Lesson
 from queue import PriorityQueue
 from itertools import count
 from random import choice, randint, shuffle
-from matplotlib import pyplot as plt
+from networkx import Graph
 from db_config import settings
+
+def random_coloring(params, queue):
+    lg, bg, feas, chunk_size = params
+    data = []
+    for _ in range(chunk_size):
+        coloring = crazy(lg, bg, feas)
+        cost = sum([lg.nodes[les]['weight'] for les, block in coloring.items() if block is None])
+        data.append((coloring, cost))
+
+    queue.put(data)
+
 
 
 
@@ -64,14 +72,27 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
             
     return colors
 
+def mutate_batch(params, queue):
+    les_g, bl_g, feas, survivors = params
+    # print(f'starting batch: {len(survivors)}')
+    pop_size = settings.pop_size
+    cutoff = int(settings.cutoff*pop_size)
+    num_of_children = int(pop_size/cutoff)
+    children = []
+    for survivor in survivors:
+        for _ in range(num_of_children):
+            children.append(mutate(les_g, bl_g, feas, survivor[0]))
+    queue.put(children)
 
 def mutate(les_g, bl_g, feas, coloring: dict) -> tuple[dict, int]:
+    # print('mutating')
     child = coloring.copy()
     # find random uncolored lesson
     # print(f'child {child}')
     uncolored = {les for les, blo in child.items() if blo is None}
     # print(uncolored)
     if not len(uncolored):  
+        # print('already perfect')
         return coloring, 0
 
     for _ in range(randint(0,4)):
@@ -149,5 +170,6 @@ def mutate(les_g, bl_g, feas, coloring: dict) -> tuple[dict, int]:
     # calculate score
     # print(uncolored)
     score = sum([les_g.nodes[les]['weight'] for les in uncolored])
+    # print('finished mutating')
     return child, score
 

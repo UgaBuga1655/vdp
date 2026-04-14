@@ -1,8 +1,6 @@
-from numpy import less
-from pyparsing import col
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import create_engine, or_, and_, func, literal
+from sqlalchemy import create_engine, or_, and_, literal
 from PyQt5.QtCore import pyqtSignal, QObject
 from string import ascii_lowercase
 from typing import List

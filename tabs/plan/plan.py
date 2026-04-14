@@ -8,7 +8,7 @@ from .plan_view import MyView
 from .filter import FilterWidget
 from .stats import Statistic, StudentDensityStat
 from db_config import settings
-from coloring import ColoringThread, generate_lesson_graph, generate_block_graph
+from coloring import ColoringThread
 import os
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -288,6 +288,7 @@ class PlanWidget(QWidget):
 
     def color(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)
+        self.db.blockSignals(True)
         self.db.clear_all_lesson_blocks(leave_locked=True)
         self.bar = ProgressDialog('Uzupełnianie planu zajęć', 0)
         self.bar.show()
@@ -311,7 +312,7 @@ class PlanWidget(QWidget):
 
 
     def show_solution(self, c, best_scores, cutoffs): 
-        self.bar = None
+        self.db.blockSignals(False)
         for lesson, block in c.items():
             # if lesson.block_locked:
             #     print('dupadupa')
@@ -320,6 +321,7 @@ class PlanWidget(QWidget):
             self.db.add_lesson_to_block_id_mode(lesson, block, lock=False)
         # self.view.draw()
         QApplication.restoreOverrideCursor()
+        self.bar = None
         if settings.verbose:
             l1, = plt.plot(best_scores)
             l2, = plt.plot(cutoffs)
