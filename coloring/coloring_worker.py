@@ -18,7 +18,7 @@ class ColoringThread(QThread):
     # next_generation = pyqtSignal(int, int)
     update_bar_total = pyqtSignal(int)
     increment_bar = pyqtSignal(int)
-    finished = pyqtSignal(dict, list, list)
+    finished = pyqtSignal(dict, list)
     
 
     def __init__(self, db: Data):
@@ -64,9 +64,6 @@ class ColoringThread(QThread):
         self.population.extend(data)
         self.increment_bar.emit(len(data))
 
-    # def add_children(self, data):
-    #     for child in data:
-    #         self.population.append()
         
 
     def finished_pop(self):
@@ -78,12 +75,10 @@ class ColoringThread(QThread):
         pop_size = settings.pop_size
         generations = settings.generations
         self.cutoff = int(settings.cutoff*pop_size)
-        num_of_children = int(pop_size/self.cutoff)
         rank(self.population, default_weights)
-        # self.population.sort(key= lambda x: rank(x, default_weights))
-        self.best_scores = [self.population[0][-1]]
-        self.cutoffs = [self.population[self.cutoff][-1]]
-        self.goat = (self.population[0])
+
+        self.goats = [self.population[0]]
+        self.best_params = [[p] for p in self.population[0][-1]]
 
         self.update_bar.emit(f'Pokolenie {0}, ({self.population[0][-1]})')
         self.update_bar_total.emit(generations)
@@ -126,18 +121,16 @@ class ColoringThread(QThread):
         for process in self.processes:
             process.join()
         rank(self.population, default_weights)
-        # self.population.sort(key= lambda x: rank(x, default_weights))
-        # self.population.sort(key=lambda x: x[-1])
-        best_score = self.population[0][-1][0]
-        if best_score < self.goat[-1][0]:
-            self.goat = self.population[0]
-        self.best_scores.append(best_score)
-        self.cutoffs.append(self.population[self.cutoff][-1][0])
+        # log the best results
+        self.goats.append(self.population[0])
+        for old_params, new_param in zip(self.best_params, self.population[0][-1]):
+            old_params.append(new_param)
+        # report stats
         end = perf_counter()
         duration = end - self.gen_start
         self.times.append(duration)
         print(f'Generation {self.completed_generations}: {duration}s')
-        self.update_bar.emit(f'Pokolenie {self.completed_generations} ({self.population[0][-1]})')
+        self.update_bar.emit(f'Pokolenie {self.completed_generations} {self.population[0][-1]}')
         self.increment_bar.emit(1)
         if self.completed_generations < settings.generations:
             self.do_next_generation()
@@ -145,13 +138,14 @@ class ColoringThread(QThread):
             self.finish_everything()
 
     def finish_everything(self):
-        coloring = self.goat[0]
+        rank(self.goats, default_weights)
+        coloring = self.goats[0][0][0]
         print(f'total time: {sum(self.times)}s')
         print(f'avg: {average(self.times)}s')
         self.session.close()
-        self.best_scores = []
-        self.cutoffs = []
-        self.finished.emit(coloring[0], self.best_scores, self.cutoffs)
+        # self.best_params = []
+        # self.cutoffs = []
+        self.finished.emit(coloring, self.best_params)
 
 
 
@@ -255,25 +249,16 @@ class ColoringThread(QThread):
             # lessons of the same subject are obviously connected
         
             for l1, l2 in combinations(unpinned_lessons, 2):
-                # if l1.block_locked or l2.block_locked:
-                    # continue
                 graph.add_edge(l1, l2)
             # subject is no longer needed
             if subject in graph.nodes:
                 graph.remove_node(subject)
         tick_3 = perf_counter()
         print(f'Naniesiono lekcje w {tick_3-tick_2}s')
-        # to_remove = []
-        # for lesson in graph.nodes:
-        #     if len(feasible_blocks[lesson]) == 0 \
-        #     or lesson.block_locked:
-        #         to_remove.append(lesson)
-        # graph.remove_nodes_from(to_remove)
         
         return graph, labels, feasible_blocks
 
     def generate_block_graph(self):
-        # session = db.get_scoped_session()
         graph = Graph()
         # blocks taking place in different days can't possibly colide
         for day in range(5):

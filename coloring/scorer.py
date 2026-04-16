@@ -8,6 +8,7 @@ from functools import reduce
 import numpy as np
 
 default_weights = 4, 3.6
+param_names = ['Nieprzypisane lekcje', 'Lekcje w ten sam dzień']
 
 def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     def get_weight(lesson):

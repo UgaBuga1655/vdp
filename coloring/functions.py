@@ -8,7 +8,7 @@ from db_config import settings
 def random_coloring(params, queue, scorer):
     lg, bg, feas, chunk_size = params
     data = []
-    report_size = chunk_size/7
+    report_size = 70
     i=0
     for _ in range(chunk_size):
         solution = crazy(lg, bg, feas)

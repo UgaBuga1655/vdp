@@ -8,7 +8,7 @@ from .plan_view import MyView
 from .filter import FilterWidget
 from .stats import Statistic, StudentDensityStat
 from db_config import settings
-from coloring import ColoringThread
+from coloring import ColoringThread, param_names
 import os
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -311,7 +311,7 @@ class PlanWidget(QWidget):
 
 
 
-    def show_solution(self, c, best_scores, cutoffs): 
+    def show_solution(self, c, best_params): 
         # self.db.blockSignals(False)
         for lesson, color in c.items():
             # print(lesson, color)
@@ -326,9 +326,11 @@ class PlanWidget(QWidget):
         # QApplication.restoreOverrideCursor()
         self.bar = None
         if settings.verbose:
-            l1, = plt.plot(best_scores)
-            l2, = plt.plot(cutoffs)
-            plt.legend([l1, l2],['Najlepszy wynik', 'Wynik odcięcia'])
+            lines = []
+            for param in best_params:
+                line, = plt.plot(param)
+            # l2, = plt.plot(cutoffs)
+            plt.legend(param_names)
             plt.show()
         # QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
         
