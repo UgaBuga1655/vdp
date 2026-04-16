@@ -1,7 +1,3 @@
-from tkinter import W
-
-from numpy import less
-
 from data import Data, LessonBlockDB, Lesson
 from queue import PriorityQueue
 from itertools import count
@@ -9,15 +5,15 @@ from random import choice, randint, shuffle
 from networkx import Graph
 from db_config import settings
 
-def random_coloring(params, queue):
+def random_coloring(params, queue, scorer):
     lg, bg, feas, chunk_size = params
     data = []
     report_size = chunk_size/7
     i=0
     for _ in range(chunk_size):
-        colors, rev_colors, uncolored = crazy(lg, bg, feas)
-        cost = sum([lg.nodes[les]['weight'] for les in uncolored])
-        data.append((colors, rev_colors, uncolored, cost))
+        solution = crazy(lg, bg, feas)
+        params = scorer(*solution)
+        data.append((solution, params))
         i += 1
         if i > report_size:
             queue.put(('progess', data))
@@ -37,7 +33,7 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
     # initialize data structures
     colors = {}
     rev_colors = {}
-    days = {}
+    # days = {}
     adj_colors = {}
     uncolored = []
     
@@ -49,9 +45,9 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
     for lesson, data in les_g.nodes.items():
         # print(lesson)
         # print(data)
-        if data['subject'] not in days:
-            days[data['subject']] = []
-        days[data['subject']].append(bl_g)
+        # if data['subject'] not in days:
+        #     days[data['subject']] = []
+        # days[data['subject']].append(bl_g)
         adj_colors[lesson] = set()
         # first lessons with fewer feasible blocks
         # if tied, longer lessons go first
@@ -70,9 +66,9 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
             if color in rev_colors:
                 continue
             block, classroom = color
-            # other lesson on the same day
-            if bl_g.nodes[block]['day'] in days[data['subject']]:
-                continue
+            # # other lesson on the same day
+            # if bl_g.nodes[block]['day'] in days[data['subject']]:
+            #     continue
             # collifing lesson
             if block in adj_colors[lesson]:
                 continue
@@ -92,7 +88,7 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
             for neighbour in les_g[lesson]:
                 adj_colors[neighbour].add(block)
                 adj_colors[neighbour].update(bl_g[block])
-            days[data['subject']].append(bl_g.nodes[block]['day'])
+            # days[data['subject']].append(bl_g.nodes[block]['day'])
 
             break 
 
@@ -100,13 +96,9 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
         if lesson not in colors:
             uncolored.append(lesson)
 
-        for lesson, color in colors.items():
-            if rev_colors[color] != lesson:
-                print('dupaaaaa')
-            
     return colors, rev_colors, uncolored
 
-def mutate_batch(params, queue):
+def mutate_batch(params, queue, scorer):
     les_g, bl_g, feas, survivors = params
     # print(f'starting batch: {len(survivors)}')
     pop_size = settings.pop_size
@@ -115,10 +107,10 @@ def mutate_batch(params, queue):
     children = []
     for survivor in survivors:
         for _ in range(num_of_children):
-            children.append(mutate(les_g, bl_g, feas, *survivor[:-1]))
+            children.append(mutate(les_g, bl_g, feas, *survivor[0], scorer))
     queue.put(('done', children))
 
-def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: list) -> tuple[dict, int]:
+def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: list, scorer) -> tuple[dict, int]:
     child = coloring.copy()
     rev_child = rev_coloring.copy()
     child_uncolored = uncolored.copy()
@@ -142,10 +134,6 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
     
 
     
-    # already perfect
-    if not len(child_uncolored):  
-        return coloring, rev_coloring, uncolored, 0
-
     for _ in range(randint(0, 5)):
         if not (len(child_uncolored)):
             break
@@ -158,7 +146,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         block, classroom = color
         # uncolor all nodes unhappy about it
         my_subject = les_g.nodes[lesson]['subject']
-        my_day = bl_g.nodes[block]['day']
+        # my_day = bl_g.nodes[block]['day']
         for neighbour in les_g[lesson]:
             # already uncolored
             if neighbour not in child:
@@ -173,11 +161,11 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
                 continue
 
             # same day
-            n_subject =  les_g.nodes[neighbour]['subject']
-            n_day = bl_g.nodes[n_block]['day']
-            if  n_subject == my_subject and my_day == n_day:
-                uncolor(neighbour)
-                continue
+            # n_subject =  les_g.nodes[neighbour]['subject']
+            # n_day = bl_g.nodes[n_block]['day']
+            # if  n_subject == my_subject and my_day == n_day:
+            #     uncolor(neighbour)
+            #     continue
         
         # classroom is occupied
         for overlapping_block in bl_g[block]:
@@ -199,12 +187,12 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             adj_cols.append(n_block)
             adj_cols.extend(bl_g[n_block])
         
-        my_days = []
+        # my_days = []
         subject = les_g.nodes[lesson]['subject']
-        # same day
-        for other_lesson in [l for l in les_g[lesson] if l in child and les_g.nodes[l]['subject'] == subject]:
-            block, classroom = child[other_lesson]
-            my_days.append(bl_g.nodes[block]['day'])
+        # # same day
+        # for other_lesson in [l for l in les_g[lesson] if l in child and les_g.nodes[l]['subject'] == subject]:
+        #     block, classroom = child[other_lesson]
+        #     my_days.append(bl_g.nodes[block]['day'])
         # find first suitable block
         for color in feas[lesson]:
             # place in space time occupied
@@ -215,9 +203,9 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             if block in adj_cols:
                 continue
             # other lesson takes place in the same day
-            day = bl_g.nodes[block]['day']
-            if day in my_days:
-                continue
+            # day = bl_g.nodes[block]['day']
+            # if day in my_days:
+            #     continue
             # classroom is occupied
             classroom_is_occupied = False
             for n_bl in bl_g[block]:
@@ -232,6 +220,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             break
 
     # calculate score
-    score = sum([les_g.nodes[les]['weight'] for les in child_uncolored])
-    return child, rev_child, child_uncolored, score
+    params = scorer(child, rev_child, child_uncolored)
+    # score = sum([les_g.nodes[les]['weight'] for les in child_uncolored])
+    return (child, rev_child, child_uncolored), params
 

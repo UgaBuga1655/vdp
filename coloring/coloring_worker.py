@@ -8,8 +8,10 @@ from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroo
 from time import perf_counter
 from .queue_listener import QueueListener
 from .functions import random_coloring, mutate_batch
+from .scorer import scorer_factory, rank, default_weights
 import multiprocessing as mp
 import math
+
 
 class ColoringThread(QThread):
     update_bar = pyqtSignal(str)
@@ -30,7 +32,8 @@ class ColoringThread(QThread):
         # create graphs
         self.bl_g, for_bl = self.generate_block_graph()
         self.les_g, _, self.feas = self.generate_lesson_graph(for_bl)
-        
+        self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
+
         self.pop_start_time = perf_counter()
         
         # genetic loop
@@ -46,7 +49,7 @@ class ColoringThread(QThread):
         for _ in range(cores_count):
             p = mp.Process(
                 target=random_coloring,
-                args = ((self.les_g, self.bl_g, self.feas, min(pop_size,chunk_size)), queue)
+                args = ((self.les_g, self.bl_g, self.feas, min(pop_size,chunk_size)), queue, self.scorer)
             )
             self.processes.append(p)
             p.start()
@@ -58,8 +61,7 @@ class ColoringThread(QThread):
     
 
     def add_to_population(self, data):
-        for specimen in data:
-            self.population.append(specimen)
+        self.population.extend(data)
         self.increment_bar.emit(len(data))
 
     # def add_children(self, data):
@@ -77,8 +79,8 @@ class ColoringThread(QThread):
         generations = settings.generations
         self.cutoff = int(settings.cutoff*pop_size)
         num_of_children = int(pop_size/self.cutoff)
-    
-        self.population.sort(key= lambda x: x[-1])
+        rank(self.population, default_weights)
+        # self.population.sort(key= lambda x: rank(x, default_weights))
         self.best_scores = [self.population[0][-1]]
         self.cutoffs = [self.population[self.cutoff][-1]]
         self.goat = (self.population[0])
@@ -93,7 +95,6 @@ class ColoringThread(QThread):
 
 
     def do_next_generation(self):
-        print('next gen') 
         self.gen_start = perf_counter()
         self.new_pop = []
         survivors = self.population[:self.cutoff]
@@ -111,7 +112,7 @@ class ColoringThread(QThread):
                 chunk = survivors
             p = mp.Process(
                 target=mutate_batch,
-                args= ((self.les_g, self.bl_g, self.feas, chunk), queue)
+                args= ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer)
             )
             self.processes.append(p)
             p.start()
@@ -124,12 +125,14 @@ class ColoringThread(QThread):
         self.completed_generations += 1
         for process in self.processes:
             process.join()
-        self.population.sort(key=lambda x: x[-1])
-        best_score = self.population[0][-1]
-        if best_score < self.goat[-1]:
+        rank(self.population, default_weights)
+        # self.population.sort(key= lambda x: rank(x, default_weights))
+        # self.population.sort(key=lambda x: x[-1])
+        best_score = self.population[0][-1][0]
+        if best_score < self.goat[-1][0]:
             self.goat = self.population[0]
         self.best_scores.append(best_score)
-        self.cutoffs.append(self.population[self.cutoff][-1])
+        self.cutoffs.append(self.population[self.cutoff][-1][0])
         end = perf_counter()
         duration = end - self.gen_start
         self.times.append(duration)
@@ -146,7 +149,9 @@ class ColoringThread(QThread):
         print(f'total time: {sum(self.times)}s')
         print(f'avg: {average(self.times)}s')
         self.session.close()
-        self.finished.emit(coloring, self.best_scores, self.cutoffs)
+        self.best_scores = []
+        self.cutoffs = []
+        self.finished.emit(coloring[0], self.best_scores, self.cutoffs)
 
 
 
