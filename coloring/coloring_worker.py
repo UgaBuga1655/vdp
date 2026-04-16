@@ -28,8 +28,8 @@ class ColoringThread(QThread):
 
     def run(self): 
         # create graphs
-        self.les_g, _, self.feas = self.generate_lesson_graph()
-        self.bl_g = self.generate_block_graph()
+        self.bl_g, for_bl = self.generate_block_graph()
+        self.les_g, _, self.feas = self.generate_lesson_graph(for_bl)
         
         self.pop_start_time = perf_counter()
         
@@ -152,7 +152,7 @@ class ColoringThread(QThread):
 
 
 
-    def generate_lesson_graph(self):
+    def generate_lesson_graph(self, forbidden_blocks):
         graph = Graph()
         labels = {}
 
@@ -233,7 +233,9 @@ class ColoringThread(QThread):
                     if block.length*5 != lesson.length:
                         continue
                     # else block is feasible
-                    feasible_blocks[lesson.id].extend(many_blocks)
+                    for bl, cl in many_blocks:
+                        if bl not in forbidden_blocks[cl]:
+                            feasible_blocks[lesson.id].append((bl, cl))
             for lesson in subject.lessons:
                 # if there is no possible blocks dont put it in graph
                 if len(feasible_blocks[lesson.id]) == 0:
@@ -285,8 +287,13 @@ class ColoringThread(QThread):
                     # ...the blocks don't collide
                     continue
                 graph.add_edge(b1.id, b2.id)
-        # print(len(graph))
-        return graph
+        classrooms = self.session.query(Classroom).all()
+        forbidden_blocks = {cl.id: set() for cl in classrooms}
+        for lesson in self.session.query(Lesson).filter(Lesson.classroom_id!= None).all():
+            block = lesson.block_id
+            forbidden_blocks[lesson.classroom_id].add(block)
+            forbidden_blocks[lesson.classroom_id].update(graph[block])
+        return graph, forbidden_blocks
 
 
 

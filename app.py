@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
     def color_lessons(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         self.tabs.plan.color()
-        self.tabs.refresh()
+        # self.tabs.refresh()
         QApplication.restoreOverrideCursor()
 
     def lock_all_lessons(self):

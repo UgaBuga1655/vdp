@@ -123,16 +123,11 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
     rev_child = rev_coloring.copy()
     child_uncolored = uncolored.copy()
     def uncolor(lesson):
-        was_ok = len(child) == len(rev_child)
         cl = child.pop(lesson)
         _ = rev_child.pop(cl)
         child_uncolored.append(lesson)
-        if was_ok and len(child) != len(rev_child):
-            print('messed up when uncoloring')
     
     def set_color(lesson, color):
-        if lesson in child_uncolored:
-            child_uncolored.remove(lesson)
         if lesson in child:
             old_color = child.pop(lesson)
             rev_child.pop(old_color)
@@ -143,8 +138,6 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         child[lesson] = color
         rev_child[color] = lesson
 
-    if len(child) != len(rev_child):
-        print('sanity cehck failed')
 
     
 
@@ -153,10 +146,9 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
     if not len(child_uncolored):  
         return coloring, rev_coloring, uncolored, 0
 
-    for _ in range(randint(2, 6)):
+    for _ in range(randint(0, 5)):
         if not (len(child_uncolored)):
             break
-        was_ok = len(child) == len(rev_child)
         # find random uncolored lesson
         lesson = choice(child_uncolored)
         child_uncolored.remove(lesson)
@@ -194,13 +186,10 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
                 uncolor(rev_child[color])
                 continue
         
-        if was_ok and len(child) != len(rev_child):
-            print('messed up when smashing in')
 
     # try to fit uncolored lessons
     child_uncolored.sort(key= lambda l: len(feas[l]), reverse=True)
     for lesson in child_uncolored:
-        was_ok = len(child) == len(rev_child)
         adj_cols = []
         for neighbour in les_g[lesson]:
             # won't interfere if uncolored
@@ -239,8 +228,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
                 continue
             
             set_color(lesson, color)
-            if was_ok and len(child) != len(rev_child):
-                print('messed up when gently filling in')
+            child_uncolored.remove(lesson)
             break
 
     # calculate score

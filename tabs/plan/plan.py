@@ -287,8 +287,8 @@ class PlanWidget(QWidget):
         self.view.set_stat(self.stats.currentData())
 
     def color(self):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        self.db.blockSignals(True)
+        # QApplication.setOverrideCursor(Qt.WaitCursor)
+        # self.db.blockSignals(True)
         self.db.clear_all_lesson_blocks(leave_locked=True)
         self.bar = ProgressDialog('Uzupełnianie planu zajęć', 0)
         self.bar.show()
@@ -312,7 +312,7 @@ class PlanWidget(QWidget):
 
 
     def show_solution(self, c, best_scores, cutoffs): 
-        self.db.blockSignals(False)
+        # self.db.blockSignals(False)
         for lesson, color in c.items():
             # print(lesson, color)
             block_id, classroom_id = color
@@ -323,7 +323,7 @@ class PlanWidget(QWidget):
             #     continue
             self.db.place_lesson_id_mode(lesson, block_id, classroom_id, lock=False)
         # self.view.draw()
-        QApplication.restoreOverrideCursor()
+        # QApplication.restoreOverrideCursor()
         self.bar = None
         if settings.verbose:
             l1, = plt.plot(best_scores)
