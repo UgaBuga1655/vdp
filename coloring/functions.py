@@ -1,4 +1,4 @@
-from data import Data, LessonBlockDB, Lesson
+from data import LessonBlockDB, Lesson
 from queue import PriorityQueue
 from itertools import count
 from random import choice, randint, shuffle
@@ -24,36 +24,20 @@ def random_coloring(params, queue, scorer):
 
 
 
-
 def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
-    # print(len(bl_g))
-    # print('dupa')
-    
-            
     # initialize data structures
     colors = {}
     rev_colors = {}
-    # days = {}
     adj_colors = {}
     uncolored = []
     
     queue = PriorityQueue()
 
     counter = count()
-    # lessons = les_g.nodes.items()
-    # shuffle(lessons)
     for lesson, data in les_g.nodes.items():
-        # print(lesson)
-        # print(data)
-        # if data['subject'] not in days:
-        #     days[data['subject']] = []
-        # days[data['subject']].append(bl_g)
         adj_colors[lesson] = set()
-        # first lessons with fewer feasible blocks
-        # if tied, longer lessons go first
-        # uncolored.add((lesson, data))
+        # order them randomly
         queue.put((randint(1, 2*len(les_g.nodes)), next(counter), (lesson, data)))
-        # queue.put((len(feas[lesson]), -lesson.length, next(counter), lesson))
 
 
     # greedily color the graph
@@ -66,9 +50,6 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
             if color in rev_colors:
                 continue
             block, classroom = color
-            # # other lesson on the same day
-            # if bl_g.nodes[block]['day'] in days[data['subject']]:
-            #     continue
             # collifing lesson
             if block in adj_colors[lesson]:
                 continue
@@ -88,7 +69,6 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
             for neighbour in les_g[lesson]:
                 adj_colors[neighbour].add(block)
                 adj_colors[neighbour].update(bl_g[block])
-            # days[data['subject']].append(bl_g.nodes[block]['day'])
 
             break 
 
@@ -100,7 +80,6 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
 
 def mutate_batch(params, queue, scorer):
     les_g, bl_g, feas, survivors = params
-    # print(f'starting batch: {len(survivors)}')
     pop_size = settings.pop_size
     cutoff = int(settings.cutoff*pop_size)
     num_of_children = int(pop_size/cutoff)
@@ -114,6 +93,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
     child = coloring.copy()
     rev_child = rev_coloring.copy()
     child_uncolored = uncolored.copy()
+
     def uncolor(lesson):
         cl = child.pop(lesson)
         _ = rev_child.pop(cl)
@@ -130,9 +110,6 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         child[lesson] = color
         rev_child[color] = lesson
 
-
-    
-
     
     for _ in range(randint(0, 5)):
         if not (len(child_uncolored)):
@@ -145,27 +122,17 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         set_color(lesson, color)
         block, classroom = color
         # uncolor all nodes unhappy about it
-        my_subject = les_g.nodes[lesson]['subject']
-        # my_day = bl_g.nodes[block]['day']
         for neighbour in les_g[lesson]:
             # already uncolored
             if neighbour not in child:
                 continue
             # collision
             n_color = child[neighbour]
-            # if n_color not in rev_child:
-                # print('dupa')
             n_block, n_classroom = n_color
             if n_block == block or n_block in bl_g[block]:
                 uncolor(neighbour)
                 continue
-
-            # same day
-            # n_subject =  les_g.nodes[neighbour]['subject']
-            # n_day = bl_g.nodes[n_block]['day']
-            # if  n_subject == my_subject and my_day == n_day:
-            #     uncolor(neighbour)
-            #     continue
+            
         
         # classroom is occupied
         for overlapping_block in bl_g[block]:
@@ -176,7 +143,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         
 
     # try to fit uncolored lessons
-    child_uncolored.sort(key= lambda l: len(feas[l]), reverse=True)
+    child_uncolored.sort(key= lambda l: len(feas[l]))
     for lesson in child_uncolored:
         adj_cols = []
         for neighbour in les_g[lesson]:
@@ -189,11 +156,6 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         
         # my_days = []
         subject = les_g.nodes[lesson]['subject']
-        # # same day
-        # for other_lesson in [l for l in les_g[lesson] if l in child and les_g.nodes[l]['subject'] == subject]:
-        #     block, classroom = child[other_lesson]
-        #     my_days.append(bl_g.nodes[block]['day'])
-        # find first suitable block
         for color in feas[lesson]:
             # place in space time occupied
             if color in rev_child:
@@ -202,10 +164,6 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             # other lesson interferes
             if block in adj_cols:
                 continue
-            # other lesson takes place in the same day
-            # day = bl_g.nodes[block]['day']
-            # if day in my_days:
-            #     continue
             # classroom is occupied
             classroom_is_occupied = False
             for n_bl in bl_g[block]:
@@ -221,6 +179,5 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
 
     # calculate score
     params = scorer(child, rev_child, child_uncolored)
-    # score = sum([les_g.nodes[les]['weight'] for les in child_uncolored])
     return (child, rev_child, child_uncolored), params
 

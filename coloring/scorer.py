@@ -58,7 +58,7 @@ def rank(data, weigths: list, min_maxes = None):
     # find min and max values of each parameter
     solution, params = zip(*data)
     # print(params[:10])
-    min_max = reduce(minmax , params, ((inf, 0) for _ in range(len(params[0]))))
+    min_max = reduce(minmax , params, ((inf, 0) for _ in params[0]))
     mins, maxes = np.transpose(min_max)
     if min_maxes:
         pass
