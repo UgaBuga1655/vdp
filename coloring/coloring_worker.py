@@ -78,12 +78,12 @@ class ColoringThread(QThread):
         self.cutoff = int(settings.cutoff*pop_size)
         num_of_children = int(pop_size/self.cutoff)
     
-        self.population.sort(key= lambda x: x[1])
-        self.best_scores = [self.population[0][1]]
-        self.cutoffs = [self.population[self.cutoff][1]]
+        self.population.sort(key= lambda x: x[-1])
+        self.best_scores = [self.population[0][-1]]
+        self.cutoffs = [self.population[self.cutoff][-1]]
         self.goat = (self.population[0])
 
-        self.update_bar.emit(f'Pokolenie {0}, ({self.population[0][1]})')
+        self.update_bar.emit(f'Pokolenie {0}, ({self.population[0][-1]})')
         self.update_bar_total.emit(generations)
 
         self.times = []
@@ -124,17 +124,17 @@ class ColoringThread(QThread):
         self.completed_generations += 1
         for process in self.processes:
             process.join()
-        self.population.sort(key=lambda x: x[1])
-        bs = self.population[0][1]
-        if bs < self.goat[1]:
+        self.population.sort(key=lambda x: x[-1])
+        best_score = self.population[0][-1]
+        if best_score < self.goat[-1]:
             self.goat = self.population[0]
-        self.best_scores.append(bs)
-        self.cutoffs.append(self.population[self.cutoff][1])
+        self.best_scores.append(best_score)
+        self.cutoffs.append(self.population[self.cutoff][-1])
         end = perf_counter()
         duration = end - self.gen_start
         self.times.append(duration)
         print(f'Generation {self.completed_generations}: {duration}s')
-        self.update_bar.emit(f'Pokolenie {self.completed_generations}, ({self.population[0][1]})')
+        self.update_bar.emit(f'Pokolenie {self.completed_generations} ({self.population[0][-1]})')
         self.increment_bar.emit(1)
         if self.completed_generations < settings.generations:
             self.do_next_generation()

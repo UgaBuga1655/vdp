@@ -314,9 +314,9 @@ class PlanWidget(QWidget):
     def show_solution(self, c, best_scores, cutoffs): 
         self.db.blockSignals(False)
         for lesson, color in c.items():
-            print(lesson, color)
+            # print(lesson, color)
             block_id, classroom_id = color
-            print(block_id, classroom_id)
+            # print(block_id, classroom_id)
             # if lesson.block_locked:
             #     print('dupadupa')
             # if lesson.block == block:

@@ -1,3 +1,7 @@
+from tkinter import W
+
+from numpy import less
+
 from data import Data, LessonBlockDB, Lesson
 from queue import PriorityQueue
 from itertools import count
@@ -11,9 +15,9 @@ def random_coloring(params, queue):
     report_size = chunk_size/7
     i=0
     for _ in range(chunk_size):
-        coloring = crazy(lg, bg, feas)
-        cost = sum([lg.nodes[les]['weight'] for les, block in coloring.items() if block[0] is None])
-        data.append((coloring, cost))
+        colors, rev_colors, uncolored = crazy(lg, bg, feas)
+        cost = sum([lg.nodes[les]['weight'] for les in uncolored])
+        data.append((colors, rev_colors, uncolored, cost))
         i += 1
         if i > report_size:
             queue.put(('progess', data))
@@ -32,9 +36,11 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
             
     # initialize data structures
     colors = {}
+    rev_colors = {}
     days = {}
     adj_colors = {}
-    # uncolored = set()
+    uncolored = []
+    
     queue = PriorityQueue()
 
     counter = count()
@@ -49,6 +55,7 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
         adj_colors[lesson] = set()
         # first lessons with fewer feasible blocks
         # if tied, longer lessons go first
+        # uncolored.add((lesson, data))
         queue.put((randint(1, 2*len(les_g.nodes)), next(counter), (lesson, data)))
         # queue.put((len(feas[lesson]), -lesson.length, next(counter), lesson))
 
@@ -57,27 +64,47 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
     while queue.qsize():
         lesson, data = queue.get()[-1]
 
-        # get first feasible block
-        # first_feasible = None
         shuffle(feas[lesson])
-        colors[lesson] = (None, None)
-        for block, classroom in feas[lesson]:
-            # print(block)
-            # print(bl_g.nodes[block])
+        for color in feas[lesson]:
+            # point in space and time is occupied
+            if color in rev_colors:
+                continue
+            block, classroom = color
+            # other lesson on the same day
             if bl_g.nodes[block]['day'] in days[data['subject']]:
                 continue
+            # collifing lesson
             if block in adj_colors[lesson]:
                 continue
+            # classroom occupied by other lesson
+            classroom_is_occupied = False
+            for n_bl in bl_g[block]:
+                if (n_bl, classroom) in rev_colors:
+                    classroom_is_occupied = True
+                    break
+            if classroom_is_occupied:
+                continue
+            
+            color = (block, classroom)
+            colors[lesson] = color
+            rev_colors[color] = lesson
 
-            colors[lesson] = (block, classroom)
             for neighbour in les_g[lesson]:
                 adj_colors[neighbour].add(block)
                 adj_colors[neighbour].update(bl_g[block])
             days[data['subject']].append(bl_g.nodes[block]['day'])
 
             break 
+
+        # failed to place lesson in the plan
+        if lesson not in colors:
+            uncolored.append(lesson)
+
+        for lesson, color in colors.items():
+            if rev_colors[color] != lesson:
+                print('dupaaaaa')
             
-    return colors
+    return colors, rev_colors, uncolored
 
 def mutate_batch(params, queue):
     les_g, bl_g, feas, survivors = params
@@ -88,96 +115,135 @@ def mutate_batch(params, queue):
     children = []
     for survivor in survivors:
         for _ in range(num_of_children):
-            children.append(mutate(les_g, bl_g, feas, survivor[0]))
+            children.append(mutate(les_g, bl_g, feas, *survivor[:-1]))
     queue.put(('done', children))
 
-def mutate(les_g, bl_g, feas, coloring: dict) -> tuple[dict, int]:
-    # print('mutating')
+def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: list) -> tuple[dict, int]:
     child = coloring.copy()
-    # find random uncolored lesson
-    # print(f'child {child}')
-    uncolored = {les for les, blo in child.items() if blo[0] is None}
-    # print(uncolored)
-    if not len(uncolored):  
-        # print('already perfect')
-        return coloring, 0
+    rev_child = rev_coloring.copy()
+    child_uncolored = uncolored.copy()
+    def uncolor(lesson):
+        was_ok = len(child) == len(rev_child)
+        cl = child.pop(lesson)
+        _ = rev_child.pop(cl)
+        child_uncolored.append(lesson)
+        if was_ok and len(child) != len(rev_child):
+            print('messed up when uncoloring')
+    
+    def set_color(lesson, color):
+        if lesson in child_uncolored:
+            child_uncolored.remove(lesson)
+        if lesson in child:
+            old_color = child.pop(lesson)
+            rev_child.pop(old_color)
+        if color in rev_child:
+            old_lesson = rev_child.pop(color)
+            child_uncolored.append(old_lesson)
+            child.pop(old_lesson)
+        child[lesson] = color
+        rev_child[color] = lesson
 
-    for _ in range(randint(0,4)):
-        lesson = uncolored.pop()
+    if len(child) != len(rev_child):
+        print('sanity cehck failed')
+
+    
+
+    
+    # already perfect
+    if not len(child_uncolored):  
+        return coloring, rev_coloring, uncolored, 0
+
+    for _ in range(randint(2, 6)):
+        if not (len(child_uncolored)):
+            break
+        was_ok = len(child) == len(rev_child)
+        # find random uncolored lesson
+        lesson = choice(child_uncolored)
+        child_uncolored.remove(lesson)
         # force it randomly into solution
         color = choice(feas[lesson])
-        child[lesson] = color
+        set_color(lesson, color)
         block, classroom = color
         # uncolor all nodes unhappy about it
         my_subject = les_g.nodes[lesson]['subject']
         my_day = bl_g.nodes[block]['day']
         for neighbour in les_g[lesson]:
-            n_block, n_classroom = child[neighbour]
             # already uncolored
-            if not n_block:
+            if neighbour not in child:
                 continue
             # collision
+            n_color = child[neighbour]
+            # if n_color not in rev_child:
+                # print('dupa')
+            n_block, n_classroom = n_color
             if n_block == block or n_block in bl_g[block]:
-                child[neighbour] = (None, None)
-                uncolored.add(neighbour)
+                uncolor(neighbour)
+                continue
+
             # same day
             n_subject =  les_g.nodes[neighbour]['subject']
             n_day = bl_g.nodes[n_block]['day']
             if  n_subject == my_subject and my_day == n_day:
-                child[neighbour] = (None, None)
-                uncolored.add(neighbour)
-        # for other_lesson in lesson.subject.lessons:
-        #     if other_lesson == lesson:
-        #         continue
-        #     if other_lesson in child:
-        #         child[other_lesson] = None
-        #         uncolored.append(other_lesson)
-            # if other_lesson not in
+                uncolor(neighbour)
+                continue
         
-    # try to fit uncolored lessons in
-    queue = []
-    # print(len(uncolored))
-    # uncolored = {les for les, blo in child.items() if blo is None}
-    # print(len(uncolored)) 
-    for lesson in uncolored:
-        queue.append((lesson, len(feas[lesson])))
-    queue.sort(key=lambda x: x[1])
-    # print(len(queue))
-    for lesson, _ in queue:
-        # if lesson.block_locked:
-            # print('dupa')
+        # classroom is occupied
+        for overlapping_block in bl_g[block]:
+            color = (overlapping_block, classroom)
+            if color in rev_child:
+                uncolor(rev_child[color])
+                continue
+        
+        if was_ok and len(child) != len(rev_child):
+            print('messed up when smashing in')
+
+    # try to fit uncolored lessons
+    child_uncolored.sort(key= lambda l: len(feas[l]), reverse=True)
+    for lesson in child_uncolored:
+        was_ok = len(child) == len(rev_child)
         adj_cols = []
         for neighbour in les_g[lesson]:
-            n_block, n_classroom = child[neighbour]
-            if not n_block:
+            # won't interfere if uncolored
+            if neighbour not in child:
                 continue
+            n_block, n_classroom = child[neighbour]
             adj_cols.append(n_block)
             adj_cols.extend(bl_g[n_block])
         
-        m_days = []
+        my_days = []
         subject = les_g.nodes[lesson]['subject']
-        for other_lesson in [l for l in les_g[lesson] if les_g.nodes[l]['subject'] == subject]:
+        # same day
+        for other_lesson in [l for l in les_g[lesson] if l in child and les_g.nodes[l]['subject'] == subject]:
             block, classroom = child[other_lesson]
-            # else:
-            #     block = other_lesson.block
-            if block:
-                m_days.append(bl_g.nodes[block]['day'])
-        # f = [bl for bl in feas[lesson] if not (bl in adj_cols or bl.day in m_days)]
-        # if len(f):
-        #     child[lesson] = f
-        for block, classroom in feas[lesson]:
+            my_days.append(bl_g.nodes[block]['day'])
+        # find first suitable block
+        for color in feas[lesson]:
+            # place in space time occupied
+            if color in rev_child:
+                continue
+            block, classroom = color
+            # other lesson interferes
             if block in adj_cols:
                 continue
-            # print(block.day, m_days)
+            # other lesson takes place in the same day
             day = bl_g.nodes[block]['day']
-            if day in m_days:
+            if day in my_days:
                 continue
-            child[lesson] = block, classroom
+            # classroom is occupied
+            classroom_is_occupied = False
+            for n_bl in bl_g[block]:
+                if (n_bl, classroom) in rev_child:
+                    classroom_is_occupied = True
+                    break
+            if classroom_is_occupied:
+                continue
+            
+            set_color(lesson, color)
+            if was_ok and len(child) != len(rev_child):
+                print('messed up when gently filling in')
             break
 
     # calculate score
-    # print(uncolored)
-    score = sum([les_g.nodes[les]['weight'] for les in uncolored])
-    # print('finished mutating')
-    return child, score
+    score = sum([les_g.nodes[les]['weight'] for les in child_uncolored])
+    return child, rev_child, child_uncolored, score
 
