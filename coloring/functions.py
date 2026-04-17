@@ -111,7 +111,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         rev_child[color] = lesson
 
     
-    for _ in range(randint(0, 5)):
+    for _ in range(randint(0, 6)):
         if not (len(child_uncolored)):
             break
         # find random uncolored lesson

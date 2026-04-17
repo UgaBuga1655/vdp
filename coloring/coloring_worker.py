@@ -18,7 +18,7 @@ class ColoringThread(QThread):
     # next_generation = pyqtSignal(int, int)
     update_bar_total = pyqtSignal(int)
     increment_bar = pyqtSignal(int)
-    finished = pyqtSignal(dict, list)
+    finished = pyqtSignal(dict, list, list)
     
 
     def __init__(self, db: Data):
@@ -75,10 +75,12 @@ class ColoringThread(QThread):
         pop_size = settings.pop_size
         generations = settings.generations
         self.cutoff = int(settings.cutoff*pop_size)
-        rank(self.population, default_weights)
+        self.all_params = [[] for _ in default_weights]
+        rank(self.population, default_weights, self.all_params)
 
         self.goats = [self.population[0]]
         self.best_params = [[p] for p in self.population[0][-1]]
+
 
         self.update_bar.emit(f'Pokolenie {0}, ({self.population[0][-1]})')
         self.update_bar_total.emit(generations)
@@ -120,7 +122,7 @@ class ColoringThread(QThread):
         self.completed_generations += 1
         for process in self.processes:
             process.join()
-        rank(self.population, default_weights)
+        rank(self.population, default_weights, self.all_params)
         # log the best results
         self.goats.append(self.population[0])
         for old_params, new_param in zip(self.best_params, self.population[0][-1]):
@@ -138,14 +140,14 @@ class ColoringThread(QThread):
             self.finish_everything()
 
     def finish_everything(self):
-        rank(self.goats, default_weights)
+        rank(self.goats, default_weights, self.all_params)
         coloring = self.goats[0][0][0]
         print(f'total time: {sum(self.times)}s')
         print(f'avg: {average(self.times)}s')
         self.session.close()
         # self.best_params = []
         # self.cutoffs = []
-        self.finished.emit(coloring, self.best_params)
+        self.finished.emit(coloring, self.best_params, self.all_params)
 
 
 

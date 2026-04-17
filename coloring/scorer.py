@@ -52,7 +52,7 @@ def minmax(min_max, param):
     return np.array(res)
 
 
-def rank(data, weigths: list, min_maxes = None):
+def rank(data, weigths: list, all_params: list, min_maxes = None):
     # print(data[1][:10])
     # data = solution, params
     # find min and max values of each parameter
@@ -62,17 +62,23 @@ def rank(data, weigths: list, min_maxes = None):
     mins, maxes = np.transpose(min_max)
     if min_maxes:
         pass
+    pop_params = [[] for _ in weigths]
     def score(data):
         _, params = data
         total = 0
+        i = 0
         for minimum, maximum, val, weigth in zip(mins, maxes, params, weigths):
             if minimum == maximum:
                 continue
             # print(minimum, maximum, val, weigth)
             p = weigth * (val - minimum) / (maximum - minimum)
             # print(p)
+            pop_params[i].append(val)
             total += p
+            i+=1
         # print(total)
         return total
+    for old, new in zip(all_params, pop_params):
+        old.append(new)
         
     data.sort(key=score)

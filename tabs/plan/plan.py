@@ -311,7 +311,7 @@ class PlanWidget(QWidget):
 
 
 
-    def show_solution(self, c, best_params): 
+    def show_solution(self, c, best_params, all_params): 
         # self.db.blockSignals(False)
         for lesson, color in c.items():
             # print(lesson, color)
@@ -326,11 +326,16 @@ class PlanWidget(QWidget):
         # QApplication.restoreOverrideCursor()
         self.bar = None
         if settings.verbose:
-            lines = []
+            plt.subplot(2, 1, 2)
             for param in best_params:
-                line, = plt.plot(param)
+                plt.plot(param)
             # l2, = plt.plot(cutoffs)
             plt.legend(param_names)
+            for n, param in enumerate(all_params):
+                # print(param[:2])
+                plt.subplot(2, len(all_params), n+1)
+                plt.boxplot(param[:-1])
+                plt.title(param_names[n])
             plt.show()
         # QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
         
