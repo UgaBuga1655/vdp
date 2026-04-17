@@ -14,9 +14,28 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     def get_weight(lesson):
         return les_g.nodes[lesson]['weight'] if lesson in les_g else 0
     
-    subjects = [
-        [les.id for les in sub.lessons] for sub in session.query(Subject) if len(sub.lessons)
-    ]
+    min_same_day_param = 0
+    subjects = []
+    for subject in session.query(Subject):
+        n_of_lessons = len(subject.lessons)
+        days_av = subject.teacher.days_available()
+        if n_of_lessons > days_av:
+            w = len(subject.students)
+            cost =  w * (n_of_lessons-days_av)
+            print(n_of_lessons, days_av)
+            print(w, cost)
+            min_same_day_param += cost
+        lessons = []
+        days = [0 for _ in range(5)]
+        print(days)
+        for lesson in subject.lessons:
+            lessons.append(lesson.id)
+            if lesson.block:
+                print(f'incrementing {lesson.block.day} ({days[lesson.block.day]})')
+                days[lesson.block.day] += 1
+        print(lessons, days)
+        subjects.append((lessons, days))
+    print(min_same_day_param)
 
     def get_params(color, rev_color, uncolored): 
         if len(uncolored):
@@ -25,16 +44,18 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
             uncolored_lessons = 0
         same_day = 0
         for subject in subjects:
-            # print(subject)
-            weight = get_weight(subject[0])
-            days = [0 for _ in range(5)]
-            for lesson in subject:
+            lessons, days = subject
+            days = days.copy()
+            if not len(lessons):
+                continue
+            weight = get_weight(lessons[0])
+            for lesson in lessons:
                 if lesson not in color:
                     continue
                 day = bl_g.nodes[color[lesson][0]]['day']
                 same_day += weight * days[day]
                 days[day] += 1
-        return uncolored_lessons, same_day
+        return uncolored_lessons, same_day-min_same_day_param
     
 
     return get_params

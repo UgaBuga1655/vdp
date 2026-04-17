@@ -112,11 +112,13 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
 
     
     for _ in range(randint(0, 6)):
-        if not (len(child_uncolored)):
-            break
+        if len(child_uncolored):
+            lesson = choice(child_uncolored)
+            child_uncolored.remove(lesson)
+        else:
+            lesson = choice(list(child.keys()))
+            uncolor(lesson)
         # find random uncolored lesson
-        lesson = choice(child_uncolored)
-        child_uncolored.remove(lesson)
         # force it randomly into solution
         color = choice(feas[lesson])
         set_color(lesson, color)
