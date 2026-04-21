@@ -27,7 +27,8 @@ class Subject(Base):
         return self.my_class if self.my_class else self.subclass.my_class
         
     def class_name(self):
-        return self.my_class.name if self.my_class else self.subclass.my_class.name
+        # return(f'{self.class_id}, {self.subclass_id}')
+        return self.my_class.name if self.class_id is not None else self.subclass.my_class.name
 
     def get_name(self):
         return f'{self.name}' + (' R' if self.my_class else '')

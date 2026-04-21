@@ -1,19 +1,29 @@
 from email.policy import default
 from math import inf
 
-from data import Data, Subject
+from data import Data, Subject, Teacher, Student, LessonBlockDB, Lesson
 from sqlalchemy.orm import Session
 from networkx import Graph
 from functools import reduce
 import numpy as np
 
-default_weights = 4, 3.6
-param_names = ['Nieprzypisane lekcje', 'Lekcje w ten sam dzień']
+default_weights = 4, 3.6, 2
+param_names = ['Nieprzypisane lekcje', 'Lekcje w ten sam dzień', 'Pojedyncze lekcje nauczyciela']
 
 def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     def get_weight(lesson):
         return les_g.nodes[lesson]['weight'] if lesson in les_g else 0
     
+    teachers = []
+    for teacher in session.query(Teacher):
+        t = []
+        for subject in teacher.subjects:
+            t.extend([l.id for l in subject.lessons])
+        teachers.append(t)
+
+    blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(LessonBlockDB)}
+    pinned_lessons = {l.id: l.block.id for l in session.query(Lesson) if l.block}
+
     min_same_day_param = 0
     subjects = []
     for subject in session.query(Subject):
@@ -22,27 +32,25 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         if n_of_lessons > days_av:
             w = len(subject.students)
             cost =  w * (n_of_lessons-days_av)
-            print(n_of_lessons, days_av)
-            print(w, cost)
             min_same_day_param += cost
         lessons = []
         days = [0 for _ in range(5)]
-        print(days)
         for lesson in subject.lessons:
             lessons.append(lesson.id)
             if lesson.block:
-                print(f'incrementing {lesson.block.day} ({days[lesson.block.day]})')
-                days[lesson.block.day] += 1
-        print(lessons, days)
+                day = lesson.block.day
+                min_same_day_param += w * days[day]
+                days[day] += 1
         subjects.append((lessons, days))
-    print(min_same_day_param)
 
     def get_params(color, rev_color, uncolored): 
+        # lessons not in the plan
         if len(uncolored):
             uncolored_lessons = sum([get_weight(les) for les in uncolored])
         else:
             uncolored_lessons = 0
-        same_day = 0
+        # multiple lessons on the same day
+        same_day = -min_same_day_param
         for subject in subjects:
             lessons, days = subject
             days = days.copy()
@@ -55,7 +63,28 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 day = bl_g.nodes[color[lesson][0]]['day']
                 same_day += weight * days[day]
                 days[day] += 1
-        return uncolored_lessons, same_day-min_same_day_param
+
+        # teacher
+        single_lessons = 0
+        for teacher in teachers:
+            days = [[] for _ in range(5)]
+            for lesson in teacher:
+                # try:
+                if lesson in pinned_lessons:
+                    block = pinned_lessons[lesson]
+                else:
+                    block, _ = color[lesson]
+                # except:
+                    # print(session.query(Lesson).filter_by(id=lesson).first().name_and_time())
+                day, start, length = blocks[block]
+                days[day].append(block)
+            for day in days:
+                if len(day) == 1:
+                    single_lessons += 1
+                # for block in day:
+
+
+        return uncolored_lessons, same_day, single_lessons
     
 
     return get_params
