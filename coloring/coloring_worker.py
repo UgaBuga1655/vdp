@@ -9,7 +9,7 @@ from time import perf_counter
 from .queue_listener import QueueListener
 from .functions import random_coloring, mutate_batch
 from .scorer import scorer_factory, rank, default_weights
-import multiprocessing as mp
+import multiprocess as mp
 import math
 
 
