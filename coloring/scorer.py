@@ -7,7 +7,7 @@ from networkx import Graph
 from functools import reduce
 import numpy as np
 
-default_weights = 4, 3.6, 2
+default_weights = 4, 3.6, 3
 param_names = ['Nieprzypisane lekcje', 'Lekcje w ten sam dzień', 'Pojedyncze lekcje nauczyciela']
 
 def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
@@ -72,8 +72,10 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 # try:
                 if lesson in pinned_lessons:
                     block = pinned_lessons[lesson]
-                else:
+                elif lesson in color:
                     block, _ = color[lesson]
+                else:
+                    continue
                 # except:
                     # print(session.query(Lesson).filter_by(id=lesson).first().name_and_time())
                 day, start, length = blocks[block]
