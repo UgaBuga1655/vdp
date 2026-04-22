@@ -7,6 +7,7 @@ from PyQt5.QtGui import QIcon
 import shutil
 import os
 import sys
+import multiprocess as mp
 
 from data import Data
 from tabs import Tabs
@@ -195,10 +196,14 @@ class MainWindow(QMainWindow):
         self.time_report_win.load()
 
 
+def main():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.showMaximized()
+    window.tabs.plan.view.set_ready()
+    # window.tabs.plan.view.draw()
+    app.exec()
 
-app = QApplication(sys.argv)
-window = MainWindow()
-window.showMaximized()
-window.tabs.plan.view.set_ready()
-# window.tabs.plan.view.draw()
-app.exec()
+if __name__ == '__main__':
+    mp.freeze_support()
+    main()
