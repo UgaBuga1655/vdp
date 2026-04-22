@@ -6,6 +6,7 @@ from data import Data
 class RemainingLessonsWindow(QWidget):
     def __init__(self, db: Data):
         super().__init__()
+        self.setWindowFlag(Qt.Tool)
         self.db = db
         self.setMinimumSize(QSize(300, 400))
         self.setWindowTitle('Pozostałe lekcje')

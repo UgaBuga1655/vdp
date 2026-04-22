@@ -12,6 +12,7 @@ from functions import display_hour
 class TimeReport(QWidget):
     def __init__(self, db: Data):
         super().__init__()
+        self.setWindowFlag(Qt.Tool)
         self.db = db
         self.stats={}
         self.setMinimumSize(QSize(300, 400))

@@ -9,6 +9,7 @@ class ReorderClassesDialog(QDialog):
         self.db = parent.db
 
         self.setWindowTitle('Zmień kolejność')
+        self.setWindowFlag(Qt.Tool)
         self.setLayout(QVBoxLayout())
 
         self.class_list = QListWidget()

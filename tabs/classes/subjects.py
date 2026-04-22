@@ -24,6 +24,7 @@ class AddLessonDialog(QDialog):
 class CopySubjectsDialog(QDialog):
     def __init__(self, parent, targets):
         super().__init__(parent=parent)
+        self.setWindowFlag(Qt.Tool)
         self.setWindowTitle('Kopiuj Lekcje')
         layout = QVBoxLayout(self)
         self.target_list = QComboBox()
@@ -44,6 +45,7 @@ class SubjectsWindow(QWidget):
     
     def __init__(self,parent, db, subject):
         super().__init__()
+        self.setWindowFlag(Qt.Tool)
         self.db: Data = db
         self.subject = subject
         layout= QVBoxLayout()
