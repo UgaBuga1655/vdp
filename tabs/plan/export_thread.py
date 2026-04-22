@@ -26,8 +26,8 @@ class exportThread(QThread):
             hide_empty_blocks = True,
             draw_blocks_full_width = False,
             draw_custom_blocks = True,
-            italicize_unlocked_lessons = False
-
+            italicize_unlocked_lessons = False,
+            export_mode = True
         )
 
 
@@ -95,7 +95,8 @@ class exportThread(QThread):
             hide_empty_blocks = False,
             draw_blocks_full_width = False,
             draw_custom_blocks = True,
-            italicize_unlocked_lessons = True
+            italicize_unlocked_lessons = True,
+            export_mode = False
         )
         self.plan.update_alpha(self.plan.alpha_slider.value())
 

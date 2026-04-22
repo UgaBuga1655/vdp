@@ -132,6 +132,7 @@ class PlanWidget(QWidget):
             draw_blocks_full_width = False,
             draw_custom_blocks = True,
             italicize_unlocked_lessons = False,
+            export_mode = True
         )
 
         self.hidden_view.set_ready()
@@ -204,7 +205,8 @@ class PlanWidget(QWidget):
             hide_empty_blocks = False,
             draw_blocks_full_width = False,
             draw_custom_blocks = True,
-            italicize_unlocked_lessons = True
+            italicize_unlocked_lessons = True,
+            export_mode = False
         )
         self.update_alpha(self.alpha_slider.value())
      

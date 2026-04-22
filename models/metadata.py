@@ -29,6 +29,7 @@ class Metadata(Base):
     draw_blocks_full_width = Column(Boolean, default=False)
     draw_custom_blocks = Column(Boolean, default=True)
     alpha = Column(Integer, default=255)
+    export_mode = Column(Boolean, default=False)
 
     verbose = Column(Boolean, default=True)
     pop_size = Column(Integer, default=6000)

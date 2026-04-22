@@ -28,12 +28,12 @@ class BasicBlock(QGraphicsRectItem):
         self.moved = False
         self.block: LessonBlockDB
         self.collisions = dict()
-        settings = self.db.settings()
-        self.text_item0 = BlockText(self, w, h, settings)
-        self.text_item1 = BlockText(self, w, h, settings)
-        self.text_item2 = BlockText(self, w, h, settings)
-        self.text_item3 = BlockText(self, w, h, settings)
-        self.text_item4 = BlockText(self, w, h, settings)
+        # settings = self.db.settings()
+        self.text_item0 = BlockText(self, w, h)
+        self.text_item1 = BlockText(self, w, h)
+        self.text_item2 = BlockText(self, w, h)
+        self.text_item3 = BlockText(self, w, h)
+        self.text_item4 = BlockText(self, w, h)
         self.parent.addItem(self.text_item0)
         self.parent.addItem(self.text_item1)
         self.parent.addItem(self.text_item2)

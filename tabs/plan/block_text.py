@@ -3,13 +3,13 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextOption, QFont, QTextCursor, QTextCharFormat
 from functions import display_hour
 from typing import List
-from data import Lesson
+from data import Lesson, Metadata
 # from db_config import settings
 
 
 class BlockText(QGraphicsTextItem):
-    def __init__(self, parent, w, h, settings):
-        self.settings = settings
+    def __init__(self, parent, w, h):
+        self.db = parent.db
         super().__init__(parent)
         self.contextMenuEvent = parent.contextMenuEvent
         self.bring_back = parent.bring_back
@@ -119,10 +119,12 @@ class BlockText(QGraphicsTextItem):
     def write_lessons(self, lessons, start, length, show_class, show_subclass):
         time = f'{display_hour(start)}-{display_hour(start+length)}'
         if len(lessons):
+            export_mode = self.db.settings().export_mode
             lines = []
             for l in lessons:
                 line = l.subject.get_name(False, show_class, show_subclass)
-                if not l.block_locked:
+                if not l.block_locked and not export_mode:
+                    # print(self.settings.export_mode)
                     line = f'<u>{line}</u>'
                 lines.append(line)
             self.setHtml('<br>'.join(lines))
@@ -130,7 +132,7 @@ class BlockText(QGraphicsTextItem):
                 lines = []
                 for l in lessons:
                     line = l.subject.get_name(True, show_class, show_subclass)
-                    if not l.block_locked:
+                    if not l.block_locked and not export_mode:
                         line = f'<u>{line}</u>'
                     lines.append(line)
             lines.append(time)

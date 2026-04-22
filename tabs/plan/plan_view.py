@@ -453,6 +453,8 @@ class MyView(QGraphicsView):
     def draw_blocks(self, blocks):
         for z, block in enumerate(blocks): 
             self.draw_block(block, z)
+        if self.db.settings().export_mode:
+            return
         for block in blocks:
             self.update_collisions_around(block)
 
