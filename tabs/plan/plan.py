@@ -7,7 +7,7 @@ from .mode_btn import ModeBtn
 from .plan_view import MyView
 from .filter import FilterWidget
 from .stats import Statistic, StudentDensityStat
-from db_config import settings
+# from db_config import settings
 from coloring import ColoringThread, param_names
 import os
 from pathlib import Path
@@ -126,13 +126,15 @@ class PlanWidget(QWidget):
             self.need_redrawing = False
 
     def export(self):
-        settings.alpha = 255 
-        settings.hide_empty_blocks = True
-        settings.draw_blocks_full_width = False
-        settings.draw_custom_blocks = True
-        settings.italicize_unlocked_lessons = False
+        self.db.update_settings(
+            alpha = 255,
+            hide_empty_blocks = True,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = False,
+        )
 
-
+        self.hidden_view.set_ready()
         scene = self.hidden_view.scene()
         parent_folder = QFileDialog.getExistingDirectory(self, 'Wybierz folder', str(Path.home()))
         if not parent_folder:
@@ -170,8 +172,10 @@ class PlanWidget(QWidget):
                 self.hidden_view.draw()
                 self.render(filename, pix, printer, scene)
 
-        settings.draw_custom_blocks = False
-        settings.draw_blocks_full_width = True
+        self.db.update_settings(
+            draw_custom_blocks = False,
+            draw_blocks_full_width = True
+        )
 
 
         os.makedirs(f'{parent_folder}/nauczyciele', exist_ok=True)
@@ -196,10 +200,12 @@ class PlanWidget(QWidget):
 
 
                        
-        settings.hide_empty_blocks = False
-        settings.draw_blocks_full_width = False
-        settings.draw_custom_blocks = True
-        settings.italicize_unlocked_lessons = True
+        self.db.update_settings(
+            hide_empty_blocks = False,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = True
+        )
         self.update_alpha(self.alpha_slider.value())
      
         QApplication.restoreOverrideCursor()
@@ -274,13 +280,15 @@ class PlanWidget(QWidget):
     
     def update_alpha(self, value):
         alpha = 255 - value*25
-        settings.alpha = alpha
         percent = int(value*10)
+        self.db.update_settings(alpha=alpha)
         self.alpha_label.setText(f'{percent}%')
         self.view.draw()
 
     def toggle_allow_conflicts(self):
-        settings.allow_creating_conflicts = self.sender().isChecked()
+        self.db.update_settings(
+            allow_creating_conflicts = self.sender().isChecked()
+        )
 
     def set_stat(self):
         stat = self.stats.currentData()
@@ -325,7 +333,7 @@ class PlanWidget(QWidget):
         # self.view.draw()
         # QApplication.restoreOverrideCursor()
         self.bar = None
-        if settings.verbose:
+        if self.db.settings().verbose:
             plt.subplot(2, 1, 2)
             for param in best_params:
                 plt.plot(param)

@@ -115,7 +115,7 @@ class LessonBlock(BasicBlock):
 
     def get_rects(self):
         lessons = list(filter(self.filter, self.block.lessons))
-        if settings.hide_empty_blocks and not len(lessons):
+        if self.db.settings().hide_empty_blocks and not len(lessons):
             self.hide()
         show_full_subject_names = False
         rect = self.rect().adjusted(0.5,0,-0.5,0)
@@ -134,7 +134,7 @@ class LessonBlock(BasicBlock):
             height = rect.height() 
             y = rect.top()
             for n in range(n_of_buckets):
-                if settings.draw_blocks_full_width:
+                if self.db.settings().draw_blocks_full_width:
                     rects.append(rect)
                 else:
                     x = rect.left()
@@ -146,14 +146,14 @@ class LessonBlock(BasicBlock):
             show_full_subject_names = True
         final_colors = []
         for rect, subclass, lessons in zip(rects, buckets.keys(), buckets.values()):
-            if settings.hide_empty_blocks and not len(lessons):
+            if self.db.settings().hide_empty_blocks and not len(lessons):
                 final_colors.append(None)
                 continue
             # subclass, lessons = bucket
             colors = list(set([lesson.subject.color for lesson in lessons]))
             color = colors[0] if len(colors) == 1 else '#c0c0c0'
             color = QColor(color)
-            color.setAlpha(settings.alpha)
+            color.setAlpha(self.db.settings().alpha)
             final_colors.append(color)
         return rects, buckets, final_colors
 
@@ -166,7 +166,7 @@ class LessonBlock(BasicBlock):
         for i in range(5):
             self.__getattribute__(f'text_item{i}').setHtml('')
         for rect, subclass, lessons, color in zip(rects, buckets.keys(), buckets.values(), colors):
-            if settings.hide_empty_blocks and not len(lessons):
+            if self.db.settings().hide_empty_blocks and not len(lessons):
                 continue
 
             rect = self.mapRectToScene(rect)
@@ -191,7 +191,7 @@ class LessonBlock(BasicBlock):
             else:
                 text_item.setDefaultTextColor(QColor('black'))
             # write on screen
-            if settings.draw_blocks_full_width:
+            if self.db.settings().draw_blocks_full_width:
                 specify_class = True
             specify_subclass = len([l for l in lessons if not l.subject.basic]) or specify_class
             text_item.write_lessons(lessons, self.block.start, self.block.length, specify_class, specify_subclass)

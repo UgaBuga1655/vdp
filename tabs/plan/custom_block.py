@@ -5,7 +5,7 @@ from models import CustomBlock
 from .block import BasicBlock
 from .edit_custom_block_dialog import EditCustomBlockDialog
 from functions import contrast_ratio
-from db_config import settings
+# from db_config import settings
 
 class BlockSignaler(QObject):
     block_moved = pyqtSignal(CustomBlock, int)
@@ -22,7 +22,7 @@ class CustomBlock(BasicBlock):
         if not hasattr(self, 'block'):
             return
         duties = list(filter(self.filter, self.block.duties))
-        if not (len(duties) or settings.draw_custom_blocks):
+        if not (len(duties) or self.db.settings().draw_custom_blocks):
             self.text_item0.hide()
             self.hide()
 
@@ -66,7 +66,7 @@ class CustomBlock(BasicBlock):
     def draw_contents(self):
 
         color = QColor(self.block.color)
-        color.setAlpha(settings.alpha)
+        color.setAlpha(self.db.settings().alpha)
         # color.setAlpha(210)
         self.setBrush(color)
         text = self.block.text

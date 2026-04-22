@@ -2,7 +2,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtWidgets import QFileDialog, QGraphicsTextItem, QApplication
 from PyQt5.QtGui import QPixmap, QPainter
 from pathlib import Path
-from db_config import settings
+# from db_config import settings
 from PyQt5.QtPrintSupport import QPrinter
 import os
 from progress_dialog import ProgressDialog
@@ -21,12 +21,14 @@ class exportThread(QThread):
     def run(self):
         # self.update_hidden_view.emit('foo', [4])
         parent_folder = self.parent_folder
-        settings.alpha = 255 
-        settings.hide_empty_blocks = True
-        settings.draw_blocks_full_width = False
-        settings.draw_custom_blocks = True
-        settings.italicize_unlocked_lessons = False
+        self.plan.db.update_settings(
+            alpha = 255 ,
+            hide_empty_blocks = True,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = False
 
+        )
 
 
         scene = self.plan.hidden_view.scene()
@@ -59,38 +61,42 @@ class exportThread(QThread):
 
                 # self.render(filename, pix, printer, scene)
 
-        settings.draw_custom_blocks = False
-        settings.draw_blocks_full_width = True
+        self.plan.db.update_settings(
+            draw_custom_blocks = False,
+            draw_blocks_full_width = True,
+        )
 
 
-        # os.makedirs(f'{parent_folder}/nauczyciele', exist_ok=True)
-        # for teacher in self.plan.db.read_all_teachers():
-        #     filename = f'{parent_folder}/nauczyciele/{teacher.name}'
-        #     # self.plan.bar.next()
-        #     # self.plan.bar.set_label(filename)
-        #     def filter_func(l):
-        #         return l.subject.teacher == teacher
-        #     self.update_hidden_view.emit(filter_func, self.plan.db.all_subclasses())
+        os.makedirs(f'{parent_folder}/nauczyciele', exist_ok=True)
+        for teacher in self.plan.db.read_all_teachers():
+            filename = f'{parent_folder}/nauczyciele/{teacher.name}'
+            # self.plan.bar.next()
+            # self.plan.bar.set_label(filename)
+            def filter_func(l):
+                return l.subject.teacher == teacher
+            self.update_hidden_view.emit(filter_func, self.plan.db.all_subclasses())
 
-        #     self.render(filename, pix, printer, scene)
+            self.render(filename, pix, printer, scene)
 
-        # os.makedirs(f'{parent_folder}/sale', exist_ok=True)
-        # for classroom in self.plan.db.all_classrooms():
-        #     filename = f'{parent_folder}/sale/{classroom.name}'
-        #     # self.plan.bar.next()
-        #     # self.plan.bar.set_label(filename)
-        #     def filter_func(l):
-        #         return l.classroom == classroom
-        #     self.update_hidden_view.emit(filter_func, self.plan.db.all_subclasses())
+        os.makedirs(f'{parent_folder}/sale', exist_ok=True)
+        for classroom in self.plan.db.all_classrooms():
+            filename = f'{parent_folder}/sale/{classroom.name}'
+            # self.plan.bar.next()
+            # self.plan.bar.set_label(filename)
+            def filter_func(l):
+                return l.classroom == classroom
+            self.update_hidden_view.emit(filter_func, self.plan.db.all_subclasses())
 
-        #     self.render(filename, pix, printer, scene)
+            self.render(filename, pix, printer, scene)
 
 
-                       
-        settings.hide_empty_blocks = False
-        settings.draw_blocks_full_width = False
-        settings.draw_custom_blocks = True
-        settings.italicize_unlocked_lessons = True
+         
+        self.plan.db.update_settings(
+            hide_empty_blocks = False,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = True
+        )
         self.plan.update_alpha(self.plan.alpha_slider.value())
 
         # self.plan.bar = None

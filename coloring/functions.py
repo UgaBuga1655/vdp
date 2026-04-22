@@ -3,7 +3,7 @@ from queue import PriorityQueue
 from itertools import count
 from random import choice, randint, shuffle
 from networkx import Graph
-from db_config import settings
+# from db_config import settings
 
 def random_coloring(params, queue, scorer):
     lg, bg, feas, chunk_size = params
@@ -78,10 +78,8 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
 
     return colors, rev_colors, uncolored
 
-def mutate_batch(params, queue, scorer):
+def mutate_batch(params, queue, scorer, pop_size, cutoff):
     les_g, bl_g, feas, survivors = params
-    pop_size = settings.pop_size
-    cutoff = int(settings.cutoff*pop_size)
     num_of_children = int(pop_size/cutoff)
     children = []
     for survivor in survivors:

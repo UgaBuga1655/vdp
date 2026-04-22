@@ -21,6 +21,10 @@ class Data(QObject):
         Base.metadata.create_all(engine)
         self.session_factory = sessionmaker(bind=engine)
         self.session = self.session_factory()
+        if not self.session.query(Metadata).count():
+            settings = Metadata()
+            self.session.add(settings)
+            self.session.commit()
 
     def get_scoped_session(self):
         Session = scoped_session(session_factory=self.session_factory)
@@ -824,3 +828,10 @@ class Data(QObject):
         self.session.delete(duty)
         self.session.commit()
     
+    # SETTINGS
+    def settings(self):
+        return self.session.query(Metadata).first()
+    
+    def update_settings(self, **kwargs):
+        self.session.query(Metadata).first().update(**kwargs)
+        self.session.commit()

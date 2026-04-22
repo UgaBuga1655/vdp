@@ -179,8 +179,9 @@ class MainWindow(QMainWindow):
         self.db.pin_lessons_without_classrooms(False)
 
     def coloring_settings(self): 
+        # settings = self.db.settings()
         if self.col_set is None:
-            self.col_set = SettingsDialog()
+            self.col_set = SettingsDialog(self.db)
         self.col_set.show()
 
     def remaining_lessons_report(self):

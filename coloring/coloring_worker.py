@@ -1,10 +1,10 @@
 from numpy import average
 from .functions import mutate_batch
 from PyQt5.QtCore import QThread, pyqtSignal
-from db_config import settings
+# from db_config import settings
 from networkx import Graph
 from itertools import combinations
-from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom
+from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom, Metadata
 from time import perf_counter
 from .queue_listener import QueueListener
 from .functions import random_coloring, mutate_batch
@@ -35,9 +35,10 @@ class ColoringThread(QThread):
         self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
 
         self.pop_start_time = perf_counter()
+        self.settings = self.session.query(Metadata).first()
         
         # genetic loop
-        pop_size = settings.pop_size
+        pop_size = self.settings.pop_size
         self.population = []
         self.update_bar.emit('Generowanie początkowej populacji')
         self.update_bar_total.emit(pop_size)
@@ -70,12 +71,13 @@ class ColoringThread(QThread):
         for p in self.processes:
             p.join()
         duration = perf_counter() - self.pop_start_time
-        avg = duration/settings.pop_size
+        avg = duration/self.settings.pop_size
         print(f'Wygenerowano populację w {duration}s ({avg} na osobnika)')
-        pop_size = settings.pop_size
-        generations = settings.generations
-        self.cutoff = int(settings.cutoff*pop_size)
+        self.pop_size = self.settings.pop_size
+        self.generations = self.settings.generations
+        self.cutoff = int(self.settings.cutoff*self.pop_size)
         self.all_params = [[] for _ in default_weights]
+        print(len(self.population))
         rank(self.population, default_weights, self.all_params)
 
         self.goats = [self.population[0]]
@@ -83,7 +85,7 @@ class ColoringThread(QThread):
 
 
         self.update_bar.emit(f'Pokolenie {0}, ({self.population[0][-1]})')
-        self.update_bar_total.emit(generations)
+        self.update_bar_total.emit(self.generations)
 
         self.times = []
         self.completed_generations = 0
@@ -109,7 +111,7 @@ class ColoringThread(QThread):
                 chunk = survivors
             p = mp.Process(
                 target=mutate_batch,
-                args= ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer)
+                args= ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer, self.pop_size, self.cutoff)
             )
             self.processes.append(p)
             p.start()
@@ -134,7 +136,7 @@ class ColoringThread(QThread):
         print(f'Generation {self.completed_generations}: {duration}s')
         self.update_bar.emit(f'Pokolenie {self.completed_generations} {self.population[0][-1]}')
         self.increment_bar.emit(1)
-        if self.completed_generations < settings.generations:
+        if self.completed_generations < self.settings.generations:
             self.do_next_generation()
         else:
             self.finish_everything()

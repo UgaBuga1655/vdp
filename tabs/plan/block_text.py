@@ -4,11 +4,12 @@ from PyQt5.QtGui import QTextOption, QFont, QTextCursor, QTextCharFormat
 from functions import display_hour
 from typing import List
 from data import Lesson
-from db_config import settings
+# from db_config import settings
 
 
 class BlockText(QGraphicsTextItem):
-    def __init__(self, parent, w, h):
+    def __init__(self, parent, w, h, settings):
+        self.settings = settings
         super().__init__(parent)
         self.contextMenuEvent = parent.contextMenuEvent
         self.bring_back = parent.bring_back
@@ -45,7 +46,7 @@ class BlockText(QGraphicsTextItem):
 
     def shorten_names(self) -> None:
         lines = [l.subject.short_full_name() 
-                 if self.show_full_names or settings.draw_blocks_full_width
+                 if self.show_full_names or self.settings.draw_blocks_full_width
                  else l.subject.get_short_name() for l in self.lessons]
         if self.time:
             lines.append(self.time)
@@ -104,7 +105,7 @@ class BlockText(QGraphicsTextItem):
 
     def update_text(self):
         lines = [l.subject.full_name() 
-                 if self.show_full_names or settings.draw_blocks_full_width
+                 if self.show_full_names or self.settings.draw_blocks_full_width
                  else l.subject.get_name() for l in self.lessons]
         if self.time:
             lines.append(self.time)
@@ -121,7 +122,7 @@ class BlockText(QGraphicsTextItem):
             lines = []
             for l in lessons:
                 line = l.subject.get_name(False, show_class, show_subclass)
-                if not l.block_locked and settings.italicize_unlocked_lessons:
+                if not l.block_locked:
                     line = f'<u>{line}</u>'
                 lines.append(line)
             self.setHtml('<br>'.join(lines))
@@ -129,7 +130,7 @@ class BlockText(QGraphicsTextItem):
                 lines = []
                 for l in lessons:
                     line = l.subject.get_name(True, show_class, show_subclass)
-                    if not l.block_locked and settings.italicize_unlocked_lessons:
+                    if not l.block_locked:
                         line = f'<u>{line}</u>'
                     lines.append(line)
             lines.append(time)

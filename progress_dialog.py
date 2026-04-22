@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 class ProgressDialog(QWidget):
     def __init__(self, title, total):
         super().__init__()
+        self.setWindowFlag(Qt.Tool)
         self.setMinimumWidth(300)
         self.curr = 0
         self.total = total

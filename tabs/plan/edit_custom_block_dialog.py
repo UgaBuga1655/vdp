@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QCom
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from data import Data, CustomBlock
-from db_config import settings
+# from db_config import settings
 
 class EditCustomBlockDialog(QDialog):
     def __init__(self, custom_block: CustomBlock, db: Data):
@@ -66,7 +66,7 @@ class EditCustomBlockDialog(QDialog):
             if not collision:
                 continue
             classroom_select.setItemData(i+1, collision, Qt.ToolTipRole)
-            if not settings.allow_creating_conflicts:
+            if not self.db.settings().allow_creating_conflicts:
                 classroom_select.setItemData(i+1, 0, Qt.UserRole - 1)
             else:
                 classroom_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
@@ -85,7 +85,7 @@ class EditCustomBlockDialog(QDialog):
             if not collision:
                 continue
             teacher_select.setItemData(i+1, collision, Qt.ToolTipRole)
-            if not settings.allow_creating_conflicts:
+            if not self.db.settings().allow_conflicts:
                 teacher_select.setItemData(i+1, 0, Qt.UserRole - 1)
             else:
                 teacher_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)

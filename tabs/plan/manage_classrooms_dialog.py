@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QComboBox, QDialogButtonBox, Q
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QCursor
 from data import Data, LessonBlockDB
-from db_config import settings
+# from db_config import settings
 from models.lesson import Lesson
 from .add_lesson_dialog import AddLessonToBlockDialog
 
@@ -64,7 +64,7 @@ class EditLessonBlockDialog(QDialog):
             collisions = '\n'.join(self.db.classroom_fit_collisions(classroom, lesson.subject) + self.collisions[classroom])
             if collisions:
                 list.setItemData(i, collisions, Qt.ToolTipRole)
-                if not settings.allow_creating_conflicts:
+                if not self.db.settings().allow_conflicts:
                     list.setItemData(i, 0, Qt.UserRole - 1)
                 else:
                     list.setItemData(i, QColor('red'), Qt.BackgroundRole)
@@ -85,7 +85,7 @@ class EditLessonBlockDialog(QDialog):
         del_btn = QPushButton('X')
         del_btn.setFixedSize(20,20)
         self.main_grid.addWidget(del_btn, row, 0)
-        label = QLabel(lesson.subject.full_name(True))
+        label = QLabel(lesson.subject.get_name())
         label.setToolTip(lesson.teacher.name)
         self.main_grid.addWidget(label, row, 1)
         combobox = QComboBox()

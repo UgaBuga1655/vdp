@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QObject, pyqtSignal
 from data import Data, Class, LessonBlockDB, CustomBlock
 from functions import snap_position, display_hour
 from .block_text import BlockText
-from db_config import settings
+# from db_config import settings
 
 
 
@@ -28,11 +28,12 @@ class BasicBlock(QGraphicsRectItem):
         self.moved = False
         self.block: LessonBlockDB
         self.collisions = dict()
-        self.text_item0 = BlockText(self, w, h)
-        self.text_item1 = BlockText(self, w, h)
-        self.text_item2 = BlockText(self, w, h)
-        self.text_item3 = BlockText(self, w, h)
-        self.text_item4 = BlockText(self, w, h)
+        settings = self.db.settings()
+        self.text_item0 = BlockText(self, w, h, settings)
+        self.text_item1 = BlockText(self, w, h, settings)
+        self.text_item2 = BlockText(self, w, h, settings)
+        self.text_item3 = BlockText(self, w, h, settings)
+        self.text_item4 = BlockText(self, w, h, settings)
         self.parent.addItem(self.text_item0)
         self.parent.addItem(self.text_item1)
         self.parent.addItem(self.text_item2)
@@ -146,7 +147,7 @@ class BasicBlock(QGraphicsRectItem):
         return [
             (l.subject.full_name(), l.subject.short_full_name())
             if l.subject.my_class or (self.block.class_id and self.other_subclasses_visible())
-            or settings.draw_blocks_full_width
+            or self.db.settings().draw_blocks_full_width
             else (l.subject.name, l.subject.short_name)
             for l in lessons
         ]

@@ -1,4 +1,4 @@
-from db_config import Base, student_subject, settings
+from db_config import Base, student_subject
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
@@ -36,17 +36,17 @@ class Subject(Base):
     def get_short_name(self):
         return f'{self.short_name}' + (' R' if self.my_class else '')
         
-    def full_name(self, full_subclass_name = False):
-        if self.my_class:
-            return f'{self.name} {self.my_class.name if settings.draw_blocks_full_width else ""} R'
-        else:
-            return f'{self.name} {self.subclass.full_name() if full_subclass_name or settings.draw_blocks_full_width else self.subclass.name.upper()}'
+    # def full_name(self, full_subclass_name = False):
+    #     if self.my_class:
+    #         return f'{self.name} {self.my_class.name if settings.draw_blocks_full_width else ""} R'
+    #     else:
+    #         return f'{self.name} {self.subclass.full_name() if full_subclass_name or settings.draw_blocks_full_width else self.subclass.name.upper()}'
     
-    def short_full_name(self, full_subclass_name = False):
-        if self.my_class:
-            return self.short_name + ' R'
-        else:
-            return f'{self.short_name} {self.subclass.full_name() if full_subclass_name or settings.draw_blocks_full_width else self.subclass.name.upper()}'
+    # def short_full_name(self, full_subclass_name = False):
+    #     if self.my_class:
+    #         return self.short_name + ' R'
+    #     else:
+    #         return f'{self.short_name} {self.subclass.full_name() if full_subclass_name or settings.draw_blocks_full_width else self.subclass.name.upper()}'
         
     def get_name(self, short=False, show_class_name = True, show_subclass_name = True):
         name = self.short_name if short else self.name

@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QComboBox, QDialogButtonBox
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QCursor
 from data import Subclass, Subject, Lesson, days, Data, LessonBlockDB
-from db_config import settings
+# from db_config import settings
 
 enabled_flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
 
@@ -13,6 +13,7 @@ class AddLessonToBlockDialog(QDialog):
         self.subclass: Subclass = parent.block.parent()
         self.block = parent.block
         self.collisions = self.db.potential_collisions_at_block(self.block, get_subjects=True, get_classrooms=True)
+        self.allow_conflicts = self.db.settings().allow_conficts
         
 
         self.setWindowTitle('Wybierz przedmiot')
@@ -74,7 +75,7 @@ class AddLessonToBlockDialog(QDialog):
                 if self.subject_list.currentIndex() == i and i < self.subject_list.count():
                     self.select_next_subject = True
                 self.subject_list.setItemData(i, collisions, Qt.ToolTipRole)
-                if not settings.allow_creating_conflicts:
+                if not self.allow_conflicts:
                     self.subject_list.setItemData(i, 0, Qt.UserRole - 1)
                 else:
                     self.subject_list.setItemData(i, QColor('red'), Qt.BackgroundRole)
@@ -106,7 +107,7 @@ class AddLessonToBlockDialog(QDialog):
             if lesson.length != self.block.length*5:
                 select_next = True
                 self.lesson_list.setItemData(i, f'Ten blok trwa {self.block.length*5} minut', Qt.ToolTipRole)
-                if not settings.allow_creating_conflicts:
+                if not self.allow_conflicts:
                     self.lesson_list.setItemData(i, 0, Qt.UserRole - 1)
                 else:
                     self.lesson_list.setItemData(i, QColor('red'), Qt.BackgroundRole)
@@ -133,7 +134,7 @@ class AddLessonToBlockDialog(QDialog):
             if collisions:
                 select_next = True
                 self.classroom_list.setItemData(i, collisions, Qt.ToolTipRole)
-                if not settings.allow_creating_conflicts:
+                if not self.allow_conflicts:
                     self.classroom_list.setItemData(i, 0, Qt.UserRole - 1)
                 else:
                     self.classroom_list.setItemData(i, QColor('red'), Qt.BackgroundRole)

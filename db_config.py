@@ -22,19 +22,19 @@ student_subject = Table(
 
 class Settings():
     def __init__(self):
-        self.allow_creating_conflicts = False
-        self.hide_empty_blocks = False
-        self.draw_blocks_full_width = False
-        self.draw_custom_blocks = True
-        self.alpha = 255
-        self.italicize_unlocked_lessons = True
+        # self.allow_creating_conflicts = False
+        # self.hide_empty_blocks = False
+        # self.draw_blocks_full_width = False
+        # self.draw_custom_blocks = True
+        # self.alpha = 255
+        # self.italicize_unlocked_lessons = True
         self.move_lessons_from = None
         self.swap_lessons_from = None
 
         # algorithm
-        self.verbose = True
-        self.pop_size= 6000
-        self.generations = 30
-        self.cutoff = 0.25
+        # self.verbose = True
+        # self.pop_size= 6000
+        # self.generations = 30
+        # self.cutoff = 0.25
 
 settings = Settings()

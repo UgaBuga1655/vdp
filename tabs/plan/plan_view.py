@@ -11,7 +11,7 @@ from .block import BasicBlock
 from .stats import Statistic, StudentDensityStat
 from functions import snap_position, display_hour
 from data import Data, Class, LessonBlockDB
-from db_config import settings
+# from db_config import settings
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import to_hex
 from numpy import linspace
@@ -326,9 +326,9 @@ class MyView(QGraphicsView):
             text = scene.addSimpleText(days[day])
             text_x = pos - (self.day_w + text.boundingRect().width())/2
             text_y = (self.top_bar_h/2 - text.boundingRect().height()/2)\
-                /(2 if not settings.draw_blocks_full_width else 1)
+                /(2 if not self.db.settings().draw_blocks_full_width else 1)
             text.setPos(text_x, text_y)
-        self.draw_headers = self.l>0 and not settings.draw_blocks_full_width
+        self.draw_headers = self.l>0 and not self.db.settings().draw_blocks_full_width
         if self.draw_headers:
             
             scene.addLine(self.left_bar_w, self.top_bar_h/2, self.scene_width, self.top_bar_h/2)
@@ -393,7 +393,7 @@ class MyView(QGraphicsView):
 
 
     def place_block(self, block):
-        if settings.draw_blocks_full_width:
+        if self.db.settings().draw_blocks_full_width:
             n = 0
             width_multiplier = len(self.classes)
         elif isinstance(block, LessonBlockDB):

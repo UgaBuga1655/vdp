@@ -105,7 +105,7 @@ def minmax(min_max, param):
 
 
 def rank(data, weigths: list, all_params: list, min_maxes = None):
-    # print(data[1][:10])
+    # print(data[0])
     # data = solution, params
     # find min and max values of each parameter
     solution, params = zip(*data)

@@ -3,7 +3,6 @@ from PyQt5.QtCore import pyqtSignal
 from .mode_btn import ModeBtn
 from data import Class, Data
 from types import FunctionType
-from db_config import settings
 
 class FilterWidget(QWidget):
     updated = pyqtSignal(list, FunctionType)
@@ -82,9 +81,11 @@ class FilterWidget(QWidget):
         self.update_filter()
 
     def update_class_filter(self):
-        settings.hide_empty_blocks = False
-        settings.draw_blocks_full_width = False
-        settings.draw_custom_blocks = True
+        self.db.update_settings(
+            hide_empty_blocks = False,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True
+        )
         display_names = [
             button.my_class
             for button in self.findChildren(QPushButton)
@@ -97,9 +98,11 @@ class FilterWidget(QWidget):
         return display_names, filter
 
     def update_student_filter(self):
-        settings.hide_empty_blocks = True
-        settings.draw_blocks_full_width = False
-        settings.draw_custom_blocks = True
+        self.db.update_settings(
+            hide_empty_blocks = True,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True
+        )
         student = self.student_list.currentData()
         if not student:
             return None, None
@@ -109,9 +112,11 @@ class FilterWidget(QWidget):
         return [student.subclass], filter
     
     def update_teacher_filter(self):
-        settings.hide_empty_blocks = True
-        settings.draw_blocks_full_width = True
-        settings.draw_custom_blocks = False
+        self.db.update_settings(
+            hide_empty_blocks = True,
+            draw_blocks_full_width = True,
+            draw_custom_blocks = False
+        )
         teacher = self.teacher_list.currentData()
         if not teacher:
             return None, None
@@ -121,9 +126,11 @@ class FilterWidget(QWidget):
         return classes, filter
     
     def update_classroom_filter(self):
-        settings.hide_empty_blocks = True
-        settings.draw_blocks_full_width = True
-        settings.draw_custom_blocks = False
+        self.db.update_settings(
+            hide_empty_blocks = True,
+            draw_blocks_full_width = True,
+            draw_custom_blocks = False
+        )
         classroom = self.classroom_list.currentData()
         if not classroom:
             return None, None
