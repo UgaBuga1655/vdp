@@ -40,6 +40,9 @@ class MainWindow(QMainWindow):
                 f.write(self.db_name)
 
         self.db = Data(self.db_name)
+        self.db.update_settings(
+            export_mode = False
+        )
 
 
         filename = self.db_name.split('/')[-1]

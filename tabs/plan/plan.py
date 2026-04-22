@@ -7,7 +7,6 @@ from .mode_btn import ModeBtn
 from .plan_view import MyView
 from .filter import FilterWidget
 from .stats import Statistic, StudentDensityStat
-# from db_config import settings
 from coloring import ColoringThread, param_names
 import os
 from pathlib import Path
