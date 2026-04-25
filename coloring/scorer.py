@@ -91,14 +91,15 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                         group_length += 1
                     block_end = block[1]
                 lesson_groupings.append(group_length)
-                cost += sum(lesson_groupings)
+                d_cost = sum(lesson_groupings)
                 if target_bl_len in lesson_groupings or target_bl_len<max(lesson_groupings):
-                    cost -= target_bl_len
+                    d_cost -= target_bl_len
+                cost += d_cost * (d_cost+1) / 2
                 
 
             # add cost
             if cost > 0:
-                lesson_distribution += weight * cost
+                lesson_distribution += cost
 
         # teacher
         single_lessons = 0
