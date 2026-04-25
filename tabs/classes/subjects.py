@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QHBoxLayout, QDialog, QDialogButtonBox, \
-      QPushButton, QLabel, QDialogButtonBox, QMessageBox, QCheckBox, QColorDialog, QLineEdit
+      QPushButton, QLabel, QDialogButtonBox, QMessageBox, QCheckBox, QColorDialog, QLineEdit, QSpinBox
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from PyQt5.QtGui import QColor, QCursor
 
-from data import Data, Class, Subclass
+from data import Data, Class, Subclass, Subject
 
 class AddLessonDialog(QDialog):
     def __init__(self, parent):
@@ -43,19 +43,19 @@ class SubjectsWindow(QWidget):
     color_changed = pyqtSignal(QColor)
     teacher_changed = pyqtSignal(str)
     
-    def __init__(self,parent, db, subject):
+    def __init__(self, parent, db: Data, subject: Subject):
         super().__init__()
         self.setWindowFlag(Qt.Tool)
         self.db: Data = db
         self.subject = subject
-        layout= QVBoxLayout()
-        self.setLayout(layout)
+        main_layout= QVBoxLayout()
+        self.setLayout(main_layout)
         self.setWindowTitle('Przedmiot')
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.move(QCursor.pos() + QPoint(10,10))
 
         top_row = QHBoxLayout()
-        layout.addLayout(top_row)
+        main_layout.addLayout(top_row)
         full_name = QLineEdit(subject.name, self)
         top_row.addWidget(full_name)
         full_name.textEdited.connect(self.set_name)
@@ -64,7 +64,7 @@ class SubjectsWindow(QWidget):
 
         # display options row
         display_options_row = QHBoxLayout()
-        layout.addLayout(display_options_row)
+        main_layout.addLayout(display_options_row)
         display_options_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         # color
@@ -82,7 +82,7 @@ class SubjectsWindow(QWidget):
         display_options_row.addWidget(self.short_name)
 
         # display R
-        self.display_r_checkbox = QCheckBox('Rozszerzony')
+        self.display_r_checkbox = QCheckBox('R')
         self.display_r_checkbox.clicked.connect(self.update_subject_is_basic)
         display_options_row.addWidget(self.display_r_checkbox)
         display_options_row.addStretch()
@@ -91,7 +91,7 @@ class SubjectsWindow(QWidget):
 
         # subject info row
         teacher_row = QHBoxLayout()
-        layout.addLayout(teacher_row)
+        main_layout.addLayout(teacher_row)
         teacher_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
         # teachers
@@ -104,18 +104,29 @@ class SubjectsWindow(QWidget):
         self.teacher_list.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         teacher_row.addWidget(self.teacher_list)
 
+        planning_info_row = QHBoxLayout()
+        main_layout.addLayout(planning_info_row)
+
+        # target block length
+        planning_info_row.addWidget(QLabel('Docelowo lekcji w bloku:'))
+        bl_len = QSpinBox()
+        bl_len.setValue(subject.target_block_length)
+        bl_len.setMinimum(1)
+        bl_len.valueChanged.connect(self.set_target_block_length)
+        planning_info_row.addWidget(bl_len)
+
         # required classroom
-        teacher_row.addWidget(QLabel('Wymagana sala:'))
+        planning_info_row.addWidget(QLabel('Wymagana sala:'))
         self.classroom_list = QComboBox()
         self.classroom_list.addItem('---', None)
         for classroom in self.db.all_classrooms():
             self.classroom_list.addItem(classroom.name, classroom)
         self.classroom_list.currentTextChanged.connect(self.set_classroom)
-        teacher_row.addWidget(self.classroom_list)
+        planning_info_row.addWidget(self.classroom_list)
 
         # lessons
         lesson_row = QHBoxLayout()
-        layout.addLayout(lesson_row)
+        main_layout.addLayout(lesson_row)
         lesson_row.addWidget(QLabel('Lekcje:'))
         self.lessons = QHBoxLayout()
         self.lessons.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -128,7 +139,7 @@ class SubjectsWindow(QWidget):
         buttonBox = QDialogButtonBox()
         buttonBox.setStandardButtons(QDialogButtonBox.Ok)
         buttonBox.accepted.connect(self.close)
-        layout.addWidget(buttonBox)
+        main_layout.addWidget(buttonBox)
         if subject:
             self.load_subject(subject)
 
@@ -222,5 +233,8 @@ class SubjectsWindow(QWidget):
     def set_classroom(self):
         classroom = self.classroom_list.currentData()
         self.db.update_subject_classroom(self.subject, classroom)
+
+    def set_target_block_length(self, length: int):
+        self.db.update_subject_target_block_length(self.subject, length)
 
 

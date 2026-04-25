@@ -276,6 +276,10 @@ class Data(QObject):
     def read_subjects_of_student(self, student: Student) -> List[Subject]:
         return student.subjects
     
+    def update_subject_target_block_length(self, subject: Subject, length: int):
+        subject.target_block_length = length
+        self.session.commit()
+
     def update_subject_teacher(self, subject: Subject, teacher: Teacher) -> None:
         subject.teacher = teacher
         for lesson in subject.lessons:

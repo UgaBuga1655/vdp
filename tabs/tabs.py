@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QTabWidget
 from .classes import ClassesWidget
-from .subjects import SubjectsWidget
+# from .subjects import SubjectsWidget
 from .teachers import TeachersWidget
 from .plan import PlanWidget
 from .classrooms import ClassroomsWidget

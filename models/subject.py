@@ -15,6 +15,7 @@ class Subject(Base):
     color = Column(String)
     students = relationship("Student", secondary=student_subject, back_populates="subjects")
     lessons = relationship("Lesson", backref="subject")
+    target_block_length = Column(Integer, default=1)
 
 
     def parent(self):
