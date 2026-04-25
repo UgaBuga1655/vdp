@@ -7,8 +7,9 @@ from networkx import Graph
 from functools import reduce
 import numpy as np
 
-default_weights = 4, 3.6, 3
-param_names = ['Nieprzypisane lekcje', 'Lekcje w ten sam dzień', 'Pojedyncze lekcje nauczyciela']
+default_weights = 4, 0, 3, 3.8
+param_names = ['Nieprzypisane lekcje', 'Lekcje w ten sam dzień', 'Pojedyncze lekcje nauczyciela', 'Niezblokowane lekcje']
+MAX_BREAK = 4 # * 5 minutes: max length of a break for lessons to be considered grouped
 
 def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     def get_weight(lesson):
@@ -34,13 +35,15 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
             cost =  w * (n_of_lessons-days_av)
             min_same_day_param += cost
         lessons = []
-        days = [0 for _ in range(5)]
+        days = [[] for _ in range(5)]
         for lesson in subject.lessons:
             lessons.append(lesson.id)
             if lesson.block:
+                start = lesson.block.start
+                end = start + lesson.block.length
                 day = lesson.block.day
-                min_same_day_param += w * days[day]
-                days[day] += 1
+                min_same_day_param += w * len(days[day])
+                days[day].append((start, end))
         subjects.append((lessons, days))
 
     def get_params(color, rev_color, uncolored): 
@@ -49,20 +52,43 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
             uncolored_lessons = sum([get_weight(les) for les in uncolored])
         else:
             uncolored_lessons = 0
+        stray_lessons = 0
         # multiple lessons on the same day
         same_day = -min_same_day_param
         for subject in subjects:
             lessons, days = subject
-            days = days.copy()
+            days = [day.copy() for day in days]
+            # print(days)
             if not len(lessons):
                 continue
             weight = get_weight(lessons[0])
             for lesson in lessons:
                 if lesson not in color:
                     continue
-                day = bl_g.nodes[color[lesson][0]]['day']
-                same_day += weight * days[day]
-                days[day] += 1
+                bl_id = color[lesson][0]
+                day, start, length = blocks[bl_id]
+                same_day += weight * len(days[day])
+                days[day].append((start, length+start))
+            for day in days:
+                if not len(day):
+                    continue
+                # print(day)
+                lesson_groupings = []
+                day.sort(key= lambda x: x[0])
+                block_end = day[0][1]
+                group_length = 1
+                for block in day[1:]:
+                    if block[0] > block_end + MAX_BREAK:
+                        lesson_groupings.append(group_length)
+                    else:
+                        group_length += 1
+                    block_end = block[1]
+                lesson_groupings.append(group_length)
+                # remove biggest grouping
+                lesson_groupings.remove(max(lesson_groupings))
+                # add cost
+                # cosr =  weight * sum(lesson_groupings)
+                stray_lessons += weight * sum(lesson_groupings)
 
         # teacher
         single_lessons = 0
@@ -86,7 +112,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 # for block in day:
 
 
-        return uncolored_lessons, same_day, single_lessons
+        return uncolored_lessons, same_day, single_lessons, stray_lessons
     
 
     return get_params
