@@ -13,7 +13,7 @@ class AddLessonToBlockDialog(QDialog):
         self.subclass: Subclass = parent.block.parent()
         self.block = parent.block
         self.collisions = self.db.potential_collisions_at_block(self.block, get_subjects=True, get_classrooms=True)
-        self.allow_conflicts = self.db.settings().allow_conficts
+        self.allow_conflicts = self.db.settings().allow_conflicts
         
 
         self.setWindowTitle('Wybierz przedmiot')

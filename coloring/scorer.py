@@ -30,8 +30,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     for subject in session.query(Subject):
         n_of_lessons = len(subject.lessons)
         days_av = subject.teacher.days_available()
+        w = len(subject.students)
         if n_of_lessons > days_av:
-            w = len(subject.students)
             cost =  w * (n_of_lessons-days_av)
             min_same_day_param += cost
         lessons = []
@@ -94,7 +94,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 d_cost = sum(lesson_groupings)
                 if target_bl_len in lesson_groupings or target_bl_len<max(lesson_groupings):
                     d_cost -= target_bl_len
-                cost += d_cost * (d_cost+1) / 2
+                cost += d_cost * (d_cost+1) // 2
                 
 
             # add cost

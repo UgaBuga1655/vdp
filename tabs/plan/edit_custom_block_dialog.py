@@ -66,7 +66,7 @@ class EditCustomBlockDialog(QDialog):
             if not collision:
                 continue
             classroom_select.setItemData(i+1, collision, Qt.ToolTipRole)
-            if not self.db.settings().allow_creating_conflicts:
+            if not self.db.settings().allow_conflicts:
                 classroom_select.setItemData(i+1, 0, Qt.UserRole - 1)
             else:
                 classroom_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
