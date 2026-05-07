@@ -84,7 +84,7 @@ class ColoringThread(QThread):
         self.best_params = [[p] for p in self.population[0][-1]]
 
 
-        self.update_bar.emit(f'Pokolenie {0}, ({self.population[0][-1]})')
+        self.update_bar.emit(f'Pokolenie {0} {self.population[0][-1]}')
         self.update_bar_total.emit(self.generations)
 
         self.times = []

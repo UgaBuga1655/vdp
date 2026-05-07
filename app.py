@@ -111,10 +111,13 @@ class MainWindow(QMainWindow):
         remaining_action.triggered.connect(self.remaining_lessons_report)
         time_rep_action = QAction('&Czas w szkole', self)
         time_rep_action.triggered.connect(self.time_report)
+        params_plot_action = QAction('&Parametry uzupełniania', self)
+        params_plot_action.triggered.connect(self.tabs.plan.show_params_plot)
 
         reports_menu.addActions([
             remaining_action,
-            time_rep_action
+            time_rep_action,
+            params_plot_action
         ])
 
         self.setCentralWidget(self.tabs)

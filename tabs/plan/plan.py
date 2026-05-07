@@ -24,6 +24,8 @@ class PlanWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
+        self.all_params = None
+        self.best_params = None
 
 
 
@@ -321,32 +323,33 @@ class PlanWidget(QWidget):
 
 
     def show_solution(self, c, best_params, all_params): 
-        # self.db.blockSignals(False)
         for lesson, color in c.items():
-            # print(lesson, color)
             block_id, classroom_id = color
-            # print(block_id, classroom_id)
-            # if lesson.block_locked:
-            #     print('dupadupa')
-            # if lesson.block == block:
-            #     continue
             self.db.place_lesson_id_mode(lesson, block_id, classroom_id, lock=False)
-        # self.view.draw()
-        # QApplication.restoreOverrideCursor()
         self.bar = None
+        # self.db.update_settings(best_params=best_params, all_params=all_params)
+        self.best_params = best_params
+        self.all_params = all_params
         if self.db.settings().verbose:
-            plt.subplot(2, 1, 2)
-            for param in best_params:
-                plt.plot(param)
-            # l2, = plt.plot(cutoffs)
-            plt.legend(param_names)
-            for n, param in enumerate(all_params):
-                # print(param[:2])
-                plt.subplot(2, len(all_params), n+1)
-                plt.boxplot(param[:-1])
-                plt.title(param_names[n])
-            plt.show()
-        # QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
+            self.show_params_plot()
+    
+    def show_params_plot(self):
+        if not (self.all_params and self.best_params):
+            QMessageBox.information(self, 'Uwaga', 'Brak danych do pokazania.')
+            return
+        plt.subplot(2, 1, 2)
+        for param in self.best_params:
+            plt.plot(param)
+        plt.legend(param_names)
+        for n, param in enumerate(self.all_params):
+            plt.subplot(2, len(self.all_params), n+1)
+            plt.boxplot(param[:-1])
+            plt.title(param_names[n])
+        plt.show()
+
+
+
+        
         
 
 
