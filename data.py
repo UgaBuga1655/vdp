@@ -683,6 +683,8 @@ class Data(QObject):
             if get_classrooms:
                 if event.classroom and not (isinstance(event, TeacherDuty) and isinstance(block, CustomBlock)):
                     collisions[event.classroom].append(event.name_and_time())
+                if event.classroom and not event.classroom.allow_lessons:
+                    collisions[event.classroom].append(f'W {classroom.name} nie mogą odbywać się lekcje')
 
         # positive subject requirements
         if get_subjects:

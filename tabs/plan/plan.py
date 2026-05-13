@@ -290,7 +290,7 @@ class PlanWidget(QWidget):
 
     def toggle_allow_conflicts(self):
         self.db.update_settings(
-            allow_creating_conflicts = self.sender().isChecked()
+            allow_conflicts = self.sender().isChecked()
         )
 
     def set_stat(self):

@@ -53,6 +53,7 @@ class SubjectsWindow(QWidget):
         self.setWindowTitle('Przedmiot')
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.move(QCursor.pos() + QPoint(10,10))
+        self.allow_conflicts = self.db.settings().allow_conflicts
 
         top_row = QHBoxLayout()
         main_layout.addLayout(top_row)
@@ -119,8 +120,25 @@ class SubjectsWindow(QWidget):
         planning_info_row.addWidget(QLabel('Wymagana sala:'))
         self.classroom_list = QComboBox()
         self.classroom_list.addItem('---', None)
-        for classroom in self.db.all_classrooms():
+        n_of_students = len(subject.students)
+        for i, classroom in enumerate(self.db.all_classrooms()):
             self.classroom_list.addItem(classroom.name, classroom)
+
+            collisions = []
+            if not classroom.allow_lessons:
+                collisions.append(f'W {classroom.name} nie mogą odbywać się lekcje')
+            if n_of_students > classroom.capacity:
+                collisions.append(f'W {classroom.name} zmieści się tylko {classroom.capacity} uczniów, a na {subject.name} zapisanych jest {n_of_students}')
+
+            collisions = "\n".join(collisions)
+            if not collisions:
+                continue
+            self.classroom_list.setItemData(i+1 ,collisions, Qt.ToolTipRole)
+            if not self.allow_conflicts:
+                self.classroom_list.setItemData(i+1, 0, Qt.UserRole - 1)
+            else:
+                self.classroom_list.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
+
         self.classroom_list.currentTextChanged.connect(self.set_classroom)
         planning_info_row.addWidget(self.classroom_list)
 
