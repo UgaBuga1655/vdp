@@ -175,6 +175,7 @@ class FilterWidget(QWidget):
         for student in students:
             self.student_list.addItem(student.name, student)
         self.student_list.blockSignals(False)
+        self.update_filter()
         
 
     def load_data(self, db):
