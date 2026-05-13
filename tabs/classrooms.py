@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,\
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QGridLayout, QLabel,\
       QSpinBox, QLineEdit, QMessageBox, QPushButton
 from functions import delete_layout
-from data import Data
+from data import Data, Classroom
 
 class ClassroomsWidget(QWidget):
     def __init__(self, parent):
@@ -33,7 +33,7 @@ class ClassroomsWidget(QWidget):
         for row, classroom in enumerate(self.classrooms):
             self.add_classroom_to_grid(row, classroom)
 
-    def add_classroom_to_grid(self, row, classroom):
+    def add_classroom_to_grid(self, row, classroom: Classroom):
         self.grid.addWidget(QLabel(classroom.name), row, 0)
 
         student_count = QSpinBox()
@@ -41,9 +41,14 @@ class ClassroomsWidget(QWidget):
         student_count.valueChanged.connect(self.set_capacity(classroom))
         self.grid.addWidget(student_count, row, 1)
         
-        del_btn = QPushButton('Usuń')
+        allow_lessons = QCheckBox('Przypisuj lekcje')
+        allow_lessons.setChecked(classroom.allow_lessons)
+        allow_lessons.toggled.connect(self.set_classroom_allow_lessons(classroom))
+        self.grid.addWidget(allow_lessons, row, 2)
+
+        del_btn = QPushButton('X')
         del_btn.clicked.connect(self.del_classroom(classroom))
-        self.grid.addWidget(del_btn, row, 2)
+        self.grid.addWidget(del_btn, row, 3)
 
     def add_classroom(self):
         name_box: QLineEdit = self.sender()
@@ -68,6 +73,11 @@ class ClassroomsWidget(QWidget):
         def func():
             self.db.delete_classroom(classroom)
             self.load_data(self.db)
+        return func
+    
+    def set_classroom_allow_lessons(self, classroom):
+        def func(allow):
+            self.db.update_classroom_allow_lessons(classroom, allow)
         return func
 
 

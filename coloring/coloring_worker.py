@@ -84,7 +84,7 @@ class ColoringThread(QThread):
         self.best_params = [[p] for p in self.population[0][-1]]
 
 
-        self.update_bar.emit(f'Pokolenie {0} {self.population[0][-1]}')
+        self.update_bar.emit(f'Pokolenie 0 {self.population[0][-1]}')
         self.update_bar_total.emit(self.generations)
 
         self.times = []
@@ -192,7 +192,7 @@ class ColoringThread(QThread):
         self.update_bar.emit('Generowanie grafu lekcji')
         lesson_count = self.session.query(Lesson).count()
         self.update_bar_total.emit(lesson_count)
-        classrooms = self.session.query(Classroom).all()
+        classrooms = self.session.query(Classroom).filter_by(allow_lessons=True).all()
         blocks = self.session.query(LessonBlockDB).all()
         for subject in self.session.query(Subject).all():
             feasible_classrooms = [

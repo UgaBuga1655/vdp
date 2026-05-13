@@ -1,5 +1,5 @@
 from db_config import Base
-from sqlalchemy import Column, Integer, ForeignKey, String
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean
 from sqlalchemy.orm import relationship
 
 class Classroom(Base):
@@ -10,3 +10,4 @@ class Classroom(Base):
     subjects = relationship("Subject", backref="required_classroom")
     lessons = relationship("Lesson", backref='classroom')
     duties = relationship('TeacherDuty', back_populates='classroom')
+    allow_lessons = Column(Boolean, default=True)

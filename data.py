@@ -304,7 +304,7 @@ class Data(QObject):
         subject.basic = basic
         self.session.commit()
 
-    def update_subject_classroom(self, subject: Subject, classroom: Classroom) -> None:
+    def update_subject_classroom(self, subject: Subject, classroom: Classroom | None) -> None:
         subject.required_classroom = classroom
         for lesson in subject.lessons:
             if lesson.block:
@@ -523,6 +523,13 @@ class Data(QObject):
 
     def update_classroom_capacity(self, classroom: Classroom, capacity: int) -> None:
         classroom.capacity = capacity
+        self.session.commit()
+
+    def update_classroom_allow_lessons(self, classroom: Classroom, allow: bool) -> None:
+        classroom.allow_lessons = allow
+        if not allow:
+            for subject in classroom.subjects:
+                self.update_subject_classroom(subject, None)
         self.session.commit()
 
     def delete_classroom(self, classroom: Classroom) -> None:
