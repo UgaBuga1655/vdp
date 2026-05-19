@@ -9,6 +9,7 @@ from typing import List
 from functions import shorten_name
 from db_config import Base
 from models import *
+from itertools import combinations
 
 
 class Data(QObject):
@@ -23,6 +24,7 @@ class Data(QObject):
         Base.metadata.create_all(engine)
         self.session_factory = sessionmaker(bind=engine)
         self.session = self.session_factory()
+        # self.init_distances()
         if not self.session.query(Metadata).count():
             settings = Metadata()
             self.session.add(settings)
@@ -555,8 +557,14 @@ class Data(QObject):
 
     # CLASSROOM GROUPS
     def create_classroom_group(self, name):
+        groups = self.session.query(ClassroomGroup).all()
         group = ClassroomGroup(name=name)
         self.session.add(group)
+        for other_group in groups:
+            dist1 = Distance(start = group, end = other_group, distance = 1)
+            dist2 = Distance(end = group, start = other_group, distance = 1)
+            self.session.add(dist1)
+            self.session.add(dist2)
         self.session.commit()
         return group
 
@@ -570,7 +578,32 @@ class Data(QObject):
     def delete_classroom_group(self, group: ClassroomGroup) -> None:
         for classroom in group.classrooms:
             self.delete_classroom(classroom)
+        for dist in group.distances_from:
+            self.session.delete(dist)
+        for dist in group.distances_to:
+            self.session.delete(dist)
         self.session.delete(group)
+        self.session.commit()
+
+    # DISTANCES
+
+    def init_distances(self):
+        for c1, c2 in combinations(self.session.query(ClassroomGroup).all(), 2):
+            dist = Distance(start = c1, end=c2, distance = 1)
+            self.session.add(dist)
+            dist = Distance(start = c2, end=c1, distance = 1)
+            self.session.add(dist)
+        self.session.commit()
+
+    def get_distance(self, start, end):
+        return 0 if start==end else \
+            self.session.query(Distance).filter_by(start=start, end=end).first().distance
+    
+    def set_distance(self, start, end, distance):
+        if start == end:
+            return
+
+        self.session.query(Distance).filter_by(start=start, end=end).first().distance = distance
         self.session.commit()
 
     # def get_collisions_for_classroom_at_block(self, classroom: Classroom, block: LessonBlockDB) -> List[Lesson]:

@@ -16,7 +16,7 @@ class Tabs(QTabWidget):
         self.classes = ClassesWidget(self)
         self.teachers = TeachersWidget(self)
         self.plan = PlanWidget(self)
-        self.classrooms = ClassroomTreeWidget(self)
+        self.classrooms = ClassroomsWidget(self)
 
 
         self.addTab(self.plan, "Plan")
