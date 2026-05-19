@@ -1,3 +1,5 @@
+from turtle import st
+
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_, literal
@@ -541,7 +543,7 @@ class Data(QObject):
 
         for duty in classroom.duties:
             if duty.block:
-                self.update_block.emit(duty.block)
+                self.update_custom_block.emit(duty.block)
 
     def delete_classroom(self, classroom: Classroom) -> None:
         for lesson in classroom.lessons:
@@ -560,6 +562,16 @@ class Data(QObject):
 
     def all_classrooms_groups(self) -> List[ClassroomGroup]:
         return self.session.query(ClassroomGroup).all()
+    
+    def update_classroom_group_name(self, group: ClassroomGroup, name: str) -> None:
+        group.name = name
+        self.session.commit()
+
+    def delete_classroom_group(self, group: ClassroomGroup) -> None:
+        for classroom in group.classrooms:
+            self.delete_classroom(classroom)
+        self.session.delete(group)
+        self.session.commit()
 
     # def get_collisions_for_classroom_at_block(self, classroom: Classroom, block: LessonBlockDB) -> List[Lesson]:
     #     return self.session.query(Lesson).filter_by(classroom=classroom)\

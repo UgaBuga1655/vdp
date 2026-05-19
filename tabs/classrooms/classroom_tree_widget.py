@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QPushButton, QLineEdit, QWidget, QHBoxLayout, QSpinBox, QCheckBox
+from email import message
+
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QPushButton, QLineEdit, QWidget, QHBoxLayout,\
+      QSpinBox, QCheckBox, QMessageBox
 from PyQt5.QtCore import Qt
 from data import Data, Classroom
 
@@ -10,8 +13,10 @@ class ClassroomTreeWidget(QTreeWidget):
         self.setAcceptDrops(True)
         self.setDragDropMode(QTreeWidget.InternalMove)
         self.setDefaultDropAction(Qt.MoveAction)
-        # self.root = QTreeWidgetItem(self, ['Groups'])
+        self.setSelectionMode(QTreeWidget.NoSelection)
+        self.setFocusPolicy(Qt.NoFocus)
         self.load_data()
+
 
     def load_data(self):
         add_group_widget = QWidget(self)
@@ -34,44 +39,43 @@ class ClassroomTreeWidget(QTreeWidget):
         add_item = QTreeWidgetItem(self, [])
         self.setItemWidget(add_item, 0, add_group_widget)
 
-
         for group in self.db.all_classrooms_groups():
             self.add_group(group)
+   
 
-    def create_classroom(self, group, group_item: QTreeWidgetItem, line:QLineEdit):
-        def func():
-            name = line.text()
-            if not name:
-                return
-            classroom = self.db.create_classroom(group, name)
-            self.add_classroom(group_item, classroom)
-            line.clear()
-        # del_btn.clicked.connect(self.delete_classroom(classroom_item, classroom))
-        # self.setItemWidget(classro
-        return func
-    
-    def delete_classroom(self, classroom_item: QTreeWidgetItem, classroom):
-        def func():
-            self.db.delete_classroom(classroom)
-            for n in range(1):
-                self.removeItemWidget(classroom_item, n)
-            classroom_item.parent().removeChild(classroom_item)
-            # del classroom_item
-        return func
-    
     def add_group(self, group):
         count = self.topLevelItemCount()
         index = max(0, count-1)
-        group_item = QTreeWidgetItem([group.name])
-        self.insertTopLevelItem(index, group_item)
-        add_classroom_item = QTreeWidgetItem(group_item, [])
+        group_item = QTreeWidgetItem([])
 
-        widget = QWidget(self)
+        group_widget = QWidget(self)
         row = QHBoxLayout()
         row.setContentsMargins(0,0,0,0)
-        widget.setLayout(row)
+        group_widget.setLayout(row)
 
-        new_classroom_edit = QLineEdit(widget)
+        name_edit = QLineEdit(group_widget)
+        name_edit.setText(group.name)
+        name_edit.setMaximumWidth(200)
+        name_edit.editingFinished.connect(self.update_group_name(group, name_edit))
+        row.addWidget(name_edit)
+
+        btn = QPushButton('X')
+        btn.setFixedWidth(20)
+        btn.clicked.connect(self.delete_group(group_item, group))
+        row.addWidget(btn)
+
+        row.addStretch()
+
+        self.insertTopLevelItem(index, group_item)
+        self.setItemWidget(group_item, 0, group_widget)
+        new_classroom_item = QTreeWidgetItem(group_item, [])
+
+        new_classroom_widget = QWidget(self)
+        row = QHBoxLayout()
+        row.setContentsMargins(0,0,0,0)
+        new_classroom_widget.setLayout(row)
+
+        new_classroom_edit = QLineEdit(new_classroom_widget)
         new_classroom_edit.setPlaceholderText('Dodaj salę')
         new_classroom_edit.setMaximumWidth(100)
         new_classroom_edit.returnPressed.connect(self.create_classroom(group, group_item, new_classroom_edit))
@@ -84,10 +88,55 @@ class ClassroomTreeWidget(QTreeWidget):
 
         row.addStretch()
 
-        self.setItemWidget(add_classroom_item, 0, widget)
+        self.setItemWidget(new_classroom_item, 0, new_classroom_widget)
         for classroom in group.classrooms:
             self.add_classroom(group_item, classroom)
         group_item.setExpanded(True)
+
+    def create_classroom_group(self):
+        group_name = self.add_group_edit.text()
+        group = self.db.create_classroom_group(group_name)
+        self.add_group(group)
+        self.add_group_edit.clear()
+
+    def update_group_name(self, group, name_edit):
+        def func():
+            self.db.update_classroom_group_name(group, name_edit.text())
+        return func
+
+    def delete_group(self,item, group):
+        def func():
+            n_of_classrooms = len(group.classrooms)
+            n_of_lessons = 0
+            if n_of_classrooms:
+                for classroom in group.classrooms:
+                    n_of_lessons += len(classroom.lessons)
+                    n_of_lessons += len(classroom.duties)
+                match n_of_classrooms:
+                    case 1:
+                        classrooms = 'jest 1 sala, w której'
+                    case _ if n_of_classrooms%10 in [2,3,4] and (n_of_classrooms<10 or n_of_classrooms>20):
+                        classrooms = f'są {n_of_classrooms} sale, w których'
+                    case _:
+                        classrooms = f'jest {n_of_classrooms} sal, w których'
+                match n_of_lessons:
+                    case 0:
+                        lessons = 'nie odbywa się żadna lekcja ani dyżur'
+                    case 1:
+                        lessons = 'odbywa się 1 lekcja lub dyżur'
+                    case _ if n_of_lessons%10 in [2,3,4] and (n_of_lessons<10 or n_of_lessons>20):
+                        lessons = f'odbywają się {n_of_lessons} lekcje lub dyżury'
+                    case _:
+                        lessons = f'odbywa się {n_of_lessons} lekcji lub dyżurów'
+                message = f'W grupie "{group.name}" {classrooms} {lessons}. Czy na pewno chcesz ją usunąć?'
+                if QMessageBox.question(self, 'Uwaga', message) != QMessageBox.StandardButton.Yes:
+                    return
+
+            self.db.delete_classroom_group(group)
+            self.removeItemWidget(item, 0)
+            self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+        return func
+
 
     def add_classroom(self, group_item: QTreeWidgetItem, classroom: Classroom):
         count = group_item.childCount()
@@ -102,11 +151,11 @@ class ClassroomTreeWidget(QTreeWidget):
 
         name_edit = QLineEdit(classroom.name, classroom_widget)
         name_edit.setMaximumWidth(100)
-        name_edit.textEdited.connect(self.update_classroom_name(classroom))
+        name_edit.editingFinished.connect(self.update_classroom_name(classroom, name_edit))
         row.addWidget(name_edit)
 
         capacity = QSpinBox()
-        capacity.setMinimum(1)
+        capacity.setRange(1, 999999)
         capacity.setValue(classroom.capacity)
         capacity.valueChanged.connect(self.set_capacity(classroom))
         row.addWidget(capacity)
@@ -124,12 +173,18 @@ class ClassroomTreeWidget(QTreeWidget):
         row.addStretch()
         self.setItemWidget(classroom_item, 0, classroom_widget)
 
-    def create_classroom_group(self):
-        group_name = self.add_group_edit.text()
-        group = self.db.create_classroom_group(group_name)
-        self.add_group(group)
-        self.add_group_edit.clear()
-        
+    def create_classroom(self, group, group_item: QTreeWidgetItem, line:QLineEdit):
+        def func():
+            name = line.text()
+            if not name:
+                return
+            classroom = self.db.create_classroom(group, name)
+            self.add_classroom(group_item, classroom)
+            line.clear()
+        # del_btn.clicked.connect(self.delete_classroom(classroom_item, classroom))
+        # self.setItemWidget(classro
+        return func
+    
     def set_capacity(self, classroom):
         def func(capacity):
             self.db.update_classroom_capacity(classroom, capacity)
@@ -140,7 +195,40 @@ class ClassroomTreeWidget(QTreeWidget):
             self.db.update_classroom_allow_lessons(classroom, allow)
         return func
     
-    def update_classroom_name(self, classroom):
-        def func(name):
-            self.db.update_classroom_name(classroom, name)
+    def update_classroom_name(self, classroom, name_edit):
+        def func():
+            self.db.update_classroom_name(classroom, name_edit.text())
         return func
+ 
+    def delete_classroom(self, classroom_item: QTreeWidgetItem, classroom):
+        def func():
+            n_of_lessons = len(classroom.lessons)
+            n_of_duties = len(classroom.duties)
+            if n_of_lessons + n_of_duties:
+                match n_of_lessons:
+                    case 1:
+                        lessons = 'odbywa się 1 lekcja'
+                    case _ if n_of_lessons%10 in [2,3,4] and (n_of_lessons<10 or n_of_lessons>20):
+                        lessons = f'odbywają się {n_of_lessons} lekcje'
+                    case _:
+                        lessons = f'odbywa się {n_of_lessons} lekcji'
+                
+                match n_of_duties:
+                    case 1:
+                        duties = '1 dyżur'
+                    case _ if n_of_duties%10 in [2,3,4] and (n_of_duties<10 or n_of_duties>20):
+                        duties = f'{n_of_duties} dyżury'
+                    case _:
+                        duties = f'{n_of_duties} dyżurów'
+                
+                message = f'W sali "{classroom.name}" {lessons} i {duties}. Czy na pewno chcesz ją usunąć?'
+                if QMessageBox.question(self, 'Uwaga', message) != QMessageBox.StandardButton.Yes:
+                    return
+
+            self.db.delete_classroom(classroom)
+            self.removeItemWidget(classroom_item, 0)
+            classroom_item.parent().removeChild(classroom_item)
+        return func
+ 
+   
+
