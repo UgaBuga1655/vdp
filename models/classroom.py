@@ -11,3 +11,6 @@ class Classroom(Base):
     lessons = relationship("Lesson", backref='classroom')
     duties = relationship('TeacherDuty', back_populates='classroom')
     allow_lessons = Column(Boolean, default=True)
+
+    group_id = Column(Integer, ForeignKey('classroom_groups.id'))
+    group = relationship('ClassroomGroup', back_populates='classrooms')

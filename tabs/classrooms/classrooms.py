@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QGridLayout, QLabel
       QSpinBox, QLineEdit, QMessageBox, QPushButton
 from functions import delete_layout
 from data import Data, Classroom
+from .classroom_tree_widget import ClassroomTreeWidget
 
 class ClassroomsWidget(QWidget):
     def __init__(self, parent):
@@ -12,26 +13,29 @@ class ClassroomsWidget(QWidget):
         self.new_name = QLineEdit(self)
         self.layout().addWidget(self.new_name)
         self.new_name.setPlaceholderText('Nazwa klasy')
-        self.new_name.returnPressed.connect(self.add_classroom)
+        self.tree = ClassroomTreeWidget(self)
+        self.layout().addWidget(self.tree)
+        self.new_name.returnPressed.connect(self.create_classroom_group)
 
-        self.grid = QGridLayout()
-        self.layout().addLayout(self.grid)
-        self.grid.setColumnStretch(4, 1)
-        self.layout().addStretch()
-        self.classrooms = []
-        self.load_data(self.db)
+
+        # self.grid = QGridLayout()
+        # self.layout().addLayout(self.grid)
+        # self.grid.setColumnStretch(4, 1)
+        # self.layout().addStretch()
+        # self.classrooms = []
+        # self.load_data(self.db)
         # self.setLayout(self.grid)
 
     def load_data(self, db):
         self.db = db
-        self.classrooms = self.db.all_classrooms()
-        for col in range(self.grid.columnCount()):
-            for row in range(self.grid.rowCount()):
-                item = self.grid.itemAtPosition(row, col)
-                if item:
-                    item.widget().deleteLater()
-        for row, classroom in enumerate(self.classrooms):
-            self.add_classroom_to_grid(row, classroom)
+        # self.classrooms = self.db.all_classrooms()
+        # for col in range(self.grid.columnCount()):
+        #     for row in range(self.grid.rowCount()):
+        #         item = self.grid.itemAtPosition(row, col)
+        #         if item:
+        #             item.widget().deleteLater()
+        # for row, classroom in enumerate(self.classrooms):
+        #     self.add_classroom_to_grid(row, classroom)
 
     def add_classroom_to_grid(self, row, classroom: Classroom):
         self.grid.addWidget(QLabel(classroom.name), row, 0)
@@ -81,4 +85,5 @@ class ClassroomsWidget(QWidget):
         return func
 
 
-
+    def create_classroom_group(self):
+        self.tree.create_classroom_group(self.new_name.text())

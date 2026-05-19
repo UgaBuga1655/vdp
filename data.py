@@ -515,8 +515,8 @@ class Data(QObject):
     def all_classrooms(self) -> List[Classroom]:
         return self.session.query(Classroom).all()
     
-    def create_classroom(self, name: str) -> Classroom:
-        classroom = Classroom(name=name, capacity=15)
+    def create_classroom(self, group: ClassroomGroup, name: str) -> Classroom:
+        classroom = Classroom(name=name, capacity=15, group=group)
         self.session.add(classroom)
         self.session.commit()
         return classroom
@@ -532,9 +532,34 @@ class Data(QObject):
                 self.update_subject_classroom(subject, None)
         self.session.commit()
 
+    def update_classroom_name(self, classroom: Classroom, name: str) -> None:
+        classroom.name = name
+        self.session.commit()
+        for lesson in classroom.lessons:
+            if lesson.block:
+                self.update_block.emit(lesson.block)
+
+        for duty in classroom.duties:
+            if duty.block:
+                self.update_block.emit(duty.block)
+
     def delete_classroom(self, classroom: Classroom) -> None:
+        for lesson in classroom.lessons:
+            self.update_lesson_classroom(lesson, None)
+        for duty in classroom.duties:
+            self.update_duty_classroom(duty, None)
         self.session.delete(classroom)
         self.session.commit()
+
+    # CLASSROOM GROUPS
+    def create_classroom_group(self, name):
+        group = ClassroomGroup(name=name)
+        self.session.add(group)
+        self.session.commit()
+        return group
+
+    def all_classrooms_groups(self) -> List[ClassroomGroup]:
+        return self.session.query(ClassroomGroup).all()
 
     # def get_collisions_for_classroom_at_block(self, classroom: Classroom, block: LessonBlockDB) -> List[Lesson]:
     #     return self.session.query(Lesson).filter_by(classroom=classroom)\

@@ -3,7 +3,7 @@ from .classes import ClassesWidget
 # from .subjects import SubjectsWidget
 from .teachers import TeachersWidget
 from .plan import PlanWidget
-from .classrooms import ClassroomsWidget
+from .classrooms import ClassroomsWidget, ClassroomTreeWidget
 
 class Tabs(QTabWidget):
     def __init__(self, parent):
@@ -16,7 +16,7 @@ class Tabs(QTabWidget):
         self.classes = ClassesWidget(self)
         self.teachers = TeachersWidget(self)
         self.plan = PlanWidget(self)
-        self.classrooms = ClassroomsWidget(self)
+        self.classrooms = ClassroomTreeWidget(self)
 
 
         self.addTab(self.plan, "Plan")

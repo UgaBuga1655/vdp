@@ -8,5 +8,6 @@ from .teacher import *
 from .lesson import *
 from .classroom import *
 from .teacher_duty import *
+from .classroom_group import *
 from .day_stat import DayStat
 from .metadata import Metadata
