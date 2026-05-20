@@ -36,6 +36,8 @@ class Metadata(Base):
     generations = Column(Integer, default=30)
     cutoff = Column(Double, default=0.25)
 
+    symmetrical_distances = Column(Boolean, default=False)
+
     def update(self, **kwargs):
         for name, value in kwargs.items():
             self.__setattr__(name, value)

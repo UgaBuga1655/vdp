@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QSpinBox, QVBoxLayout, QSizePolicy, QFrame
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QSpinBox, QVBoxLayout, QCheckBox, QFrame
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from vertical_label import VerticalLabel
@@ -9,20 +9,18 @@ class CellWidget(QFrame):
     def __init__(self, parent, color, widget):
         super().__init__(parent)
         self.setStyleSheet(f'background-color: {color};')
-        # self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0,0,0,0)
         main_layout.setSpacing(0)
         main_layout.setAlignment(Qt.AlignCenter)
-        # self.setLayout(main_layout)
         main_layout.addWidget(widget)
-        # widget.setStyleSheet("")
 
 class DistanceTable(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.outer_layout = QVBoxLayout(self)
+        # self.outer_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label = QLabel('Odległości między grupami sal', alignment=Qt.AlignmentFlag.AlignCenter)
         font = QFont()
         font.setBold(True)
@@ -31,12 +29,19 @@ class DistanceTable(QWidget):
         self.outer_layout.addWidget(label)
         self.inner_table = QWidget(self)
         self.outer_layout.addWidget(self.inner_table)
+        self.symmetrical = QCheckBox('Takie same w obie strony')
+        self.symmetrical.clicked.connect(self.load_content)
+        self.outer_layout.addWidget(self.symmetrical, alignment=Qt.AlignmentFlag.AlignCenter)
         self.outer_layout.addStretch()
-        # self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
 
     def load_data(self, db):
+        try:
+            self.symmetrical.toggled.disconnect()
+        except:
+            pass
         self.db: Data = db
+        self.symmetrical.toggled.connect(self.db.set_distances_symmetrical)
         self.load_content()
 
     def load_content(self):
@@ -51,7 +56,9 @@ class DistanceTable(QWidget):
         inner_grid.addWidget(QLabel('Do', alignment=Qt.AlignmentFlag.AlignCenter), 0, 2, 1, len(groups))
         left_label = VerticalLabel('Od', Qt.AlignmentFlag.AlignCenter)
         inner_grid.addWidget(left_label, 2, 0, len(groups), 1)
-  
+
+        sym = self.db.settings().symmetrical_distances
+        self.disabled_spinboxes = dict()
         for row, start in enumerate(groups):
 
             color = 'lightgray' if (row)%2 else 'white'
@@ -78,12 +85,26 @@ class DistanceTable(QWidget):
                 """)
                 if row == col:
                     spin.setDisabled(True)
+                if sym:
+                    if row < col:
+                        spin.setDisabled(True)
+                        self.disabled_spinboxes[(row, col)] = spin
+                    else:
+                        spin.valueChanged.connect(self.update_disabled_spin(row, col))
+
                 color = 'lightgray' if max(row, col)%2 else 'white'
                 cell = CellWidget(self.inner_table, color, spin)
                 inner_grid.addWidget(cell, row+2, col+2)
-                    # inner_grid.addWidgetQLabel(groups))
 
+        self.symmetrical.blockSignals(True)
+        self.symmetrical.setChecked(sym)
+        self.symmetrical.blockSignals(False)
 
+    def update_disabled_spin(self, row, col):
+        def func(val):
+            self.disabled_spinboxes[(col, row)].setValue(val)
+        return func
+        
     def set_distance(self, start, end):
         def func(dist):
             self.db.set_distance(start, end, dist)

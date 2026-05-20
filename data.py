@@ -602,8 +602,18 @@ class Data(QObject):
     def set_distance(self, start, end, distance):
         if start == end:
             return
-
         self.session.query(Distance).filter_by(start=start, end=end).first().distance = distance
+        if self.session.query(Metadata).first().symmetrical_distances:
+            self.session.query(Distance).filter_by(start=end, end=start).first().distance = distance
+        self.session.commit()
+
+    def set_distances_symmetrical(self, symmetrical):
+        self.session.query(Metadata).first().symmetrical_distances = symmetrical
+        if not symmetrical:
+            return
+        for c1, c2 in combinations(self.session.query(ClassroomGroup).all(), 2):
+            dist = self.get_distance(c2, c1)
+            self.set_distance(c1, c2, dist)
         self.session.commit()
 
     # def get_collisions_for_classroom_at_block(self, classroom: Classroom, block: LessonBlockDB) -> List[Lesson]:
