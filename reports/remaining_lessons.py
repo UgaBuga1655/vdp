@@ -12,7 +12,7 @@ class RemainingLessonsWindow(QWidget):
         self.setWindowTitle('Pozostałe lekcje')
         self.setLayout(QVBoxLayout())
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel('Przedmioty')
+        self.tree.header().hide()
         self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         # scroll_area = QScrollArea(self)
         # scroll_area.setWidget(self.tree)

@@ -1,11 +1,10 @@
-from email import message
-
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QPushButton, QLineEdit, QWidget, QHBoxLayout,\
       QSpinBox, QCheckBox, QMessageBox
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from data import Data, Classroom
 
 class ClassroomTreeWidget(QTreeWidget):
+    redraw_table = pyqtSignal()
     def __init__(self, parent):
         super().__init__(parent=parent)
         self.db: Data = parent.db
@@ -15,10 +14,13 @@ class ClassroomTreeWidget(QTreeWidget):
         self.setDefaultDropAction(Qt.MoveAction)
         self.setSelectionMode(QTreeWidget.NoSelection)
         self.setFocusPolicy(Qt.NoFocus)
+        self.header().hide()
         self.load_data()
 
 
-    def load_data(self):
+    def load_data(self, db=None):
+        if db:
+            self.db = db
         add_group_widget = QWidget(self)
         row = QHBoxLayout()
         add_group_widget.setLayout(row)
@@ -92,16 +94,22 @@ class ClassroomTreeWidget(QTreeWidget):
         for classroom in group.classrooms:
             self.add_classroom(group_item, classroom)
         group_item.setExpanded(True)
+        return new_classroom_edit
 
     def create_classroom_group(self):
-        group_name = self.add_group_edit.text()
+        group_name = self.add_group_edit.text().strip()
+        if not group_name:
+            return
         group = self.db.create_classroom_group(group_name)
-        self.add_group(group)
+        new_classroom_edit = self.add_group(group)
+        new_classroom_edit.setFocus()
         self.add_group_edit.clear()
+        self.redraw_table.emit()
 
     def update_group_name(self, group, name_edit):
         def func():
             self.db.update_classroom_group_name(group, name_edit.text())
+            self.redraw_table.emit()
         return func
 
     def delete_group(self,item, group):
@@ -135,6 +143,7 @@ class ClassroomTreeWidget(QTreeWidget):
             self.db.delete_classroom_group(group)
             self.removeItemWidget(item, 0)
             self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+            self.redraw_table.emit()
         return func
 
 
@@ -172,14 +181,19 @@ class ClassroomTreeWidget(QTreeWidget):
 
         row.addStretch()
         self.setItemWidget(classroom_item, 0, classroom_widget)
+        return capacity
 
     def create_classroom(self, group, group_item: QTreeWidgetItem, line:QLineEdit):
         def func():
-            name = line.text()
+            name = line.text().strip()
             if not name:
+                self.add_group_edit.setFocus()
                 return
             classroom = self.db.create_classroom(group, name)
-            self.add_classroom(group_item, classroom)
+            capacity = self.add_classroom(group_item, classroom)
+            capacity.selectAll()
+            capacity.setFocus()
+            capacity.lineEdit().returnPressed.connect(line.setFocus)
             line.clear()
         # del_btn.clicked.connect(self.delete_classroom(classroom_item, classroom))
         # self.setItemWidget(classro
