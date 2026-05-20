@@ -609,12 +609,12 @@ class Data(QObject):
 
     def set_distances_symmetrical(self, symmetrical):
         self.session.query(Metadata).first().symmetrical_distances = symmetrical
+        self.session.commit()
         if not symmetrical:
             return
         for c1, c2 in combinations(self.session.query(ClassroomGroup).all(), 2):
             dist = self.get_distance(c2, c1)
             self.set_distance(c1, c2, dist)
-        self.session.commit()
 
     # def get_collisions_for_classroom_at_block(self, classroom: Classroom, block: LessonBlockDB) -> List[Lesson]:
     #     return self.session.query(Lesson).filter_by(classroom=classroom)\

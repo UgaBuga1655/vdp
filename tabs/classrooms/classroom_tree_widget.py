@@ -195,8 +195,6 @@ class ClassroomTreeWidget(QTreeWidget):
             capacity.setFocus()
             capacity.lineEdit().returnPressed.connect(line.setFocus)
             line.clear()
-        # del_btn.clicked.connect(self.delete_classroom(classroom_item, classroom))
-        # self.setItemWidget(classro
         return func
     
     def set_capacity(self, classroom):
