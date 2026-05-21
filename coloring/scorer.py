@@ -1,19 +1,23 @@
-from email.policy import default
 from math import inf
-
-from data import Data, Subject, Teacher, Student, LessonBlockDB, Lesson
+from data import Data, Subject, Teacher, Student, LessonBlockDB, Lesson, Classroom, Distance
 from sqlalchemy.orm import Session
 from networkx import Graph
 from functools import reduce
 import numpy as np
 
-default_weights = 4, 3.8, 3
-param_names = ['Nieprzypisane lekcje', 'Rozłozenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela']
+default_weights = 4, 3.8, 3, 3
+param_names = ['Nieprzypisane lekcje', 'Rozłozenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów']
 MAX_BREAK = 4 # * 5 minutes: max length of a break for lessons to be considered grouped
 
 def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     def get_weight(lesson):
         return les_g.nodes[lesson]['weight'] if lesson in les_g else 0
+    def get_distance(cl1, cl2):
+        gr_1 = cl_groups[cl1]
+        gr_2 = cl_groups[cl2]
+        if gr_1 == gr_2:
+            return 0
+        return distances[(gr_1, gr_2)]
     
     teachers = []
     for teacher in session.query(Teacher):
@@ -21,9 +25,18 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         for subject in teacher.subjects:
             t.extend([l.id for l in subject.lessons])
         teachers.append(t)
+    
+    students = []
+    for student in session.query(Student):
+        s = []
+        for subject in student.subjects:
+            s.extend([l.id for l in subject.lessons])
+        students.append(s)
 
     blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(LessonBlockDB)}
-    pinned_lessons = {l.id: l.block.id for l in session.query(Lesson) if l.block}
+    pinned_lessons = {l.id: (l.block_id, l.classroom_id) for l in session.query(Lesson) if l.block}
+    cl_groups = {cl.id: cl.group_id for cl in session.query(Classroom)}
+    distances = {(dist.start_id, dist.end_id): dist.distance for dist in session.query(Distance)}
 
     min_same_day_param = 0
     subjects = []
@@ -108,7 +121,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
             for lesson in teacher:
                 # try:
                 if lesson in pinned_lessons:
-                    block = pinned_lessons[lesson]
+                    block, _ = pinned_lessons[lesson]
                 elif lesson in color:
                     block, _ = color[lesson]
                 else:
@@ -121,9 +134,37 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 if len(day) == 1:
                     single_lessons += 1
                 # for block in day:
+        
+        # students running around
+        running_around = 0
+        for student in students:
+            days = [[] for _ in range(5)]
+            for lesson in student:
+                if lesson in pinned_lessons:
+                    block, clrm = pinned_lessons[lesson]
+                elif lesson in color:
+                    block, clrm = color[lesson]
+                else:
+                    continue
+                day, start, length = blocks[block]
+                days[day].append((start, length, clrm))
+
+            for day in days:
+                if not len(day):
+                    continue
+                day.sort(key=lambda les: les[0])
+                start, length, clrm = day[0]
+                for lesson in day[1:]:
+                    next_start, next_length, next_clrm = lesson
+                    break_length = next_start - (start + length)
+                    # print(break_length)
+                    if break_length > MAX_BREAK:
+                        continue
+                    running_around += get_distance(clrm, next_clrm)/break_length
+                    start, length, clrm = next_start, next_length, next_clrm
 
 
-        return uncolored_lessons, lesson_distribution, single_lessons
+        return uncolored_lessons, lesson_distribution, single_lessons, running_around
     
 
     return get_params

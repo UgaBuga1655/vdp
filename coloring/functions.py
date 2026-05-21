@@ -3,6 +3,7 @@ from queue import PriorityQueue
 from itertools import count
 from random import choice, randint, shuffle
 from networkx import Graph
+from collections.abc import Callable
 # from db_config import settings
 
 def random_coloring(params, queue, scorer):
@@ -108,7 +109,32 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         child[lesson] = color
         rev_child[color] = lesson
 
-    
+    def viable_factory(lesson) -> Callable[[int], bool]:
+        adj_cols = []
+        for neighbour in les_g[lesson]:
+            # won't interfere if uncolored
+            if neighbour not in child:
+                continue
+            n_block, n_classroom = child[neighbour]
+            adj_cols.append(n_block)
+            adj_cols.extend(bl_g[n_block])
+        
+
+        def is_viable(color) -> bool:
+            # place in space time occupied
+            if color in rev_child:
+                return False
+            block, classroom = color
+            # other lesson interferes
+            if block in adj_cols:
+                return False
+            # classroom is occupied
+            for n_bl in bl_g[block]:
+                if (n_bl, classroom) in rev_child:
+                    return False
+            return True
+        return is_viable
+
     for _ in range(randint(0, 6)):
         if len(child_uncolored):
             lesson = choice(child_uncolored)
@@ -139,38 +165,28 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             color = (overlapping_block, classroom)
             if color in rev_child:
                 uncolor(rev_child[color])
-                continue
-        
+    # switch rooms
+    for _ in range(randint(5,10)):
+        lesson, color = choice(list(child.items()))
+        block, classroom = color
+        is_viable = viable_factory(lesson)
+        other_classrooms = [
+            cl for cl in feas[lesson] if 
+            (cl[1] == classroom) and is_viable(cl)
+        ]
+        if not len(other_classrooms):
+            continue
+        set_color(lesson, choice(other_classrooms))
+
 
     # try to fit uncolored lessons
     child_uncolored.sort(key= lambda l: len(feas[l]))
     for lesson in child_uncolored:
-        adj_cols = []
-        for neighbour in les_g[lesson]:
-            # won't interfere if uncolored
-            if neighbour not in child:
-                continue
-            n_block, n_classroom = child[neighbour]
-            adj_cols.append(n_block)
-            adj_cols.extend(bl_g[n_block])
-        
-        # my_days = []
-        subject = les_g.nodes[lesson]['subject']
+        is_viable = viable_factory(lesson)
+                # my_days = []
+        # subject = les_g.nodes[lesson]['subject']
         for color in feas[lesson]:
-            # place in space time occupied
-            if color in rev_child:
-                continue
-            block, classroom = color
-            # other lesson interferes
-            if block in adj_cols:
-                continue
-            # classroom is occupied
-            classroom_is_occupied = False
-            for n_bl in bl_g[block]:
-                if (n_bl, classroom) in rev_child:
-                    classroom_is_occupied = True
-                    break
-            if classroom_is_occupied:
+            if not is_viable(color):
                 continue
             
             set_color(lesson, color)
