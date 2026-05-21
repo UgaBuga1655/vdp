@@ -1,6 +1,6 @@
 from turtle import st
 
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker, scoped_session, load_only
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_, literal
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -16,6 +16,18 @@ class Data(QObject):
     update_custom_block = pyqtSignal(CustomBlock)
     update_block = pyqtSignal(LessonBlockDB)
     redraw_plan = pyqtSignal()
+
+    def changes_les_g_or_feas(func):
+        def my_inner(self: 'Data', *args, **kwargs):
+            self.clear_les_g_and_feas()
+            return func(self, *args, **kwargs)
+        return my_inner
+    
+    def changes_bl_g(func):
+        def inner(self: 'Data', *args, **kwargs):
+            self.clear_bl_g()
+            return func(self, *args, **kwargs)
+        return inner
 
 
     def __init__(self, filename="planer.vdp"):
@@ -53,7 +65,8 @@ class Data(QObject):
         
     def read_teacher_av(self, t: Teacher):
         return [t.av1, t.av2, t.av3, t.av4, t.av5]
-        
+
+    @changes_les_g_or_feas    
     def update_teacher_av(self, t: Teacher, av):
         t.av1, t.av2, t.av3, t.av4, t.av5 = av
         for subject in t.subjects:
@@ -70,6 +83,7 @@ class Data(QObject):
     def all_teachers(self):
         return self.session.query(Teacher).order_by(Teacher.name).all()
 
+    @changes_les_g_or_feas
     def delete_teacher(self, t):
         self.session.delete(t)
         self.session.commit()
@@ -111,9 +125,11 @@ class Data(QObject):
             self.create_lesson(lesson.length, copy)
         self.session.commit()
 
+
     def move_subject(self, subject: Subject, target: Class | Subclass):
         subject.my_class = None
         subject.subclass = None
+        subject.students = []
         if isinstance(target, Subclass):
             subject.subclass = target
         else:
@@ -209,6 +225,7 @@ class Data(QObject):
     def student_count(self) -> int:
         return self.session.query(Student).count()
 
+    @changes_les_g_or_feas
     def delete_student(self, student):
         self.session.delete(student)
         self.session.commit()
@@ -217,6 +234,7 @@ class Data(QObject):
         student.name = name
         self.session.commit()
 
+    @changes_les_g_or_feas
     def remove_subject_from_student(self, subject: Subject, student: Student):
         student.subjects.remove(subject)
         for lesson in subject.lessons:
@@ -226,6 +244,7 @@ class Data(QObject):
 
         self.session.commit()
 
+    @changes_les_g_or_feas
     def add_subject_to_student(self, subject: Subject, student: Student):
         if subject in student.subjects:
             return
@@ -280,13 +299,11 @@ class Data(QObject):
         self.session.commit()
         return subject
     
-    def read_subjects_of_student(self, student: Student) -> List[Subject]:
-        return student.subjects
-    
     def update_subject_target_block_length(self, subject: Subject, length: int):
         subject.target_block_length = length
         self.session.commit()
 
+    @changes_les_g_or_feas
     def update_subject_teacher(self, subject: Subject, teacher: Teacher) -> None:
         subject.teacher = teacher
         for lesson in subject.lessons:
@@ -311,6 +328,7 @@ class Data(QObject):
         subject.basic = basic
         self.session.commit()
 
+    @changes_les_g_or_feas
     def update_subject_classroom(self, subject: Subject, classroom: Classroom | None) -> None:
         subject.required_classroom = classroom
         for lesson in subject.lessons:
@@ -318,6 +336,7 @@ class Data(QObject):
                 self.update_block.emit(lesson.block)
         self.session.commit()
 
+    @changes_les_g_or_feas
     def delete_subject(self, subject: Subject) -> None:
         for lesson in subject.lessons:
             self.session.delete(lesson)
@@ -328,6 +347,7 @@ class Data(QObject):
     
 
     # lessons
+    @changes_les_g_or_feas
     def create_lesson(self, length: int, subject: Subject) -> Lesson:
         lesson = Lesson(length=length, subject=subject)
         self.session.add(lesson)
@@ -359,17 +379,20 @@ class Data(QObject):
         if lesson.block:
             self.update_block.emit(lesson.block)
 
+    @changes_les_g_or_feas
     def update_lesson_pinned(self, lesson: Lesson, locked: bool) -> None:
         lesson.block_locked = locked
         self.session.commit()
         self.update_block.emit(lesson.block)
     
+    @changes_les_g_or_feas
     def delete_lesson(self, lesson: Lesson) -> None:
         if lesson.block:
             self.update_block.emit(lesson.block)
         self.session.delete(lesson)
         self.session.commit()
 
+    @changes_bl_g
     def create_block(self, day:int, start:int, length:int, my_class) -> LessonBlockDB:
         if isinstance(my_class, Class):
             block = LessonBlockDB(day=day, start=start, length=length, my_class=my_class)
@@ -396,7 +419,7 @@ class Data(QObject):
               or block_2.start <= block.start < block_2.start + block_2.length:
                 yield block
 
-    
+    @changes_bl_g
     def delete_block(self, block):
         if hasattr(block, 'lessons'):
             for lesson in block.lessons:
@@ -419,6 +442,7 @@ class Data(QObject):
                     and_(CustomBlock.start <= block.start, block.start < CustomBlock.start+CustomBlock.length)
                 )).all()
     
+    @changes_bl_g
     def update_block_start(self, block: LessonBlockDB, start: int):
         pre_overlapping = set(self.overlapping_blocks(block) + self.overlapping_custom_blocks(block))
         block.start = start
@@ -439,6 +463,8 @@ class Data(QObject):
         
         lesson.block = block
         block.lessons.append(lesson)
+        if lesson.block_locked or lock:
+            self.clear_les_g_and_feas()
         lesson.block_locked = lock
         self.session.commit()
         self.update_block.emit(block)
@@ -466,8 +492,13 @@ class Data(QObject):
         # if old_block:
         #     self.update_block.emit(old_block)
 
-    def swap_lessons(self, source, block):
+    def swap_lessons(self, source:LessonBlockDB, block:LessonBlockDB):
         source.lessons, block.lessons = block.lessons, source.lessons
+        lesson: Lesson
+        for lesson in source.lessons + block.lessons:
+            if lesson.block_locked:
+                self.clear_les_g_and_feas()
+                break
         self.session.commit()
         self.update_block.emit(source)
         self.update_block.emit(block)
@@ -476,6 +507,8 @@ class Data(QObject):
         lesson.classroom = None
         block = lesson.block
         lesson.block = None
+        if lesson.block_locked:
+            self.clear_les_g_and_feas()
         lesson.block_locked = False
         if block:
             self.update_block.emit(block)
@@ -946,4 +979,14 @@ class Data(QObject):
             best_params=best_params,
             all_params=all_params
             )
+        self.session.commit()
+
+    def clear_les_g_and_feas(self):
+        res = self.session.query(Results).options(load_only(Results.les_g, Results.feas)).first()
+        res.les_g, res.feas = None, None
+        self.session.commit()
+
+    def clear_bl_g(self):
+        res = self.session.query(Results).options(load_only(Results.bl_g, Results.for_bl)).first()
+        res.bl_g, res.for_bl = None, None
         self.session.commit()

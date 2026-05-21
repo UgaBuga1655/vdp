@@ -23,8 +23,6 @@ def random_coloring(params, queue, scorer):
 
     queue.put(('done', data))
 
-
-
 def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
     # initialize data structures
     colors = {}
@@ -79,6 +77,22 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
 
     return colors, rev_colors, uncolored
 
+def legalize_batch(params, queue, scorer):
+    les_g, bl_g, feas, batch = params
+    legalized = []
+    report_size = 50
+    i = 0
+    for solution in batch:
+        legalized.append(mutate(les_g, bl_g, feas, *solution[0], scorer, mutate=False))
+        i += 1
+        if i > report_size:
+            queue.put(('progress', legalized))
+            legalized = []
+            i = 0
+    queue.put(('done', legalized))
+
+    
+
 def mutate_batch(params, queue, scorer, pop_size, cutoff):
     les_g, bl_g, feas, survivors = params
     num_of_children = int(pop_size/cutoff)
@@ -88,14 +102,15 @@ def mutate_batch(params, queue, scorer, pop_size, cutoff):
             children.append(mutate(les_g, bl_g, feas, *survivor[0], scorer))
     queue.put(('done', children))
 
-def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: list, scorer) -> tuple[dict, int]:
+def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: list, scorer, mutate=True) -> tuple[dict, int]:
     child = coloring.copy()
     rev_child = rev_coloring.copy()
     child_uncolored = uncolored.copy()
 
     def uncolor(lesson):
         cl = child.pop(lesson)
-        _ = rev_child.pop(cl)
+        if cl in rev_child:
+            _ = rev_child.pop(cl)
         child_uncolored.append(lesson)
     
     def set_color(lesson, color):
@@ -109,13 +124,15 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         child[lesson] = color
         rev_child[color] = lesson
 
-    def viable_factory(lesson) -> Callable[[int], bool]:
+    def viable_factory(lesson) -> Callable[[int, int], bool]:
         adj_cols = []
         for neighbour in les_g[lesson]:
             # won't interfere if uncolored
             if neighbour not in child:
                 continue
             n_block, n_classroom = child[neighbour]
+            if n_block not in bl_g:
+                continue
             adj_cols.append(n_block)
             adj_cols.extend(bl_g[n_block])
         
@@ -128,6 +145,8 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             if color in rev_child:
                 return False
             block, classroom = color
+            if block not in bl_g:
+                return False
             # other lesson interferes
             if block in adj_cols:
                 return False
@@ -137,54 +156,82 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
                     return False
             return True
         return is_viable
-
-    for _ in range(randint(0, 6)):
-        if len(child_uncolored):
-            lesson = choice(child_uncolored)
-            child_uncolored.remove(lesson)
-        else:
-            lesson = choice(list(child.keys()))
-            uncolor(lesson)
-        # find random uncolored lesson
-        # force it randomly into solution
-        color = choice(feas[lesson])
-        set_color(lesson, color)
-        block, classroom = color
-        # uncolor all nodes unhappy about it
-        for neighbour in les_g[lesson]:
-            # already uncolored
-            if neighbour not in child:
-                continue
-            # collision
-            n_color = child[neighbour]
-            n_block, n_classroom = n_color
-            if n_block == block or n_block in bl_g[block]:
-                uncolor(neighbour)
-                continue
+    
+    if mutate:
+        for _ in range(randint(0, 6)):
+            if len(child_uncolored):
+                lesson = choice(child_uncolored)
+                child_uncolored.remove(lesson)
+            else:
+                lesson = choice(list(child.keys()))
+                uncolor(lesson)
+            # find random uncolored lesson
+            # force it randomly into solution
+            color = choice(feas[lesson])
+            set_color(lesson, color)
+            block, classroom = color
+            # uncolor all nodes unhappy about it
+            for neighbour in les_g[lesson]:
+                # already uncolored
+                if neighbour not in child:
+                    continue
+                # collision
+                n_color = child[neighbour]
+                n_block, n_classroom = n_color
+                if n_block == block or n_block in bl_g[block]:
+                    uncolor(neighbour)
+                    continue
+                
             
-        
-        # classroom is occupied
-        for overlapping_block in bl_g[block]:
-            color = (overlapping_block, classroom)
-            if color in rev_child:
-                uncolor(rev_child[color])
-    # switch rooms
-    for _ in range(randint(5,10)):
-        lesson, color = choice(list(child.items()))
-        block, classroom = color
-        is_viable = viable_factory(lesson)
-        other_classrooms = [
-            cl for cl in feas[lesson] if 
-            (cl[1] == classroom) and is_viable(cl)
-        ]
-        if not len(other_classrooms):
-            continue
-        set_color(lesson, choice(other_classrooms))
+            # classroom is occupied
+            for overlapping_block in bl_g[block]:
+                color = (overlapping_block, classroom)
+                if color in rev_child:
+                    uncolor(rev_child[color])
+        # switch rooms
+        for _ in range(randint(5,10)):
+            lesson, color = choice(list(child.items()))
+            block, classroom = color
+            is_viable = viable_factory(lesson)
+            other_classrooms = [
+                cl for cl in feas[lesson] if 
+                (cl[1] == classroom) and is_viable(cl)
+            ]
+            if not len(other_classrooms):
+                continue
+            set_color(lesson, choice(other_classrooms))
+    else:
+        # child_uncolored = set(child_uncolored)
+        #legalize
+        for lesson in les_g:
+            if lesson not in child:
+                child_uncolored.append(lesson)
+        to_remove = []
+        to_uncolor = []
+        for lesson, color in child.items():
+            # if color[0] == 261:
+            #     print(f'dupa: {lesson}, {261 in bl_g}')
+            #     to_uncolor.append(lesson)
+            #     continue
+            if lesson not in les_g:
+                to_remove.append(lesson)
+                continue
+            if not viable_factory(lesson)(color) or color[0] not in bl_g:
+                # print(color)
+                to_uncolor.append(lesson)
 
+        for lesson in to_remove:
+            child.pop(to_remove)
+        for lesson in to_uncolor:
+            uncolor(lesson)
+
+        # get rid of unwanted lessons in uncolored set
+        child_uncolored = [les for les in child_uncolored if les in les_g]
 
     # try to fit uncolored lessons
     child_uncolored.sort(key= lambda l: len(feas[l]))
     for lesson in child_uncolored:
+        
         is_viable = viable_factory(lesson)
                 # my_days = []
         # subject = les_g.nodes[lesson]['subject']

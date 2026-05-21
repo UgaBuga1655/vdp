@@ -6,7 +6,7 @@ from itertools import combinations
 from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom, Metadata, Results
 from time import perf_counter
 from .queue_listener import QueueListener
-from .functions import random_coloring, mutate_batch
+from .functions import random_coloring, mutate_batch, legalize_batch
 from .scorer import scorer_factory, rank
 import multiprocess as mp
 import math
@@ -24,6 +24,7 @@ class ColoringThread(QThread):
         super().__init__()
         self.db = db
         self.session = self.db.get_scoped_session()
+        self.processes = []
 
 
 
@@ -31,7 +32,7 @@ class ColoringThread(QThread):
         self.settings = self.session.query(Metadata).first()
         self.bl_g, self.for_bl = None, None
         self.les_g, self.feas = None, None
-        recent_pop = None
+        self.recent_pop = []
         self.all_params, self.best_params = None, None
 
         # pick up when we've finished
@@ -41,56 +42,92 @@ class ColoringThread(QThread):
             self.for_bl = last_result.for_bl
             self.les_g = last_result.les_g
             self.feas = last_result.feas
-            recent_pop = last_result.population
+            self.recent_pop = last_result.population
             self.all_params = [p[:-1] for p in last_result.all_params]
-            # print(len(self.all_params[0]))
             self.best_params = [p[:-1] for p in last_result.best_params]
-            
+
         # create from scratch if not loaded
+        needs_legalisation = False
         if self.bl_g is None or self.for_bl is None:
             self.bl_g, self.for_bl = self.generate_block_graph()
+            needs_legalisation = True
         if self.les_g is None or self.feas is None:
             self.les_g, _, self.feas = self.generate_lesson_graph(self.for_bl)
-
+            needs_legalisation = True
+        print(f'needs legalisation: {needs_legalisation}')
         self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
-        self.pop_start_time = perf_counter()
-
-
-        
-        # genetic loop
         self.population = []
-        pop_size = self.settings.pop_size
-        # recent_pop = self.settings.
-        if recent_pop and self.settings.preserve_population:
-            recent_pop = recent_pop.copy()
-            recent_pop_size = len(recent_pop)
-            if recent_pop_size >= pop_size:
-                self.population = recent_pop[:pop_size]
-                pop_size = 0
-            else:
-                self.population = recent_pop
-                pop_size -= recent_pop_size
-        if pop_size:
-            self.update_bar.emit('Generowanie początkowej populacji')
-            self.update_bar_total.emit(pop_size)
 
+        if needs_legalisation and len(self.recent_pop):
+            print('legalising')
+            self.legalize()
+        else:
+            self.generate_random_pop()
+            
+    def legalize(self):
+        self.recent_pop = self.recent_pop.copy()
+        pop_size = len(self.recent_pop)
+
+
+        if pop_size:
+            self.update_bar.emit(f'Poprawianie początkowej populacji ({pop_size} rozwiązań)')
+            self.update_bar_total.emit(pop_size)
         cores_count = mp.cpu_count()
         chunk_size = math.ceil(pop_size/cores_count)
         queue = mp.Queue()
         self.processes = []
         for _ in range(cores_count):
+            if chunk_size < len(self.recent_pop):
+                chunk = self.recent_pop[:chunk_size]
+                self.recent_pop = self.recent_pop[chunk_size:]
+            else:
+                chunk = self.recent_pop
             p = mp.Process(
-                target=random_coloring,
-                args = ((self.les_g, self.bl_g, self.feas, min(pop_size,chunk_size)), queue, self.scorer)
+                target=legalize_batch,
+                args = ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer)
             )
             self.processes.append(p)
             p.start()
             pop_size -= chunk_size
         self.listener = QueueListener(queue, cores_count)
         self.listener.signals.progress.connect(self.add_to_population)
-        self.listener.signals.finished.connect(self.finished_pop)
+        self.listener.signals.finished.connect(self.generate_random_pop)
         self.listener.start()
-    
+
+
+
+    def generate_random_pop(self):
+        print(len(self.population))
+        for p in self.processes:
+            p.join()
+        self.pop_start_time = perf_counter()
+
+        target_pop_size = int(self.settings.pop_size)
+        remaining_pop_size = target_pop_size - len(self.population)
+        if remaining_pop_size <= 0:
+            self.population = self.population[:target_pop_size]
+            self.finished_pop()
+        else:
+            self.update_bar.emit(f'Generowanie nowych rozwiązań ({remaining_pop_size})')
+            self.update_bar_total.emit(remaining_pop_size)
+
+            cores_count = mp.cpu_count()
+            chunk_size = math.ceil(remaining_pop_size/cores_count)
+            queue = mp.Queue()
+            self.processes = []
+            for _ in range(cores_count):
+                p = mp.Process(
+                    target=random_coloring,
+                    args = ((self.les_g, self.bl_g, self.feas, min(remaining_pop_size,chunk_size)), queue, self.scorer)
+                )
+                self.processes.append(p)
+                p.start()
+                remaining_pop_size -= chunk_size
+            self.listener = QueueListener(queue, cores_count)
+            self.listener.signals.progress.connect(self.add_to_population)
+            self.listener.signals.finished.connect(self.finished_pop)
+            self.listener.start()
+        
 
     def add_to_population(self, data):
         self.population.extend(data)
@@ -324,6 +361,7 @@ class ColoringThread(QThread):
             block = lesson.block_id
             forbidden_blocks[lesson.classroom_id].add(block)
             forbidden_blocks[lesson.classroom_id].update(graph[block])
+        print('Naniesiono bloki zajęciowe')
         return graph, forbidden_blocks
 
 
