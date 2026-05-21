@@ -58,10 +58,13 @@ class ColoringThread(QThread):
         self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
         self.population = []
 
-        if needs_legalisation and len(self.recent_pop):
-            print('legalising')
+        if not len(self.recent_pop):
+            self.generate_random_pop()
+        elif needs_legalisation:
             self.legalize()
         else:
+            print('not legalising, use last results')
+            self.population = self.recent_pop.copy()
             self.generate_random_pop()
             
     def legalize(self):
@@ -104,8 +107,10 @@ class ColoringThread(QThread):
 
         target_pop_size = int(self.settings.pop_size)
         remaining_pop_size = target_pop_size - len(self.population)
+        print(f'remaining pop size: {remaining_pop_size}')
         if remaining_pop_size <= 0:
             self.population = self.population[:target_pop_size]
+            print(len(self.population))
             self.finished_pop()
         else:
             self.update_bar.emit(f'Generowanie nowych rozwiązań ({remaining_pop_size})')
@@ -133,7 +138,9 @@ class ColoringThread(QThread):
         self.population.extend(data)
         self.increment_bar.emit(len(data))
 
-        
+    def add_to_population_without_incrementing_bar(self, data):
+        print(f'adding {len(data)} to data')
+        self.population.extend(data)
 
     def finished_pop(self):
         for p in self.processes:
@@ -182,6 +189,7 @@ class ColoringThread(QThread):
                 survivors = survivors[chunk_size:]
             else:
                 chunk = survivors
+            print(f'chunk size: {len(chunk)}')
             p = mp.Process(
                 target=mutate_batch,
                 args= ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer, self.pop_size, self.cutoff)
@@ -189,7 +197,7 @@ class ColoringThread(QThread):
             self.processes.append(p)
             p.start()
         self.queue_listener = QueueListener(queue, cores_count)
-        self.queue_listener.signals.progress.connect(self.population.extend)
+        self.queue_listener.signals.progress.connect(self.add_to_population_without_incrementing_bar)
         self.queue_listener.signals.finished.connect(self.finished_generation)
         self.queue_listener.start()
 
@@ -197,6 +205,7 @@ class ColoringThread(QThread):
         self.completed_generations += 1
         for process in self.processes:
             process.join()
+        print(len(self.population))
         rank(self.population, self.settings.scoring_weights, self.all_params)
         # log the best results
         self.goats.append(self.population[0])

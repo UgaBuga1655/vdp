@@ -216,7 +216,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             if lesson not in les_g:
                 to_remove.append(lesson)
                 continue
-            if not viable_factory(lesson)(color) or color[0] not in bl_g:
+            if not viable_factory(lesson)(color):
                 # print(color)
                 to_uncolor.append(lesson)
 
@@ -230,7 +230,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
 
     # try to fit uncolored lessons
     child_uncolored.sort(key= lambda l: len(feas[l]))
-    for lesson in child_uncolored:
+    for lesson in child_uncolored[::-1]:
         
         is_viable = viable_factory(lesson)
                 # my_days = []
