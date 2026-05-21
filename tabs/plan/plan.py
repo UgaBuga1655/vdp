@@ -7,7 +7,7 @@ from .mode_btn import ModeBtn
 from .plan_view import MyView
 from .filter import FilterWidget
 from .stats import Statistic, StudentDensityStat
-from coloring import ColoringThread, param_names
+from coloring import ColoringThread
 import os
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -340,6 +340,7 @@ class PlanWidget(QWidget):
         plt.subplot(2, 1, 2)
         for param in self.best_params:
             plt.plot(param)
+        param_names = self.db.settings().scoring_names
         plt.legend(param_names)
         for n, param in enumerate(self.all_params):
             plt.subplot(2, len(self.all_params), n+1)

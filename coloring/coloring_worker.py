@@ -1,14 +1,13 @@
 from numpy import average
 from .functions import mutate_batch
 from PyQt5.QtCore import QThread, pyqtSignal
-# from db_config import settings
 from networkx import Graph
 from itertools import combinations
 from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom, Metadata
 from time import perf_counter
 from .queue_listener import QueueListener
 from .functions import random_coloring, mutate_batch
-from .scorer import scorer_factory, rank, default_weights
+from .scorer import scorer_factory, rank
 import multiprocess as mp
 import math
 
@@ -36,6 +35,8 @@ class ColoringThread(QThread):
 
         self.pop_start_time = perf_counter()
         self.settings = self.session.query(Metadata).first()
+
+        
         
         # genetic loop
         pop_size = self.settings.pop_size
@@ -76,9 +77,9 @@ class ColoringThread(QThread):
         self.pop_size = self.settings.pop_size
         self.generations = self.settings.generations
         self.cutoff = int(self.settings.cutoff*self.pop_size)
-        self.all_params = [[] for _ in default_weights]
+        self.all_params = [[] for _ in self.settings.scoring_weights]
         print(len(self.population))
-        rank(self.population, default_weights, self.all_params)
+        rank(self.population, self.settings.scoring_weights, self.all_params)
 
         self.goats = [self.population[0]]
         self.best_params = [[p] for p in self.population[0][-1]]
@@ -124,7 +125,7 @@ class ColoringThread(QThread):
         self.completed_generations += 1
         for process in self.processes:
             process.join()
-        rank(self.population, default_weights, self.all_params)
+        rank(self.population, self.settings.scoring_weights, self.all_params)
         # log the best results
         self.goats.append(self.population[0])
         for old_params, new_param in zip(self.best_params, self.population[0][-1]):
@@ -133,7 +134,7 @@ class ColoringThread(QThread):
         end = perf_counter()
         duration = end - self.gen_start
         self.times.append(duration)
-        print(f'Generation {self.completed_generations}: {duration}s')
+        print(f'Generation {self.completed_generations}: {duration:.2f}s')
         self.update_bar.emit(f'Pokolenie {self.completed_generations} {self.population[0][-1]}')
         self.increment_bar.emit(1)
         if self.completed_generations < self.settings.generations:
@@ -142,10 +143,10 @@ class ColoringThread(QThread):
             self.finish_everything()
 
     def finish_everything(self):
-        rank(self.goats, default_weights, self.all_params)
+        rank(self.goats, self.settings.scoring_weights, self.all_params)
         coloring = self.goats[0][0][0]
-        print(f'total time: {sum(self.times)}s')
-        print(f'avg: {average(self.times)}s')
+        print(f'total time: {sum(self.times):.2f}s')
+        print(f'avg: {average(self.times):.2f}s')
         self.session.close()
         # self.best_params = []
         # self.cutoffs = []
@@ -188,7 +189,7 @@ class ColoringThread(QThread):
         
         feasible_blocks = {}
         tick_2 = perf_counter()
-        print(f'Naniesiono przedmioty w {tick_2-tick_1}s')
+        print(f'Naniesiono przedmioty w {tick_2-tick_1:.2f}s')
         self.update_bar.emit('Generowanie grafu lekcji')
         lesson_count = self.session.query(Lesson).count()
         self.update_bar_total.emit(lesson_count)

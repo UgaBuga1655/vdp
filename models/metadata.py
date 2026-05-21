@@ -1,5 +1,5 @@
 from db_config import Base
-from sqlalchemy import Column, Integer, Boolean, Double
+from sqlalchemy import Column, Integer, Boolean, Double, PickleType
 
 
 
@@ -35,6 +35,14 @@ class Metadata(Base):
     pop_size = Column(Integer, default=6000)
     generations = Column(Integer, default=30)
     cutoff = Column(Double, default=0.25)
+
+    scoring_names = Column(PickleType, default=
+        ['Nieprzypisane lekcje', 'Rozłożenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów']
+    )
+    scoring_weights = Column(PickleType, default=
+        [4, 3.8, 3, 3]
+    )
+    max_break = Column(Integer, default=4)
 
     symmetrical_distances = Column(Boolean, default=False)
 

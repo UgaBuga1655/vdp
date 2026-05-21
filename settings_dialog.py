@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpinBox, QCheckBox, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpinBox, QCheckBox, QHBoxLayout, QLabel, QPushButton, QGridLayout, QDoubleSpinBox
 from PyQt5.QtCore import Qt
+from data import Data
 # from db_config import settings
 
 class SettingsDialog(QWidget):
-    def __init__(self, db):
+    def __init__(self, db: Data):
         super().__init__()
         self.db = db
         self.settings = db.settings()
@@ -42,6 +43,28 @@ class SettingsDialog(QWidget):
         cutoff.addWidget(cut_spin)
         main_layout.addLayout(cutoff)
 
+        # parameters
+        main_layout.addWidget(QLabel('Wagi parametrów oceniania:'))
+        params = QGridLayout()
+        for i, (name, value) in enumerate(zip(self.settings.scoring_names, self.settings.scoring_weights)):
+            params.addWidget(QLabel(name + ':'), i, 0)
+            spin = QDoubleSpinBox(value=value)
+            spin.setSingleStep(0.1)
+            spin.valueChanged.connect(self.update_param(i))
+            params.addWidget(spin, i, 1)
+        main_layout.addLayout(params)
+
+        # max break
+        max_break = QHBoxLayout()
+        label = QLabel('Granica między przerwą a PW:')
+        label.setToolTip('Jeśli czas między końcem a początkiem kolejnej lekcji jest krótszy lub równy, program bierze pod uwagę odległość między salami. Jeśli lekcje są tego samego przedmiotu, traktuje je jako odbywające się w bloku.')
+        max_break.addWidget(label)
+        self.max_break_spin = QSpinBox(value=self.settings.max_break*5, suffix=" min", maximum=60)
+        self.max_break_spin.setSingleStep(5)
+        self.max_break_spin.editingFinished.connect(self.update_max_break)
+        max_break.addWidget(self.max_break_spin)
+        main_layout.addLayout(max_break)
+
         btn_row = QHBoxLayout()
         main_layout.addLayout(btn_row)
         # apply
@@ -58,6 +81,8 @@ class SettingsDialog(QWidget):
         self.generations = self.settings.generations
         self.pop_size = self.settings.pop_size
         self.cutoff = self.settings.cutoff
+        self.params = self.settings.scoring_weights.copy()
+        self.max_break = self.settings.max_break
 
     def update_verbose(self, value):
         self.verbose = value
@@ -70,13 +95,25 @@ class SettingsDialog(QWidget):
 
     def update_cutoff(self, value):
         self.cutoff = value/100
+    
+    def update_param(self, i):
+        def func(val):
+            self.params[i] = val
+        return func
+    
+    def update_max_break(self):
+        val = self.max_break_spin.value()
+        self.max_break = val//5
+        self.max_break_spin.setValue(self.max_break*5)
 
     def apply(self):
         self.db.update_settings(
             verbose=self.verbose, 
             generations=self.generations,
             pop_size=self.pop_size,
-            cutoff=self.cutoff
+            cutoff=self.cutoff,
+            scoring_weights=self.params.copy(),
+            max_break=self.max_break
         )
         self.close()
 

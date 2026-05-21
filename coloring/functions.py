@@ -121,6 +121,9 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
         
 
         def is_viable(color) -> bool:
+            # not feasible in the first place
+            if color not in feas[lesson]:
+                return False
             # place in space time occupied
             if color in rev_child:
                 return False

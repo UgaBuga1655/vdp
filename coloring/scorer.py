@@ -1,13 +1,13 @@
 from math import inf
-from data import Data, Subject, Teacher, Student, LessonBlockDB, Lesson, Classroom, Distance
+from data import Data, Subject, Teacher, Student, LessonBlockDB, Lesson, Classroom, Distance, Metadata
 from sqlalchemy.orm import Session
 from networkx import Graph
 from functools import reduce
 import numpy as np
 
-default_weights = 4, 3.8, 3, 3
-param_names = ['Nieprzypisane lekcje', 'Rozłozenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów']
-MAX_BREAK = 4 # * 5 minutes: max length of a break for lessons to be considered grouped
+# default_weights = 4, 3.8, 3, 3
+# param_names = ['Nieprzypisane lekcje', 'Rozłozenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów']
+# MAX_BREAK = 4 # * 5 minutes: max length of a break for lessons to be considered grouped
 
 def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     def get_weight(lesson):
@@ -18,6 +18,10 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         if gr_1 == gr_2:
             return 0
         return distances[(gr_1, gr_2)]
+    
+    settings = session.query(Metadata).first()
+    MAX_BREAK = settings.max_break
+    
     
     teachers = []
     for teacher in session.query(Teacher):

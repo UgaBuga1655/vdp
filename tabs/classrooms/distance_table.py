@@ -20,7 +20,6 @@ class DistanceTable(QWidget):
         super().__init__()
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.outer_layout = QVBoxLayout(self)
-        # self.outer_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label = QLabel('Odległości między grupami sal', alignment=Qt.AlignmentFlag.AlignCenter)
         font = QFont()
         font.setBold(True)
