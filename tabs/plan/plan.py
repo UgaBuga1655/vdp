@@ -306,13 +306,13 @@ class PlanWidget(QWidget):
         # session = self.db.get_scoped_session()
         # les_g, _ , feas = generate_lesson_graph(self.db, session)
         # bl_g = generate_block_graph(self.db, session)
-        self.thread = ColoringThread(self.db)
-        self.thread.update_bar.connect(self.update_bar)
-        self.thread.update_bar_total.connect(self.bar.set_total)
-        self.thread.increment_bar.connect(self.bar.next)
+        self.coloring_thread = ColoringThread(self.db)
+        self.coloring_thread.update_bar.connect(self.update_bar)
+        self.coloring_thread.update_bar_total.connect(self.bar.set_total)
+        self.coloring_thread.increment_bar.connect(self.bar.next)
         # self.thread.next_generation.connect(self.update_bar)
-        self.thread.finished.connect(self.show_solution)
-        self.thread.start()
+        self.coloring_thread.finished.connect(self.show_solution)
+        self.coloring_thread.start()
 
 
     def update_bar(self, label):
@@ -322,29 +322,29 @@ class PlanWidget(QWidget):
 
 
 
-    def show_solution(self, c, best_params, all_params): 
+    def show_solution(self, c, results): 
         for lesson, color in c.items():
             block_id, classroom_id = color
             self.db.place_lesson_id_mode(lesson, block_id, classroom_id, lock=False)
         self.bar = None
         # self.db.update_settings(best_params=best_params, all_params=all_params)
-        self.best_params = best_params
-        self.all_params = all_params
+        self.db.save_results(*results)
         if self.db.settings().verbose:
             self.show_params_plot()
     
     def show_params_plot(self):
-        if not (self.all_params and self.best_params):
+        all_params, best_params = self.db.last_params()
+        if all_params is None or best_params is None:
             QMessageBox.information(self, 'Uwaga', 'Brak danych do pokazania.')
             return
         plt.subplot(2, 1, 2)
-        for param in self.best_params:
+        for param in best_params:
             plt.plot(param)
         param_names = self.db.settings().scoring_names
         plt.legend(param_names)
-        for n, param in enumerate(self.all_params):
-            plt.subplot(2, len(self.all_params), n+1)
-            plt.boxplot(param[:-1])
+        for n, param in enumerate(all_params):
+            plt.subplot(2, len(all_params), n+1)
+            plt.boxplot(param)
             plt.title(param_names[n])
         plt.show()
 

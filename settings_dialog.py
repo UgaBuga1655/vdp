@@ -27,6 +27,11 @@ class SettingsDialog(QWidget):
         pop_size_spin.valueChanged.connect(self.update_pop_size)
         main_layout.addLayout(pop_size)
 
+        # preserve popualtion
+        self.preserve_population = QCheckBox('Użyj ostatniej populacji')
+        self.preserve_population.setChecked(self.settings.preserve_population)
+        main_layout.addWidget(self.preserve_population)
+        
         # generations
         generations = QHBoxLayout()
         generations.addWidget(QLabel('Liczba pokoleń:'))
@@ -64,6 +69,7 @@ class SettingsDialog(QWidget):
         self.max_break_spin.editingFinished.connect(self.update_max_break)
         max_break.addWidget(self.max_break_spin)
         main_layout.addLayout(max_break)
+
 
         btn_row = QHBoxLayout()
         main_layout.addLayout(btn_row)
@@ -113,7 +119,8 @@ class SettingsDialog(QWidget):
             pop_size=self.pop_size,
             cutoff=self.cutoff,
             scoring_weights=self.params.copy(),
-            max_break=self.max_break
+            max_break=self.max_break,
+            preserve_population=self.preserve_population.isChecked()
         )
         self.close()
 

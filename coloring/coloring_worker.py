@@ -3,7 +3,7 @@ from .functions import mutate_batch
 from PyQt5.QtCore import QThread, pyqtSignal
 from networkx import Graph
 from itertools import combinations
-from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom, Metadata
+from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom, Metadata, Results
 from time import perf_counter
 from .queue_listener import QueueListener
 from .functions import random_coloring, mutate_batch
@@ -17,7 +17,7 @@ class ColoringThread(QThread):
     # next_generation = pyqtSignal(int, int)
     update_bar_total = pyqtSignal(int)
     increment_bar = pyqtSignal(int)
-    finished = pyqtSignal(dict, list, list)
+    finished = pyqtSignal(dict, list)
     
 
     def __init__(self, db: Data):
@@ -28,21 +28,51 @@ class ColoringThread(QThread):
 
 
     def run(self): 
-        # create graphs
-        self.bl_g, for_bl = self.generate_block_graph()
-        self.les_g, _, self.feas = self.generate_lesson_graph(for_bl)
-        self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
-
-        self.pop_start_time = perf_counter()
         self.settings = self.session.query(Metadata).first()
+        self.bl_g, self.for_bl = None, None
+        self.les_g, self.feas = None, None
+        recent_pop = None
+        self.all_params, self.best_params = None, None
 
-        
+        # pick up when we've finished
+        if self.settings.preserve_population:
+            last_result = self.session.query(Results).first()
+            self.bl_g = last_result.bl_g
+            self.for_bl = last_result.for_bl
+            self.les_g = last_result.les_g
+            self.feas = last_result.feas
+            recent_pop = last_result.population
+            self.all_params = [p[:-1] for p in last_result.all_params]
+            # print(len(self.all_params[0]))
+            self.best_params = [p[:-1] for p in last_result.best_params]
+            
+        # create from scratch if not loaded
+        if self.bl_g is None or self.for_bl is None:
+            self.bl_g, self.for_bl = self.generate_block_graph()
+        if self.les_g is None or self.feas is None:
+            self.les_g, _, self.feas = self.generate_lesson_graph(self.for_bl)
+
+        self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
+        self.pop_start_time = perf_counter()
+
+
         
         # genetic loop
-        pop_size = self.settings.pop_size
         self.population = []
-        self.update_bar.emit('Generowanie początkowej populacji')
-        self.update_bar_total.emit(pop_size)
+        pop_size = self.settings.pop_size
+        # recent_pop = self.settings.
+        if recent_pop and self.settings.preserve_population:
+            recent_pop = recent_pop.copy()
+            recent_pop_size = len(recent_pop)
+            if recent_pop_size >= pop_size:
+                self.population = recent_pop[:pop_size]
+                pop_size = 0
+            else:
+                self.population = recent_pop
+                pop_size -= recent_pop_size
+        if pop_size:
+            self.update_bar.emit('Generowanie początkowej populacji')
+            self.update_bar_total.emit(pop_size)
 
         cores_count = mp.cpu_count()
         chunk_size = math.ceil(pop_size/cores_count)
@@ -77,15 +107,20 @@ class ColoringThread(QThread):
         self.pop_size = self.settings.pop_size
         self.generations = self.settings.generations
         self.cutoff = int(self.settings.cutoff*self.pop_size)
-        self.all_params = [[] for _ in self.settings.scoring_weights]
-        print(len(self.population))
+        if not self.all_params:
+            self.all_params = [[] for _ in self.settings.scoring_weights]
+        # print(len(self.population))
         rank(self.population, self.settings.scoring_weights, self.all_params)
 
         self.goats = [self.population[0]]
-        self.best_params = [[p] for p in self.population[0][-1]]
+        if not self.best_params:
+            self.best_params = [[p] for p in self.population[0][-1]]
+        else:
+            for old_params, new_param in zip(self.best_params, self.population[0][-1]):
+                old_params.append(new_param)
+        self.starting_gen = len(self.best_params[0])-1
 
-
-        self.update_bar.emit(f'Pokolenie 0 {self.population[0][-1]}')
+        self.update_bar.emit(f'Pokolenie {self.starting_gen} {self.population[0][-1]}')
         self.update_bar_total.emit(self.generations)
 
         self.times = []
@@ -134,8 +169,8 @@ class ColoringThread(QThread):
         end = perf_counter()
         duration = end - self.gen_start
         self.times.append(duration)
-        print(f'Generation {self.completed_generations}: {duration:.2f}s')
-        self.update_bar.emit(f'Pokolenie {self.completed_generations} {self.population[0][-1]}')
+        print(f'Generation {self.completed_generations + self.starting_gen}: {duration:.2f}s')
+        self.update_bar.emit(f'Pokolenie {self.completed_generations + self.starting_gen} {self.population[0][-1]}')
         self.increment_bar.emit(1)
         if self.completed_generations < self.settings.generations:
             self.do_next_generation()
@@ -143,14 +178,14 @@ class ColoringThread(QThread):
             self.finish_everything()
 
     def finish_everything(self):
-        rank(self.goats, self.settings.scoring_weights, self.all_params)
+        rank(self.goats, self.settings.scoring_weights, self.all_params, note_results=False)
         coloring = self.goats[0][0][0]
         print(f'total time: {sum(self.times):.2f}s')
         print(f'avg: {average(self.times):.2f}s')
         self.session.close()
         # self.best_params = []
         # self.cutoffs = []
-        self.finished.emit(coloring, self.best_params, self.all_params)
+        self.finished.emit(coloring, [coloring, self.population, self.bl_g, self.for_bl, self.les_g, self.feas, self.best_params, self.all_params])
 
 
 
@@ -272,7 +307,8 @@ class ColoringThread(QThread):
             for block in blocks:
                 graph.add_node(block.id, day=block.day)
             x = len(blocks)
-            self.update_bar_total.emit(x * (x-1) // 2)
+            total = x * (x-1) // 2
+            self.update_bar_total.emit(total)
 
             for b1, b2 in combinations(blocks, 2):
                 self.increment_bar.emit(1)

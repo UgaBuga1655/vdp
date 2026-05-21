@@ -43,6 +43,7 @@ class Metadata(Base):
         [4, 3.8, 3, 3]
     )
     max_break = Column(Integer, default=4)
+    preserve_population = Column(Boolean, default=False)
 
     symmetrical_distances = Column(Boolean, default=False)
 

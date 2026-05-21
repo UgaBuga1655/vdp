@@ -27,5 +27,7 @@ class ProgressDialog(QWidget):
         self.bar.setValue(0)
 
     def next(self, n=1):
+        if not n:
+            return
         self.curr += n
         self.bar.setValue(int(self.curr/self.total*100))

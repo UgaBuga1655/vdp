@@ -12,3 +12,4 @@ from .classroom_group import *
 from .distance import *
 from .day_stat import DayStat
 from .metadata import Metadata
+from .results import *

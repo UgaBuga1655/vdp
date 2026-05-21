@@ -28,7 +28,10 @@ class Data(QObject):
         if not self.session.query(Metadata).count():
             settings = Metadata()
             self.session.add(settings)
-            self.session.commit()
+        if not self.session.query(Results).count():
+            results = Results()
+            self.session.add(results)
+        self.session.commit()
 
     def get_scoped_session(self):
         Session = scoped_session(session_factory=self.session_factory)
@@ -927,4 +930,20 @@ class Data(QObject):
     
     def update_settings(self, **kwargs):
         self.session.query(Metadata).first().update(**kwargs)
+        self.session.commit()
+
+    def last_params(self):
+        return self.session.query().with_entities(Results.all_params, Results.best_params).first()
+
+    def save_results(self, best_result, population, bl_g,for_bl, les_g, feas, best_params, all_params):
+        self.session.query(Results).first().update(
+            best_result=best_result,
+            population=population,
+            bl_g=bl_g,
+            for_bl=for_bl,
+            les_g=les_g,
+            feas=feas,
+            best_params=best_params,
+            all_params=all_params
+            )
         self.session.commit()
