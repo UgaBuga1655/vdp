@@ -227,6 +227,14 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             child.pop(lesson)
         for lesson in to_uncolor:
             uncolor(lesson)
+            is_viable = viable_factory(lesson)
+            for color in feas[lesson]:
+                if not is_viable(color):
+                    continue
+                
+                set_color(lesson, color)
+                child_uncolored.remove(lesson)
+                break
 
         # get rid of unwanted lessons in uncolored set
         child_uncolored = [les for les in child_uncolored if les in les_g]
