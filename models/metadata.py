@@ -32,6 +32,7 @@ class Metadata(Base):
     export_mode = Column(Boolean, default=False)
 
     verbose = Column(Boolean, default=True)
+    stat_size = Column(Integer, default=50)
     pop_size = Column(Integer, default=6000)
     generations = Column(Integer, default=30)
     cutoff = Column(Double, default=0.25)

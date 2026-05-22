@@ -19,6 +19,12 @@ class SettingsDialog(QWidget):
         verbose.clicked.connect(self.update_verbose)
         main_layout.addWidget(verbose)
 
+        stat_size = QHBoxLayout()
+        stat_size.addWidget(QLabel('Statystyki pokoleń wstecz:'))
+        self.stat_size = QSpinBox(minimum=0, maximum=1000, value=self.settings.stat_size)
+        stat_size.addWidget(self.stat_size)
+        main_layout.addLayout(stat_size)
+
         # pop size
         pop_size = QHBoxLayout()
         pop_size.addWidget(QLabel('Początkowa populacja:'))
@@ -120,7 +126,8 @@ class SettingsDialog(QWidget):
             cutoff=self.cutoff,
             scoring_weights=self.params.copy(),
             max_break=self.max_break,
-            preserve_population=self.preserve_population.isChecked()
+            preserve_population=self.preserve_population.isChecked(),
+            stat_size=self.stat_size.value()
         )
         self.close()
 
