@@ -153,6 +153,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 day, start, length = blocks[block]
                 days[day].append((start, length, clrm))
 
+            student_running = 0
+            runs = 0
             for day in days:
                 if not len(day):
                     continue
@@ -164,8 +166,11 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                     # print(break_length)
                     if break_length > MAX_BREAK:
                         continue
-                    running_around += get_distance(clrm, next_clrm)/break_length
+                    runs += 1
+                    student_running += get_distance(clrm, next_clrm)/break_length
                     start, length, clrm = next_start, next_length, next_clrm
+            if runs:
+                running_around += student_running/runs
 
 
         return uncolored_lessons, lesson_distribution, single_lessons, running_around

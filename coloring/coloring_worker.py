@@ -139,7 +139,7 @@ class ColoringThread(QThread):
         self.increment_bar.emit(len(data))
 
     def add_to_population_without_incrementing_bar(self, data):
-        print(f'adding {len(data)} to data')
+        # print(f'adding {len(data)} to data')
         self.population.extend(data)
 
     def finished_pop(self):
@@ -189,7 +189,7 @@ class ColoringThread(QThread):
                 survivors = survivors[chunk_size:]
             else:
                 chunk = survivors
-            print(f'chunk size: {len(chunk)}')
+            # print(f'chunk size: {len(chunk)}')
             p = mp.Process(
                 target=mutate_batch,
                 args= ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer, self.pop_size, self.cutoff)
@@ -306,8 +306,8 @@ class ColoringThread(QThread):
                     continue
 
                 # lesson happening this day
-                if block.day in [les.block.day for les in subject.lessons if les.block]:
-                    continue
+                # if block.day in [les.block.day for les in subject.lessons if les.block]:
+                #     continue
                 
                 many_blocks = [(block.id, cl_id) for cl_id in feasible_classrooms]
                 # differing for lessons
@@ -365,6 +365,7 @@ class ColoringThread(QThread):
                     continue
                 graph.add_edge(b1.id, b2.id)
         classrooms = self.session.query(Classroom).all()
+        # WHY ARE BLOCKS FORBIDDEN? - to make sure that two lessons are not taking place at the same time and space
         forbidden_blocks = {cl.id: set() for cl in classrooms}
         for lesson in self.session.query(Lesson).filter(Lesson.classroom_id!= None).all():
             block = lesson.block_id
