@@ -108,10 +108,12 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
     child_uncolored = uncolored.copy()
 
     def uncolor(lesson):
+        child_uncolored.append(lesson)
+        if lesson not in child:
+            return
         cl = child.pop(lesson)
         if cl in rev_child:
             _ = rev_child.pop(cl)
-        child_uncolored.append(lesson)
     
     def set_color(lesson, color):
         if lesson in child:
@@ -221,7 +223,8 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
                 to_uncolor.append(lesson)
 
         for lesson in to_remove:
-            child.pop(to_remove)
+            uncolor(lesson)
+            child.pop(lesson)
         for lesson in to_uncolor:
             uncolor(lesson)
 

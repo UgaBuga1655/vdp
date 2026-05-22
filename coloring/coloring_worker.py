@@ -308,7 +308,6 @@ class ColoringThread(QThread):
                 # students are busy
                 student_collisions = len(self.db.get_collisions_for_students_at_block(subject.students, block, self.session))
                 if student_collisions:
-                    print('student collisions')
                     continue
 
                 # lesson happening this day

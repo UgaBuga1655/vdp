@@ -173,7 +173,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 running_around += student_running/runs
 
 
-        return uncolored_lessons, lesson_distribution, single_lessons, running_around
+        return uncolored_lessons, lesson_distribution, single_lessons, int(running_around)
     
 
     return get_params

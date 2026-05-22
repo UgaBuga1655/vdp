@@ -19,6 +19,7 @@ class Data(QObject):
 
     def changes_les_g_or_feas(func):
         def my_inner(self: 'Data', *args, **kwargs):
+            # print(func)
             self.clear_les_g_and_feas()
             return func(self, *args, **kwargs)
         return my_inner
@@ -321,8 +322,11 @@ class Data(QObject):
         subject.target_block_length = length
         self.session.commit()
 
-    @changes_les_g_or_feas
+    # @changes_les_g_or_feas
     def update_subject_teacher(self, subject: Subject, teacher: Teacher) -> None:
+        if subject.teacher == teacher:
+            return
+        self.clear_les_g_and_feas()
         subject.teacher = teacher
         for lesson in subject.lessons:
             if lesson.block is None:
