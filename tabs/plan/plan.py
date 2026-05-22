@@ -300,7 +300,7 @@ class PlanWidget(QWidget):
     def color(self):
         # QApplication.setOverrideCursor(Qt.WaitCursor)
         # self.db.blockSignals(True)
-        self.db.clear_all_lesson_blocks(leave_locked=True)
+        # self.db.clear_all_lesson_blocks(leave_locked=True)
         self.bar = ProgressDialog('Uzupełnianie planu zajęć', 0)
         self.bar.show()
         # session = self.db.get_scoped_session()
@@ -323,11 +323,14 @@ class PlanWidget(QWidget):
 
 
     def show_solution(self, c, results): 
-        for lesson, color in c.items():
-            block_id, classroom_id = color
-            self.db.place_lesson_id_mode(lesson, block_id, classroom_id, lock=False)
+        # for lesson, color in c.items():
+            # block_id, classroom_id = color
+            # self.db
+            # self.db.place_lesson_id_mode(lesson, block_id, classroom_id, lock=False)
         self.bar = None
         # self.db.update_settings(best_params=best_params, all_params=all_params)
+        self.db.save_solution(c)
+        self.redraw()
         self.db.save_results(*results)
         if self.db.settings().verbose:
             self.show_params_plot()

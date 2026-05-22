@@ -45,6 +45,24 @@ class Data(QObject):
             self.session.add(results)
         self.session.commit()
 
+    def save_solution(self, solution):
+        # print(solution[63])
+        for lesson in self.session.query(Lesson).filter_by(block_locked=False):
+            if lesson.id in solution.keys():
+                # print(f'jest {lesson.id}')
+                block_id, classroom_id = solution[lesson.id]
+                lesson.block = self.session.query(LessonBlockDB).filter_by(id=block_id).first()
+                lesson.classroom = self.session.query(Classroom).filter_by(id=classroom_id).first()
+                # print(f'{lesson}: {solution[lesson]}')
+                # lesson.block = self.session.query(LessonBlockDB).filter_by(id=solution[lesson]).first()
+            else:
+                # print(f'nie ma {lesson.id}')
+                lesson.block, lesson.classroom = None, None
+            # self.session.add(lesson)
+            # print(lesson.id,lesson.block_id)
+        self.session.commit()
+        self.redraw_plan.emit()
+
     def get_scoped_session(self):
         Session = scoped_session(session_factory=self.session_factory)
         return Session()
@@ -678,7 +696,7 @@ class Data(QObject):
             session = self.session
         if not teacher:
             return []
-        return self.session.query(Lesson) \
+        return self.session.query(Lesson).filter_by(block_locked=True)\
                     .join(Lesson.subject).filter_by(teacher=teacher) \
                     .join(Lesson.block).filter(LessonBlockDB.day == block.day) \
                     .filter(or_(
@@ -701,7 +719,7 @@ class Data(QObject):
         if not session:
             session = self.session
         student_ids = [s.id for s in students]
-        return session.query(Lesson) \
+        return session.query(Lesson).filter_by(block_locked=True) \
                     .join(Lesson.subject).filter(Subject.students.any(Student.id.in_(student_ids)))\
                     .join(Lesson.block).filter(LessonBlockDB.day == block.day)\
                     .filter(or_(

@@ -156,6 +156,7 @@ class ColoringThread(QThread):
         # print(len(self.population))
         rank(self.population, self.settings.scoring_weights, self.all_params)
 
+
         self.goats = [self.population[0]]
         if not self.best_params:
             self.best_params = [[p] for p in self.population[0][-1]]
@@ -169,7 +170,10 @@ class ColoringThread(QThread):
 
         self.times = []
         self.completed_generations = 0
-        self.do_next_generation()
+        if self.generations == 0:
+            self.finish_everything()
+        else:
+            self.do_next_generation()
     
 
 
@@ -302,7 +306,9 @@ class ColoringThread(QThread):
                     continue
 
                 # students are busy
-                if len(self.db.get_collisions_for_students_at_block(subject.students, block, self.session)):
+                student_collisions = len(self.db.get_collisions_for_students_at_block(subject.students, block, self.session))
+                if student_collisions:
+                    print('student collisions')
                     continue
 
                 # lesson happening this day
