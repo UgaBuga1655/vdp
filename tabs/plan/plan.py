@@ -13,6 +13,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 from PyQt5.QtPrintSupport import QPrinter
 from progress_dialog import ProgressDialog
+from .params_plot import ParamReport
         
 
 class PlanWidget(QWidget):
@@ -336,6 +337,9 @@ class PlanWidget(QWidget):
             self.show_params_plot()
     
     def show_params_plot(self):
+        self.param_plot = ParamReport(self)
+        self.param_plot.show()
+        return
         all_params, best_params = self.db.last_params()
         if all_params is None or best_params is None:
             QMessageBox.information(self, 'Uwaga', 'Brak danych do pokazania.')
