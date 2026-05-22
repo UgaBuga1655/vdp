@@ -55,7 +55,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         days = [[] for _ in range(5)]
         for lesson in subject.lessons:
             lessons.append(lesson.id)
-            if lesson.block:
+            if lesson.block and lesson.block_locked:
                 start = lesson.block.start
                 end = start + lesson.block.length
                 day = lesson.block.day
