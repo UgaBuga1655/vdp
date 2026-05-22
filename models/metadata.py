@@ -38,10 +38,10 @@ class Metadata(Base):
     cutoff = Column(Double, default=0.25)
 
     scoring_names = Column(PickleType, default=
-        ['Nieprzypisane lekcje', 'Rozłożenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów']
+        ['Nieprzypisane lekcje', 'Rozłożenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów', 'Bieganie nauczycieli']
     )
     scoring_weights = Column(PickleType, default=
-        [4, 3.8, 3, 3]
+        [6, 5, 2, 2, 3]
     )
     max_break = Column(Integer, default=4)
     preserve_population = Column(Boolean, default=False)

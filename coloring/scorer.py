@@ -120,27 +120,44 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
 
         # teacher
         single_lessons = 0
+        teachers_running_around = 0
         for teacher in teachers:
             days = [[] for _ in range(5)]
             for lesson in teacher:
                 # try:
                 if lesson in pinned_lessons:
-                    block, _ = pinned_lessons[lesson]
+                    block, clrm = pinned_lessons[lesson]
                 elif lesson in color:
-                    block, _ = color[lesson]
+                    block, clrm = color[lesson]
                 else:
                     continue
                 # except:
                     # print(session.query(Lesson).filter_by(id=lesson).first().name_and_time())
                 day, start, length = blocks[block]
-                days[day].append(block)
+                days[day].append((start, length, clrm))
+
+            teacher_running = 0
+            runs = 0
             for day in days:
+                if not len(day):
+                    continue
                 if len(day) == 1:
                     single_lessons += 1
-                # for block in day:
+                start, length, clrm = day[0]
+                for lesson in day[1:]:
+                    next_start, next_length, next_clrm = lesson
+                    break_length = next_start - (start + length)
+                    # print(break_length)
+                    if break_length > MAX_BREAK:
+                        continue
+                    runs += 1
+                    teacher_running += get_distance(clrm, next_clrm)/break_length
+                    start, length, clrm = next_start, next_length, next_clrm
+            if runs:
+                teachers_running_around += teacher_running/runs
         
         # students running around
-        running_around = 0
+        students_running_around = 0
         for student in students:
             days = [[] for _ in range(5)]
             for lesson in student:
@@ -170,10 +187,10 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                     student_running += get_distance(clrm, next_clrm)/break_length
                     start, length, clrm = next_start, next_length, next_clrm
             if runs:
-                running_around += student_running/runs
+                students_running_around += student_running/runs
 
 
-        return uncolored_lessons, lesson_distribution, single_lessons, int(running_around)
+        return uncolored_lessons, lesson_distribution, single_lessons, int(students_running_around), int(teachers_running_around)
     
 
     return get_params
