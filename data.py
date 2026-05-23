@@ -928,7 +928,7 @@ class Data(QObject):
                 for duty in col_bl.duties:
                     if duty == event:
                         continue
-                    if duty.teacher == teacher:
+                    if duty.teacher == teacher and teacher:
                         collisions[col_bl].append((
                             f'{event.get_name()}: {duty.collision_text()}',
                             f'{duty.get_name()}: {teacher.name} prowadzi {event.name_and_time()}' \

@@ -88,6 +88,17 @@ class LessonBlock(BasicBlock):
     def edit(self):
         EditLessonBlockDialog(self).exec()
 
+    def delete(self):
+        if len(self.block.lessons):
+            if QMessageBox.question(
+                None, 
+                'Usuwanie',
+                'Czy na pewno chcesz usunąć ten blok?', 
+                QMessageBox.Yes | QMessageBox.No
+            ) != QMessageBox.Yes:
+                return
+        return super().delete()
+
     def move_lessons(self):
         QApplication.setOverrideCursor(Qt.DragMoveCursor)
         settings.move_lessons_from = self
