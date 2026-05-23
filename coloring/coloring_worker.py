@@ -18,6 +18,7 @@ class ColoringThread(QThread):
     update_bar_total = pyqtSignal(int)
     increment_bar = pyqtSignal(int)
     finished = pyqtSignal(dict, list)
+    stopped = pyqtSignal()
     
 
     def __init__(self, db: Data):
@@ -34,6 +35,8 @@ class ColoringThread(QThread):
         self.les_g, self.feas = None, None
         self.recent_pop = []
         self.all_params, self.best_params = None, None
+        self.stop_event = mp.Event()
+        self.listener = None
 
         # pick up when we've finished
         if self.settings.preserve_population:
@@ -53,6 +56,8 @@ class ColoringThread(QThread):
             needs_legalisation = True
         if self.les_g is None or self.feas is None:
             self.les_g, _, self.feas = self.generate_lesson_graph(self.for_bl)
+            if self.les_g is None:
+                return
             needs_legalisation = True
         print(f'needs legalisation: {needs_legalisation}')
         self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
@@ -66,6 +71,17 @@ class ColoringThread(QThread):
             print('not legalising, use last results')
             self.population = self.recent_pop.copy()
             self.generate_random_pop()
+
+    def stop(self):
+        print('Stopping...')
+        self.stop_event.set()
+        for p in self.processes:
+            p.join()
+        if self.listener:
+            self.listener.terminate()
+        self.session.close()
+        self.stopped.emit()
+        # self.terminate()
             
     def legalize(self):
         self.recent_pop = self.recent_pop.copy()
@@ -87,7 +103,7 @@ class ColoringThread(QThread):
                 chunk = self.recent_pop
             p = mp.Process(
                 target=legalize_batch,
-                args = ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer)
+                args = ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer, self.stop_event)
             )
             self.processes.append(p)
             p.start()
@@ -100,7 +116,7 @@ class ColoringThread(QThread):
 
 
     def generate_random_pop(self):
-        print(len(self.population))
+        # print(len(self.population))
         for p in self.processes:
             p.join()
         self.pop_start_time = perf_counter()
@@ -123,7 +139,7 @@ class ColoringThread(QThread):
             for _ in range(cores_count):
                 p = mp.Process(
                     target=random_coloring,
-                    args = ((self.les_g, self.bl_g, self.feas, min(remaining_pop_size,chunk_size)), queue, self.scorer)
+                    args = ((self.les_g, self.bl_g, self.feas, min(remaining_pop_size,chunk_size)), queue, self.scorer, self.stop_event)
                 )
                 self.processes.append(p)
                 p.start()
@@ -147,7 +163,7 @@ class ColoringThread(QThread):
             p.join()
         duration = perf_counter() - self.pop_start_time
         avg = duration/self.settings.pop_size
-        print(f'Wygenerowano populację w {duration}s ({avg} na osobnika)')
+        print(f'Wygenerowano populację w {duration:.2f}s ({avg:.2f} na osobnika)')
         self.pop_size = self.settings.pop_size
         self.generations = self.settings.generations
         self.cutoff = int(self.settings.cutoff*self.pop_size)
@@ -196,7 +212,7 @@ class ColoringThread(QThread):
             # print(f'chunk size: {len(chunk)}')
             p = mp.Process(
                 target=mutate_batch,
-                args= ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer, self.pop_size, self.cutoff)
+                args= ((self.les_g, self.bl_g, self.feas, chunk), queue, self.scorer, self.pop_size, self.cutoff, self.stop_event)
             )
             self.processes.append(p)
             p.start()
@@ -281,6 +297,8 @@ class ColoringThread(QThread):
         classrooms = self.session.query(Classroom).filter_by(allow_lessons=True).all()
         blocks = self.session.query(LessonBlockDB).all()
         for subject in self.session.query(Subject).all():
+            if self.stop_event.is_set():
+                return None, None, None
             feasible_classrooms = [
                 cr.id 
                 for cr in classrooms 
@@ -345,7 +363,7 @@ class ColoringThread(QThread):
             if subject in graph.nodes:
                 graph.remove_node(subject)
         tick_3 = perf_counter()
-        print(f'Naniesiono lekcje w {tick_3-tick_2}s')
+        print(f'Naniesiono lekcje w {tick_3-tick_2:.2f}s')
         
         return graph, labels, feasible_blocks
 

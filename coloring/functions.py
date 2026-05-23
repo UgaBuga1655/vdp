@@ -6,12 +6,14 @@ from networkx import Graph
 from collections.abc import Callable
 # from db_config import settings
 
-def random_coloring(params, queue, scorer):
+def random_coloring(params, queue, scorer, stop_event):
     lg, bg, feas, chunk_size = params
     data = []
     report_size = 70
     i=0
     for _ in range(chunk_size):
+        if stop_event.is_set():
+            return
         solution = crazy(lg, bg, feas)
         params = scorer(*solution)
         data.append((solution, params))
@@ -77,12 +79,14 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
 
     return colors, rev_colors, uncolored
 
-def legalize_batch(params, queue, scorer):
+def legalize_batch(params, queue, scorer, stop_event):
     les_g, bl_g, feas, batch = params
     legalized = []
     report_size = 50
     i = 0
     for solution in batch:
+        if stop_event.is_set():
+            return
         legalized.append(mutate(les_g, bl_g, feas, *solution[0], scorer, mutate=False))
         i += 1
         if i > report_size:
@@ -93,11 +97,13 @@ def legalize_batch(params, queue, scorer):
 
     
 
-def mutate_batch(params, queue, scorer, pop_size, cutoff):
+def mutate_batch(params, queue, scorer, pop_size, cutoff, stop_event):
     les_g, bl_g, feas, survivors = params
     num_of_children = int(pop_size/cutoff)
     children = []
     for survivor in survivors:
+        if stop_event.is_set():
+            return
         for _ in range(num_of_children):
             children.append(mutate(les_g, bl_g, feas, *survivor[0], scorer))
     queue.put(('done', children))

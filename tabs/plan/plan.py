@@ -308,6 +308,7 @@ class PlanWidget(QWidget):
         # les_g, _ , feas = generate_lesson_graph(self.db, session)
         # bl_g = generate_block_graph(self.db, session)
         self.coloring_thread = ColoringThread(self.db)
+        self.bar.finished.connect(self.coloring_thread.stop)
         self.coloring_thread.update_bar.connect(self.update_bar)
         self.coloring_thread.update_bar_total.connect(self.bar.set_total)
         self.coloring_thread.increment_bar.connect(self.bar.next)
