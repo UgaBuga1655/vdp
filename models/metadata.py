@@ -43,6 +43,8 @@ class Metadata(Base):
     scoring_weights = Column(PickleType, default=
         [6, 5, 2, 2, 3]
     )
+
+    stat_names = Column(PickleType, default=['Czas pokolenia'])
     max_break = Column(Integer, default=4)
     preserve_population = Column(Boolean, default=False)
 

@@ -999,11 +999,16 @@ class Data(QObject):
     def last_params(self):
         return self.session.query().with_entities(Results.all_params, Results.best_params).first()
 
-    def save_results(self, best_result, population, bl_g,for_bl, les_g, feas, best_params, all_params):
+    def stats(self):
+        return self.session.query().with_entities(Results.stats).first()
+    
+    def save_results(self, best_result, population, bl_g,for_bl, les_g, feas, best_params, all_params, stats):
         stat_size = self.settings().stat_size
         if stat_size < len(all_params[0]):
             best_params = [p[-stat_size:] for p in best_params]
             all_params = [p[-stat_size:] for p in all_params]
+        if stat_size < len(stats[0]):
+            stats = [s[-stat_size:] for s in stats]
         self.session.query(Results).first().update(
             best_result=best_result,
             population=population,
@@ -1012,7 +1017,8 @@ class Data(QObject):
             les_g=les_g,
             feas=feas,
             best_params=best_params,
-            all_params=all_params
+            all_params=all_params,
+            stats=stats
             )
         self.session.commit()
 

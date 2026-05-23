@@ -48,6 +48,7 @@ class ColoringThread(QThread):
             self.recent_pop = last_result.population
             self.all_params = [p[:-1] for p in last_result.all_params]
             self.best_params = [p[:-1] for p in last_result.best_params]
+            self.times = last_result.stats[0]
 
         # create from scratch if not loaded
         needs_legalisation = False
@@ -163,7 +164,7 @@ class ColoringThread(QThread):
             p.join()
         duration = perf_counter() - self.pop_start_time
         avg = duration/self.settings.pop_size
-        print(f'Wygenerowano populację w {duration:.2f}s ({avg:.2f} na osobnika)')
+        print(f'Wygenerowano populację w {duration:.2f}s ({avg:.4f} na osobnika)')
         self.pop_size = self.settings.pop_size
         self.generations = self.settings.generations
         self.cutoff = int(self.settings.cutoff*self.pop_size)
@@ -252,7 +253,17 @@ class ColoringThread(QThread):
         self.session.close()
         # self.best_params = []
         # self.cutoffs = []
-        self.finished.emit(coloring, [coloring, self.population, self.bl_g, self.for_bl, self.les_g, self.feas, self.best_params, self.all_params])
+        self.finished.emit(coloring, [
+            coloring, 
+            self.population, 
+            self.bl_g, 
+            self.for_bl, 
+            self.les_g, 
+            self.feas, 
+            self.best_params, 
+            self.all_params, 
+            [self.times]]
+        )
 
 
 

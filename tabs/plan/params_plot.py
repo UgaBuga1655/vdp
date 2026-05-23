@@ -26,6 +26,7 @@ class ParamReport(QWidget):
 
         # load data
         all_params, best_params = self.db.last_params()
+        stats = self.db.stats()
         param_names = self.db.settings().scoring_names
 
         # params of best in generation
@@ -38,12 +39,22 @@ class ParamReport(QWidget):
                 canvas.ax.plot((param - param.min()) / (param.max() - param.min()))
             else:
                 canvas.ax.plot(param)
+            canvas.ax.set_title('Parametry najlepszych rozwiązań')
         canvas.ax.legend(param_names)
+
+        # generation time
+        canvas = FigureWidget(self)
+        self.plot_field.addWidget(canvas)
+        self.selection.addItem('Czas trwania każdego pokolenia')
+        # print(stats[0])
+        canvas.ax.plot(stats[0][0])
+        canvas.ax.set_title('Czas trwania każdego pokolenia [s]')
 
         # box plot for each param
         for name, param in zip(param_names, all_params):
             canvas = FigureWidget(self)
             canvas.ax.boxplot(param)
+            canvas.ax.set_title(name)
             self.plot_field.addWidget(canvas)
             self.selection.addItem(name)
 

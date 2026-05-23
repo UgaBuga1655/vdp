@@ -13,6 +13,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     def get_weight(lesson):
         return les_g.nodes[lesson]['weight'] if lesson in les_g else 0
     def get_distance(cl1, cl2):
+        if cl1 is None or cl2 is None:
+            return 0
         gr_1 = cl_groups[cl1]
         gr_2 = cl_groups[cl2]
         if gr_1 == gr_2:
@@ -36,8 +38,6 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         for subject in student.subjects:
             s.extend([l.id for l in subject.lessons])
         students.append(s)
-    print(teachers)
-    print(students)
 
     blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(LessonBlockDB)}
     pinned_lessons = {l.id: (l.block_id, l.classroom_id) for l in session.query(Lesson) if l.block and l.block_locked}

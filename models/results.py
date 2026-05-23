@@ -12,6 +12,7 @@ class Results(Base):
     feas = Column(PickleType)
     best_params = Column(PickleType)
     all_params = Column(PickleType)
+    stats = Column(PickleType)
 
     def update(self, **kwargs):
         for name, value in kwargs.items():
