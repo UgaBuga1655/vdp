@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QProgressBar, QWidget, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QProgressBar, QWidget, QLabel, QVBoxLayout, QDialog
 from PyQt5.QtCore import Qt
 
-class ProgressDialog(QWidget):
+class ProgressDialog(QDialog):
     def __init__(self, title, total):
         super().__init__()
+        self.setModal(True)
         self.setWindowFlag(Qt.Tool)
         self.setMinimumWidth(300)
         self.curr = 0

@@ -317,7 +317,7 @@ class PlanWidget(QWidget):
 
 
     def update_bar(self, label):
-        self.bar.show()
+        # self.bar.show()
         self.bar.set_label(label)
 
 
