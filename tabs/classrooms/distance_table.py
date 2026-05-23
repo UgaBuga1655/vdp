@@ -44,6 +44,13 @@ class DistanceTable(QWidget):
         self.load_content()
 
     def load_content(self):
+        groups = self.db.all_classrooms_groups()
+        if len(groups) < 2:
+            self.hide()
+            # self.inner_table = QLabel('Najpierw dodaj sale')
+            # self.outer_layout.insertWidget(0, self.inner_table)
+            return
+        self.show()
         self.inner_table.deleteLater()
         self.inner_table = QWidget(self)
         self.outer_layout.insertWidget(0, self.inner_table)
@@ -51,7 +58,6 @@ class DistanceTable(QWidget):
         inner_grid.setSpacing(0)
         inner_grid.setContentsMargins(0,0,0,0)
         self.inner_table.setLayout(inner_grid)
-        groups = self.db.all_classrooms_groups()
         inner_grid.addWidget(QLabel('Do', alignment=Qt.AlignmentFlag.AlignCenter), 0, 2, 1, len(groups))
         left_label = VerticalLabel('Od', Qt.AlignmentFlag.AlignCenter)
         inner_grid.addWidget(left_label, 2, 0, len(groups), 1)

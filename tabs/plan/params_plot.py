@@ -32,10 +32,13 @@ class ParamReport(QWidget):
         canvas = FigureWidget(self)
         self.plot_field.addWidget(canvas)
         self.selection.addItem('Parametry najlepszych rozwiązań')
-        canvas.ax.legend(param_names)
         for param in best_params:
             param = array(param)
-            canvas.ax.plot((param - param.min()) / (param.max() - param.min()))
+            if param.max()!=param.min():
+                canvas.ax.plot((param - param.min()) / (param.max() - param.min()))
+            else:
+                canvas.ax.plot(param)
+        canvas.ax.legend(param_names)
 
         # box plot for each param
         for name, param in zip(param_names, all_params):

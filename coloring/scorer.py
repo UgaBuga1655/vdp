@@ -36,6 +36,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         for subject in student.subjects:
             s.extend([l.id for l in subject.lessons])
         students.append(s)
+    print(teachers)
+    print(students)
 
     blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(LessonBlockDB)}
     pinned_lessons = {l.id: (l.block_id, l.classroom_id) for l in session.query(Lesson) if l.block and l.block_locked}
@@ -45,12 +47,12 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
     min_same_day_param = 0
     subjects = []
     for subject in session.query(Subject):
-        n_of_lessons = len(subject.lessons)
-        days_av = subject.teacher.days_available()
-        w = len(subject.students)
-        if n_of_lessons > days_av:
-            cost =  w * (n_of_lessons-days_av)
-            min_same_day_param += cost
+        # n_of_lessons = len(subject.lessons)
+        # days_av = subject.teacher.days_available()
+        # w = len(subject.students)
+        # if n_of_lessons > days_av:
+            # cost =  w * (n_of_lessons-days_av)
+            # min_same_day_param += cost
         lessons = []
         days = [[] for _ in range(5)]
         for lesson in subject.lessons:
@@ -59,7 +61,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 start = lesson.block.start
                 end = start + lesson.block.length
                 day = lesson.block.day
-                min_same_day_param += w * len(days[day])
+                # min_same_day_param += w * len(days[day])
                 days[day].append((start, end))
         subjects.append((lessons, days, subject.target_block_length))
 
@@ -143,6 +145,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                     continue
                 if len(day) == 1:
                     single_lessons += 1
+                day.sort(key=lambda les: les[0])
                 start, length, clrm = day[0]
                 for lesson in day[1:]:
                     next_start, next_length, next_clrm = lesson
@@ -190,7 +193,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 students_running_around += student_running/runs
 
 
-        return uncolored_lessons, lesson_distribution, single_lessons, int(students_running_around), int(teachers_running_around)
+        return uncolored_lessons, lesson_distribution, single_lessons, students_running_around, teachers_running_around
     
 
     return get_params

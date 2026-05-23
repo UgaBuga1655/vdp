@@ -86,7 +86,7 @@ class EditLessonBlockDialog(QDialog):
         del_btn.setFixedSize(20,20)
         self.main_grid.addWidget(del_btn, row, 0)
         label = QLabel(lesson.subject.get_name())
-        label.setToolTip(lesson.teacher.name)
+        label.setToolTip(lesson.teacher.name if lesson.teacher else '')
         self.main_grid.addWidget(label, row, 1)
         combobox = QComboBox()
         combobox.lesson = lesson

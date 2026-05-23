@@ -21,5 +21,6 @@ class ClassroomsWidget(QWidget):
         self.db = db
         self.distances.load_data(db)
         self.tree.load_data(db)
+        # self.tree.
 
 

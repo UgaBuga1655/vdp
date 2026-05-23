@@ -21,6 +21,7 @@ class ClassroomTreeWidget(QTreeWidget):
     def load_data(self, db=None):
         if db:
             self.db = db
+        self.clear()
         add_group_widget = QWidget(self)
         row = QHBoxLayout()
         add_group_widget.setLayout(row)

@@ -225,7 +225,6 @@ class ColoringThread(QThread):
         self.completed_generations += 1
         for process in self.processes:
             process.join()
-        print(len(self.population))
         rank(self.population, self.settings.scoring_weights, self.all_params)
         # log the best results
         self.goats.append(self.population[0])
@@ -236,7 +235,9 @@ class ColoringThread(QThread):
         duration = end - self.gen_start
         self.times.append(duration)
         print(f'Generation {self.completed_generations + self.starting_gen}: {duration:.2f}s')
-        self.update_bar.emit(f'Pokolenie {self.completed_generations + self.starting_gen} {self.population[0][-1]}')
+        displayed_params = [round(p, 2) for p in self.population[0][-1]]
+        self.update_bar.emit(f'Pokolenie {self.completed_generations + self.starting_gen} {displayed_params}')
+        # print(self.population[0][-1])
         self.increment_bar.emit(1)
         if self.completed_generations < self.settings.generations:
             self.do_next_generation()

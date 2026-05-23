@@ -23,7 +23,7 @@ class Tabs(QTabWidget):
         # self.addTab(self.subjects, 'Przedmioty')
         self.addTab(self.classes, 'Klasy')
         self.addTab(self.teachers, "Nauczyciele")
-        self.addTab(self.classrooms, 'Pomieszczenia')
+        self.addTab(self.classrooms, 'Sale')
         # self.currentChanged.connect(self.refresh)
 
         self.currentChanged.connect(self.on_tab_change)

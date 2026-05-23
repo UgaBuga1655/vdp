@@ -8,7 +8,7 @@ class Lesson(Base):
     subject_id = Column(Integer, ForeignKey('subjects.id'))
     block_id =  Column(Integer, ForeignKey('blocks.id'))
     classroom_id = Column(Integer, ForeignKey('classrooms.id'))
-    block_locked = Column(Boolean)
+    block_locked = Column(Boolean, default=False)
     classroom_locked = Column(Boolean)
 
     def name_and_time(self):
