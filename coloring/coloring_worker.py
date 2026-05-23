@@ -3,7 +3,7 @@ from .functions import mutate_batch
 from PyQt5.QtCore import QThread, pyqtSignal
 from networkx import Graph
 from itertools import combinations
-from data import Data, Class, LessonBlockDB, Subject, Lesson, Subclass, Classroom, Metadata, Results
+from data import *
 from time import perf_counter
 from .queue_listener import QueueListener
 from .functions import random_coloring, mutate_batch, legalize_batch
@@ -344,7 +344,7 @@ class ColoringThread(QThread):
                 # if block.day in [les.block.day for les in subject.lessons if les.block]:
                 #     continue
                 
-                many_blocks = [(block.id, cl_id) for cl_id in feasible_classrooms]
+                many_blocks = [(block.id, cl_id) for cl_id in feasible_classrooms if block.id not in forbidden_blocks[cl_id]]
                 # differing for lessons
                 for lesson in subject.lessons:
                     if lesson.block_locked:
@@ -354,8 +354,8 @@ class ColoringThread(QThread):
                         continue
                     # else block is feasible
                     for bl, cl in many_blocks:
-                        if bl not in forbidden_blocks[cl]:
-                            feasible_blocks[lesson.id].append((bl, cl))
+                        feasible_blocks[lesson.id].append((bl, cl))
+                        # if bl not in forbidden_blocks[cl]:
             for lesson in subject.lessons:
                 # if there is no possible blocks dont put it in graph
                 if len(feasible_blocks[lesson.id]) == 0:
@@ -400,12 +400,23 @@ class ColoringThread(QThread):
                     continue
                 graph.add_edge(b1.id, b2.id)
         classrooms = self.session.query(Classroom).all()
-        # WHY ARE BLOCKS FORBIDDEN? - to make sure that two lessons are not taking place at the same time and space
+        # classroom is occupied during that block
         forbidden_blocks = {cl.id: set() for cl in classrooms}
         for lesson in self.session.query(Lesson).filter(Lesson.classroom_id!= None).all():
             block = lesson.block_id
             forbidden_blocks[lesson.classroom_id].add(block)
             forbidden_blocks[lesson.classroom_id].update(graph[block])
+        for duty in self.session.query(TeacherDuty).filter(TeacherDuty.classroom_id!=None).all():
+            # get overlapping blocks
+            block: CustomBlock = duty.block
+            overlapping_blocks = self.session.query(LessonBlockDB).filter(LessonBlockDB.day==block.day) \
+                .filter(or_(
+                        LessonBlockDB.start.between(block.start, block.start+block.length),
+                        and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
+                    )).all()
+            for ov_bl in overlapping_blocks:
+                print(duty.classroom_id, ov_bl.id)
+                forbidden_blocks[duty.classroom_id].add(ov_bl.id)
         print('Naniesiono bloki zajęciowe')
         return graph, forbidden_blocks
 
