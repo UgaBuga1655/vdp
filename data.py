@@ -16,6 +16,8 @@ class Data(QObject):
     update_custom_block = pyqtSignal(CustomBlock)
     update_block = pyqtSignal(LessonBlockDB)
     redraw_plan = pyqtSignal()
+    teachers_changed = pyqtSignal()
+    classrooms_changed = pyqtSignal()
 
     def changes_les_g_or_feas(func):
         def my_inner(self: 'Data', *args, **kwargs):
@@ -77,6 +79,7 @@ class Data(QObject):
         try:
             self.session.add(teacher)
             self.session.commit()
+            self.teachers_changed.emit()
             return teacher
         except IntegrityError:
             self.session.rollback()
@@ -98,6 +101,7 @@ class Data(QObject):
     def update_teacher_name(self, t: Teacher, name):
         t.name = name
         self.session.commit()
+        self.teachers_changed.emit()
 
     def all_teachers(self):
         return self.session.query(Teacher).order_by(Teacher.name).all()
@@ -106,6 +110,7 @@ class Data(QObject):
     def delete_teacher(self, t):
         self.session.delete(t)
         self.session.commit()
+        self.teachers_changed.emit()
 
 
     # subclasses
@@ -581,6 +586,7 @@ class Data(QObject):
         classroom = Classroom(name=name, capacity=15, group=group)
         self.session.add(classroom)
         self.session.commit()
+        self.classrooms_changed.emit()
         return classroom
 
     def update_classroom_capacity(self, classroom: Classroom, capacity: int) -> None:
@@ -604,6 +610,7 @@ class Data(QObject):
         for duty in classroom.duties:
             if duty.block:
                 self.update_custom_block.emit(duty.block)
+        self.classrooms_changed.emit()
 
     def delete_classroom(self, classroom: Classroom) -> None:
         for lesson in classroom.lessons:
@@ -612,6 +619,8 @@ class Data(QObject):
             self.update_duty_classroom(duty, None)
         self.session.delete(classroom)
         self.session.commit()
+
+        self.classrooms_changed.emit()
 
     # CLASSROOM GROUPS
     def create_classroom_group(self, name):

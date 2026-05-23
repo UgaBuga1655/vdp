@@ -176,16 +176,36 @@ class FilterWidget(QWidget):
             self.student_list.addItem(student.name, student)
         self.student_list.blockSignals(False)
         self.update_filter()
+
+    def load_teachers(self):
+        curr = self.teacher_list.currentData()
+        self.teacher_list.blockSignals(True)
+        self.teacher_list.clear()
+        for i, teacher in enumerate(self.db.all_teachers()):
+            self.teacher_list.addItem(teacher.name, teacher)
+            if teacher == curr:
+                self.teacher_list.setCurrentIndex(i)
+        self.teacher_list.blockSignals(False)
+
+    def load_classrooms(self):
+        curr = self.classroom_list.currentData()
+        self.classroom_list.blockSignals(True)
+        self.classroom_list.clear()
+        for i, classroom in enumerate(self.db.all_classrooms()):
+            self.classroom_list.addItem(classroom.name, classroom)
+            if classroom == curr:
+                self.classroom_list.setCurrentIndex(i)
         
+        self.classroom_list.blockSignals(False)
 
     def load_data(self, db):
         self.student_list.blockSignals(True)
-        self.classroom_list.blockSignals(True)
-        self.teacher_list.blockSignals(True)
         self.student_class_selection.blockSignals(True)
 
         self.db = db
         self.classes = self.db.all_subclasses()
+        self.db.classrooms_changed.connect(self.load_classrooms)
+        self.db.teachers_changed.connect(self.load_teachers)
         
         unchecked_classes = []
         for widget in self.findChildren(QPushButton):
@@ -193,8 +213,6 @@ class FilterWidget(QWidget):
                 unchecked_classes.append(widget.text())
             widget.deleteLater()
         self.student_class_selection.clear()
-        self.teacher_list.clear()
-        self.classroom_list.clear()
 
         for index, my_class in enumerate(self.classes):
             self.student_class_selection.addItem(my_class.full_name(), my_class)
@@ -205,16 +223,9 @@ class FilterWidget(QWidget):
             button.clicked.connect(self.filter_btn_clicked)
             self.class_filter.layout().insertWidget(index, button)
 
-        for teacher in self.db.all_teachers():
-            self.teacher_list.addItem(teacher.name, teacher)
-
-        for classroom in self.db.all_classrooms():
-            self.classroom_list.addItem(classroom.name, classroom)
-
-
+        self.load_teachers()
+        self.load_classrooms()
         self.student_list.blockSignals(False)
-        self.classroom_list.blockSignals(False)
-        self.teacher_list.blockSignals(False)
         self.student_class_selection.blockSignals(False)
 
         self.load_students()
