@@ -104,6 +104,7 @@ def mutate_batch(params, queue, scorer, pop_size, cutoff, stop_event):
     for survivor in survivors:
         if stop_event.is_set():
             return
+        # children.append(survivor)
         for _ in range(num_of_children):
             children.append(mutate(les_g, bl_g, feas, *survivor[0], scorer))
     queue.put(('done', children))
@@ -197,7 +198,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
                 if color in rev_child:
                     uncolor(rev_child[color])
         # switch rooms
-        for _ in range(randint(5,10)):
+        for _ in range(randint(0,4)):
             lesson, color = choice(list(child.items()))
             block, classroom = color
             is_viable = viable_factory(lesson)
@@ -230,7 +231,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
 
         for lesson in to_remove:
             uncolor(lesson)
-            child.pop(lesson)
+            # child.pop(lesson)
         for lesson in to_uncolor:
             uncolor(lesson)
             is_viable = viable_factory(lesson)

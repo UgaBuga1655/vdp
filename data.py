@@ -708,14 +708,21 @@ class Data(QObject):
         if not session:
             session = self.session
         if not teacher:
-            return []
-        return self.session.query(Lesson).filter_by(block_locked=True)\
+            return 0
+        lesson_count = self.session.query(Lesson).filter_by(block_locked=True)\
                     .join(Lesson.subject).filter_by(teacher=teacher) \
                     .join(Lesson.block).filter(LessonBlockDB.day == block.day) \
                     .filter(or_(
                         LessonBlockDB.start.between(block.start, block.start+block.length), 
                         and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
-                    )).all()
+                    )).count()
+        duties_count = self.session.query(TeacherDuty).filter_by(teacher=teacher)\
+                    .join(TeacherDuty.block).filter(CustomBlock.day==block.day) \
+                    .filter(or_(
+                        CustomBlock.start.between(block.start, block.start+block.length), 
+                        and_(CustomBlock.start <= block.start, block.start <= CustomBlock.start+CustomBlock.length)
+                    )).count()
+        return lesson_count + duties_count
     
 
     # def get_duty_collisions_for_teacher_at_block(self, teacher: Teacher, block: LessonBlockDB|CustomBlock) -> List[TeacherDuty]:

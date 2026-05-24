@@ -332,7 +332,7 @@ class ColoringThread(QThread):
                     continue
 
                 # teacher is busy
-                if len(self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block, self.session)):
+                if self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block, self.session):
                     continue
 
                 # students are busy

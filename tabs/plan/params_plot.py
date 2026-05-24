@@ -51,9 +51,10 @@ class ParamReport(QWidget):
         canvas.ax.set_title('Czas trwania każdego pokolenia [s]')
 
         # box plot for each param
-        for name, param in zip(param_names, all_params):
+        for name, param, best_param in zip(param_names, all_params, best_params):
             canvas = FigureWidget(self)
             canvas.ax.boxplot(param)
+            canvas.ax.plot(best_param)
             canvas.ax.set_title(name)
             self.plot_field.addWidget(canvas)
             self.selection.addItem(name)
