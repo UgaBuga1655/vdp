@@ -168,7 +168,6 @@ class MainWindow(QMainWindow):
         self.tabs.refresh()
 
     def color_lessons(self):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.tabs.plan.color()
         # self.tabs.refresh()
         QApplication.restoreOverrideCursor()

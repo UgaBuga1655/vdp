@@ -1009,6 +1009,9 @@ class Data(QObject):
     def stats(self):
         return self.session.query().with_entities(Results.stats).first()
     
+    def pop_exists(self) -> bool:
+        return len(self.stats()) != 0
+    
     def save_results(self, best_result, population, bl_g,for_bl, les_g, feas, best_params, all_params, stats):
         stat_size = self.settings().stat_size
         if stat_size < len(all_params[0]):
@@ -1027,6 +1030,12 @@ class Data(QObject):
             all_params=all_params,
             stats=stats
             )
+        self.session.commit()
+
+    def forget_results(self):
+        for res in self.session.query(Results).all():
+            self.session.delete(res)
+        self.session.add(Results())
         self.session.commit()
 
     def clear_les_g_and_feas(self):

@@ -20,6 +20,7 @@ class ProgressDialog(QDialog):
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
 
     def set_label(self, label):
+        self.show()
         self.label.setText(label)
 
     def set_total(self, total):

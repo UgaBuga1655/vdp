@@ -46,7 +46,7 @@ class Metadata(Base):
 
     stat_names = Column(PickleType, default=['Czas pokolenia'])
     max_break = Column(Integer, default=4)
-    preserve_population = Column(Boolean, default=False)
+    # preserve_population = Column(Boolean, default=False)
 
     symmetrical_distances = Column(Boolean, default=False)
 

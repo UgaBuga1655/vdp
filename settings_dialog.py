@@ -33,10 +33,10 @@ class SettingsDialog(QWidget):
         pop_size_spin.valueChanged.connect(self.update_pop_size)
         main_layout.addLayout(pop_size)
 
-        # preserve popualtion
-        self.preserve_population = QCheckBox('Użyj ostatniej populacji')
-        self.preserve_population.setChecked(self.settings.preserve_population)
-        main_layout.addWidget(self.preserve_population)
+        # # preserve popualtion
+        # self.preserve_population = QCheckBox('Użyj ostatniej populacji')
+        # self.preserve_population.setChecked(self.settings.preserve_population)
+        # main_layout.addWidget(self.preserve_population)
         
         # generations
         generations = QHBoxLayout()

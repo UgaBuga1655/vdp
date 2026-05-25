@@ -21,36 +21,33 @@ class ColoringThread(QThread):
     stopped = pyqtSignal()
     
 
-    def __init__(self, db: Data):
+    def __init__(self, db: Data, mode):
         super().__init__()
         self.db = db
         self.session = self.db.get_scoped_session()
         self.processes = []
+        self.mode = mode
 
 
 
     def run(self): 
         self.settings = self.session.query(Metadata).first()
-        self.bl_g, self.for_bl = None, None
-        self.les_g, self.feas = None, None
+        # self.bl_g, self.for_bl = None, None
+        # self.les_g, self.feas = None, None
         self.recent_pop = []
         self.all_params, self.best_params = None, None
         self.stop_event = mp.Event()
         self.listener = None
+        self.population = []
 
-        # pick up when we've finished
-        if self.settings.preserve_population:
-            last_result = self.session.query(Results).first()
-            self.bl_g = last_result.bl_g
-            self.for_bl = last_result.for_bl
-            self.les_g = last_result.les_g
-            self.feas = last_result.feas
-            self.recent_pop = last_result.population
-            self.all_params = [p[:-1] for p in last_result.all_params]
-            self.best_params = [p[:-1] for p in last_result.best_params]
-            self.times = last_result.stats[0]
 
-        # create from scratch if not loaded
+        last_result = self.session.query(Results).first()
+        self.bl_g = last_result.bl_g
+        self.for_bl = last_result.for_bl
+        self.les_g = last_result.les_g
+        self.feas = last_result.feas
+
+        # create new graphs if haven't already or were deleted
         needs_legalisation = False
         if self.bl_g is None or self.for_bl is None:
             self.bl_g, self.for_bl = self.generate_block_graph()
@@ -60,17 +57,28 @@ class ColoringThread(QThread):
             if self.les_g is None:
                 return
             needs_legalisation = True
-        print(f'needs legalisation: {needs_legalisation}')
-        self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
-        self.population = []
 
-        if not len(self.recent_pop):
-            self.generate_random_pop()
-        elif needs_legalisation:
-            self.legalize()
+        self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
+
+        self.pop_start_time = perf_counter()
+        # pick up when we've finished
+        if self.mode == 'continue':
+            self.recent_pop = last_result.population
+            self.all_params = [p[:-1] for p in last_result.all_params]
+            self.best_params = [p[:-1] for p in last_result.best_params]
+            self.times = last_result.stats[0]
+        
+            
+            print(f'needs legalisation: {needs_legalisation}')
+            if needs_legalisation:
+                self.legalize()
+            else:
+                print('not legalising, use last results')
+                self.population = self.recent_pop.copy()
+                self.generate_random_pop()
+        elif self.mode == 'edit_current':
+            self.generate_pop_from_curent_plan()
         else:
-            print('not legalising, use last results')
-            self.population = self.recent_pop.copy()
             self.generate_random_pop()
 
     def stop(self):
@@ -120,7 +128,6 @@ class ColoringThread(QThread):
         # print(len(self.population))
         for p in self.processes:
             p.join()
-        self.pop_start_time = perf_counter()
 
         target_pop_size = int(self.settings.pop_size)
         remaining_pop_size = target_pop_size - len(self.population)
@@ -150,6 +157,31 @@ class ColoringThread(QThread):
             self.listener.signals.finished.connect(self.finished_pop)
             self.listener.start()
         
+    def generate_pop_from_curent_plan(self):
+        colored = dict()
+        rev_color = dict()
+        uncolored = []
+        for lesson in self.session.query(Lesson).all():
+            if lesson.block_locked or lesson.id not in self.les_g:
+                continue
+
+            if lesson.block_id:
+                color = (lesson.block_id, lesson.classroom_id)
+                colored[lesson.id] = color
+                rev_color[color] = lesson.id
+            else:
+                uncolored.append(lesson.id)
+        params = self.scorer(colored, rev_color, uncolored)
+        self.update_bar.emit('Ładowanie planu')
+        self.update_bar_total.emit(self.settings.pop_size)
+        for _ in range(self.settings.pop_size):
+            self.population.append(
+                ((colored.copy(), rev_color.copy(), uncolored.copy()),
+                params)
+            )
+            self.increment_bar.emit(1)
+        self.finished_pop()
+
 
     def add_to_population(self, data):
         self.population.extend(data)
@@ -180,6 +212,7 @@ class ColoringThread(QThread):
         else:
             for old_params, new_param in zip(self.best_params, self.population[0][-1]):
                 old_params.append(new_param)
+        
         self.starting_gen = len(self.best_params[0])-1
 
         self.update_bar.emit(f'Pokolenie {self.starting_gen} {self.population[0][-1]}')

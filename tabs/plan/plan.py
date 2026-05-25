@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from PyQt5.QtPrintSupport import QPrinter
 from progress_dialog import ProgressDialog
 from .params_plot import ParamReport
+from .pop_dialog import PopDialog
         
 
 class PlanWidget(QWidget):
@@ -302,12 +303,17 @@ class PlanWidget(QWidget):
         # QApplication.setOverrideCursor(Qt.WaitCursor)
         # self.db.blockSignals(True)
         # self.db.clear_all_lesson_blocks(leave_locked=True)
+        self.pop_dlg = PopDialog(self)
+        if not self.pop_dlg.exec():
+            return
+        mode = self.pop_dlg.choice.currentData()
+
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.bar = ProgressDialog('Uzupełnianie planu zajęć', 0)
-        self.bar.show()
         # session = self.db.get_scoped_session()
         # les_g, _ , feas = generate_lesson_graph(self.db, session)
         # bl_g = generate_block_graph(self.db, session)
-        self.coloring_thread = ColoringThread(self.db)
+        self.coloring_thread = ColoringThread(self.db, mode)
         self.bar.finished.connect(self.coloring_thread.stop)
         self.coloring_thread.update_bar.connect(self.update_bar)
         self.coloring_thread.update_bar_total.connect(self.bar.set_total)
@@ -315,6 +321,7 @@ class PlanWidget(QWidget):
         # self.thread.next_generation.connect(self.update_bar)
         self.coloring_thread.finished.connect(self.show_solution)
         self.coloring_thread.start()
+        # self.bar.show()
 
 
     def update_bar(self, label):
@@ -325,44 +332,23 @@ class PlanWidget(QWidget):
 
 
     def show_solution(self, c, results): 
-        # for lesson, color in c.items():
-            # block_id, classroom_id = color
-            # self.db
-            # self.db.place_lesson_id_mode(lesson, block_id, classroom_id, lock=False)
         self.bar = None
         # self.db.update_settings(best_params=best_params, all_params=all_params)
+        # if self.db.settings().preserve_population:
+        self.db.save_results(*results)
         self.db.save_solution(c)
         self.redraw()
-        self.db.save_results(*results)
         if self.db.settings().verbose:
             self.show_params_plot()
     
     def show_params_plot(self):
+        if not len(self.db.last_params()[0]):
+            QMessageBox.info(self, 'Brak danych', 'Brak parametrów do pokazania.')
+            return
         self.param_plot = ParamReport(self)
         self.param_plot.show()
-        return
-        all_params, best_params = self.db.last_params()
-        if all_params is None or best_params is None:
-            QMessageBox.information(self, 'Uwaga', 'Brak danych do pokazania.')
-            return
-        plt.subplot(2, 1, 2)
-        for param in best_params:
-            plt.plot(param)
-        param_names = self.db.settings().scoring_names
-        plt.legend(param_names)
-        for n, param in enumerate(all_params):
-            plt.subplot(2, len(all_params), n+1)
-            plt.boxplot(param)
-            plt.title(param_names[n])
-        plt.show()
-
-
 
         
-        
-
-
-
     def clear_blocks(self):
         self.db.clear_all_lesson_blocks()
         # self.view.draw()

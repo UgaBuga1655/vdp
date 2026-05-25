@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QTabWidget, QStackedWidget, QVBoxLayout, QComboBox
+from PyQt5.QtCore import Qt
 from data import Data
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -14,6 +15,7 @@ class FigureWidget(FigureCanvas):
 class ParamReport(QWidget):
     def __init__(self, parent = ..., flags = ...):
         super().__init__()
+        self.setWindowFlag(Qt.Tool)
         self.db: Data = parent.db
         main_layout = QVBoxLayout(self)
 
@@ -54,7 +56,7 @@ class ParamReport(QWidget):
         for name, param, best_param in zip(param_names, all_params, best_params):
             canvas = FigureWidget(self)
             canvas.ax.boxplot(param)
-            canvas.ax.plot(best_param)
+            canvas.ax.plot(range(1, len(best_param)+1), best_param)
             canvas.ax.set_title(name)
             self.plot_field.addWidget(canvas)
             self.selection.addItem(name)
