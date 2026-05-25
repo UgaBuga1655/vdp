@@ -37,11 +37,18 @@ class Metadata(Base):
     generations = Column(Integer, default=30)
     cutoff = Column(Double, default=0.25)
 
-    scoring_names = Column(PickleType, default=
-        ['Nieprzypisane lekcje', 'Rozłożenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów', 'Bieganie nauczycieli', 'Rozłożenie uczniow']
+    scoring_names = Column(PickleType, default= [
+        'Nieprzypisane lekcje', 
+        'Rozłożenie lekcji w tygodniu', 
+        'Pojedyncze lekcje nauczyciela', 
+        'Bieganie uczniów', 
+        'Bieganie nauczycieli', 
+        'Rozłożenie uczniow',
+        'Średni czas PW'
+        ]
     )
     scoring_weights = Column(PickleType, default=
-        [6, 5, 2, 2, 3, 4]
+        [6, 5, 2, 2, 3, 4, 3]
     )
 
     stat_names = Column(PickleType, default=['Czas pokolenia'])

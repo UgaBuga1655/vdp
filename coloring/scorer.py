@@ -74,7 +74,6 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         lesson_distribution = 0
         distributions = np.zeros((5, 12*8), np.int16)
         # multiple lessons on the same day
-        # same_day = -min_same_day_param
         for subject in subjects:
             lessons, days, target_bl_len = subject
             days = [day.copy() for day in days]
@@ -89,14 +88,15 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 day, start, length = blocks[bl_id]
 
                 distributions[day, start:start+length] += get_weight(lesson)
-                if target_bl_len == 1:
-                    lesson_distribution += weight * len(days[day])
+                # if target_bl_len == 1:
+                #     lesson_distribution += weight * len(days[day])
                 days[day].append((start, length+start))
 
-            if target_bl_len < 2:
-                continue
+            # if target_bl_len < 2:
+            #     continue
             # number of lessons not placeable in blocks
-            cost = - (len(lessons)%target_bl_len)
+            # cost = - (len(lessons)%target_bl_len)
+            # cost = 0
             
             for day in days:
                 if not len(day):
@@ -105,23 +105,23 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 lesson_groupings = []
                 day.sort(key= lambda x: x[0])
                 block_end = day[0][1]
-                group_length = 1
+                grouping_length = 1
                 for block in day[1:]:
                     if block[0] > block_end + MAX_BREAK:
-                        lesson_groupings.append(group_length)
+                        lesson_groupings.append(grouping_length)
                     else:
-                        group_length += 1
+                        grouping_length += 1
                     block_end = block[1]
-                lesson_groupings.append(group_length)
-                d_cost = sum(lesson_groupings)
+                lesson_groupings.append(grouping_length)
+                d_cost = len(day)
                 if target_bl_len in lesson_groupings or target_bl_len<max(lesson_groupings):
                     d_cost -= target_bl_len
-                cost += d_cost * (d_cost+1) // 2
+                lesson_distribution += d_cost * (d_cost+1) // 2
                 
 
             # add cost
-            if cost > 0:
-                lesson_distribution += cost
+            # if cost > 0:
+                # lesson_distribution += cost
 
         # teacher
         single_lessons = 0
@@ -164,6 +164,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         
         # students
         students_running_around = 0
+        avg_PW_time = 0
         for student in students:
             days = [[] for _ in range(5)]
             for lesson in student:
@@ -177,6 +178,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 days[day].append((start, length, clrm))
 
             student_running = 0
+            student_PW = 0
+            n_of_PW = 0
             runs = 0
             for i, day in enumerate(days):
                 if not len(day):
@@ -184,6 +187,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 day.sort(key=lambda les: les[0])
                 
                 start, length, clrm = day[0]
+                student_PW += start
+                n_of_PW += 1
                 # for five_min_block in range(length):
                 #     distributions[i][start + five_min_block] += 1
                 for lesson in day[1:]:
@@ -191,15 +196,19 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                     break_length = next_start - (start + length)
                     # print(break_length)
                     if break_length > MAX_BREAK:
-                        continue
-                    runs += 1
-                    student_running += get_distance(clrm, next_clrm)/break_length
+                        n_of_PW += 1
+                        student_PW += break_length
+                    else:
+                        runs += 1
+                        student_running += get_distance(clrm, next_clrm)/break_length
                     start, length, clrm = next_start, next_length, next_clrm
                     # distributions[i, start:start+length] += 1
                     # for five_min_block in range(length):
                         # distributions[i][start + five_min_block] += 1
             if runs:
                 students_running_around += student_running/runs
+            if n_of_PW:
+                avg_PW_time += student_PW/n_of_PW
         
         student_distribution = 0
         STUDENTS_BUSY_TARGET = len(students)//2
@@ -214,7 +223,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
             single_lessons,
             students_running_around,
             teachers_running_around,
-            student_distribution
+            student_distribution,
+            -avg_PW_time
         ]
 
         return params
