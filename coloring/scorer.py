@@ -72,6 +72,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         else:
             uncolored_lessons = 0
         lesson_distribution = 0
+        distributions = np.zeros((5, 12*8), np.int16)
         # multiple lessons on the same day
         # same_day = -min_same_day_param
         for subject in subjects:
@@ -86,6 +87,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                     continue
                 bl_id = color[lesson][0]
                 day, start, length = blocks[bl_id]
+
+                distributions[day, start:start+length] += get_weight(lesson)
                 if target_bl_len == 1:
                     lesson_distribution += weight * len(days[day])
                 days[day].append((start, length+start))
@@ -159,7 +162,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
             if runs:
                 teachers_running_around += teacher_running/runs
         
-        # students running around
+        # students
         students_running_around = 0
         for student in students:
             days = [[] for _ in range(5)]
@@ -175,11 +178,14 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
 
             student_running = 0
             runs = 0
-            for day in days:
+            for i, day in enumerate(days):
                 if not len(day):
                     continue
                 day.sort(key=lambda les: les[0])
+                
                 start, length, clrm = day[0]
+                # for five_min_block in range(length):
+                #     distributions[i][start + five_min_block] += 1
                 for lesson in day[1:]:
                     next_start, next_length, next_clrm = lesson
                     break_length = next_start - (start + length)
@@ -189,11 +195,29 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                     runs += 1
                     student_running += get_distance(clrm, next_clrm)/break_length
                     start, length, clrm = next_start, next_length, next_clrm
+                    # distributions[i, start:start+length] += 1
+                    # for five_min_block in range(length):
+                        # distributions[i][start + five_min_block] += 1
             if runs:
                 students_running_around += student_running/runs
+        
+        student_distribution = 0
+        STUDENTS_BUSY_TARGET = len(students)//2
+        for day in distributions:
+            for n_of_students in day:
+                if 0 < n_of_students < STUDENTS_BUSY_TARGET:
+                    student_distribution += STUDENTS_BUSY_TARGET - n_of_students
 
+        params = [
+            uncolored_lessons,
+            lesson_distribution,
+            single_lessons,
+            students_running_around,
+            teachers_running_around,
+            student_distribution
+        ]
 
-        return uncolored_lessons, lesson_distribution, single_lessons, students_running_around, teachers_running_around
+        return params
     
 
     return get_params

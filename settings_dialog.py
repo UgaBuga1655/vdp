@@ -126,7 +126,7 @@ class SettingsDialog(QWidget):
             cutoff=self.cutoff,
             scoring_weights=self.params.copy(),
             max_break=self.max_break,
-            preserve_population=self.preserve_population.isChecked(),
+            # preserve_population=self.preserve_population.isChecked(),
             stat_size=self.stat_size.value()
         )
         self.close()
