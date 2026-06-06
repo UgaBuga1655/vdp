@@ -703,7 +703,7 @@ class Data(QObject):
  
 
    
-    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: Block|CustomBlock, session=None) -> List[Lesson]:
+    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: Block, session=None) -> List[Lesson]:
         if not session:
             session = self.session
         if not teacher:
@@ -716,10 +716,10 @@ class Data(QObject):
                         and_(Block.start <= block.start, block.start <= Block.start+Block.length)
                     )).count()
         duties_count = self.session.query(TeacherDuty).filter_by(teacher=teacher)\
-                    .join(TeacherDuty.block).filter(CustomBlock.day==block.day) \
+                    .join(TeacherDuty.block).filter(Block.day==block.day) \
                     .filter(or_(
-                        CustomBlock.start.between(block.start, block.start+block.length), 
-                        and_(CustomBlock.start <= block.start, block.start <= CustomBlock.start+CustomBlock.length)
+                        Block.start.between(block.start, block.start+block.length), 
+                        and_(Block.start <= block.start, block.start <= Block.start+Block.length)
                     )).count()
         return lesson_count + duties_count
     

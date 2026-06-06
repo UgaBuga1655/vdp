@@ -358,9 +358,12 @@ class ColoringThread(QThread):
                     continue
 
                 # block is in the wrong class
-                possible_sub_classes = [block.parent()]
-                if isinstance(possible_sub_classes[0], Class):
-                    possible_sub_classes.extend(block.parent().subclasses)
+                if isinstance(block, LessonBlockDB):
+                    possible_sub_classes = [block.parent()]
+                    if isinstance(possible_sub_classes[0], Class):
+                        possible_sub_classes.extend(block.parent().subclasses)
+                else:
+                    possible_sub_classes = block.subclasses
                 if subject.parent() not in possible_sub_classes:
                     continue
 
