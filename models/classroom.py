@@ -1,7 +1,7 @@
 from turtle import back
 
 from db_config import Base
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, CheckConstraint
 from sqlalchemy.orm import relationship
 
 class Classroom(Base):
@@ -12,7 +12,7 @@ class Classroom(Base):
     subjects = relationship("Subject", backref="required_classroom")
     lessons = relationship("Lesson", backref='classroom')
     duties = relationship('TeacherDuty', back_populates='classroom')
-    allow_lessons = Column(Boolean, default=True)
+    allow_lessons = Column(String, default='all') # 'all' / 'selected' / 'none'
 
     group_id = Column(Integer, ForeignKey('classroom_groups.id'))
     group = relationship('ClassroomGroup', back_populates='classrooms')

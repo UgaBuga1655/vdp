@@ -339,7 +339,7 @@ class ColoringThread(QThread):
         self.update_bar.emit('Generowanie grafu lekcji')
         lesson_count = self.session.query(Lesson).count()
         self.update_bar_total.emit(lesson_count)
-        classrooms = self.session.query(Classroom).filter_by(allow_lessons=True).all()
+        classrooms = self.session.query(Classroom).filter(Classroom.allow_lessons=='all').all()
         blocks = self.session.query(LessonBlockDB).all()
         for subject in self.session.query(Subject).all():
             if self.stop_event.is_set():
@@ -448,7 +448,6 @@ class ColoringThread(QThread):
                         and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
                     )).all()
             for ov_bl in overlapping_blocks:
-                print(duty.classroom_id, ov_bl.id)
                 forbidden_blocks[duty.classroom_id].add(ov_bl.id)
         print('Naniesiono bloki zajęciowe')
         return graph, forbidden_blocks

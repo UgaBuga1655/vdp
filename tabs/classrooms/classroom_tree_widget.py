@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QPushButton, QLineEdit, QWidget, QHBoxLayout,\
-      QSpinBox, QCheckBox, QMessageBox
+      QSpinBox, QCheckBox, QMessageBox, QComboBox, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal
 from data import Data, Classroom
 
@@ -170,10 +170,16 @@ class ClassroomTreeWidget(QTreeWidget):
         capacity.valueChanged.connect(self.set_capacity(classroom))
         row.addWidget(capacity)
 
-        allow_lessons = QCheckBox('Przypisuj lekcje', classroom_widget)
-        allow_lessons.setChecked(classroom.allow_lessons)
-        allow_lessons.toggled.connect(self.set_allow_lessons(classroom))
-        row.addWidget(allow_lessons)
+        row.addWidget(QLabel('Lekcje:'))
+        self.allow_lessons = QComboBox(classroom_widget)
+
+        self.allow_lessons.addItem('Wszystkie', 'all')
+        self.allow_lessons.addItem('Przypisane', 'selected')
+        self.allow_lessons.addItem('Żadne', 'none')
+        index = ['all', 'selected', 'none'].index(classroom.allow_lessons)
+        self.allow_lessons.setCurrentIndex(index)
+        self.allow_lessons.currentIndexChanged.connect(self.set_allow_lessons(classroom))
+        row.addWidget(self.allow_lessons)
 
         del_btn = QPushButton('X', classroom_widget)
         del_btn.setMaximumWidth(20)
@@ -204,7 +210,8 @@ class ClassroomTreeWidget(QTreeWidget):
         return func
 
     def set_allow_lessons(self, classroom):
-        def func(allow):
+        def func():
+            allow = self.allow_lessons.currentData()
             self.db.update_classroom_allow_lessons(classroom, allow)
         return func
     
