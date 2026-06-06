@@ -3,9 +3,10 @@ from PyQt5.QtGui import QColor, QBrush, QPen
 from PyQt5.QtCore import Qt, QRectF, QObject, pyqtSignal
 from models import Block
 from .block import BasicBlock
-from .manage_classrooms_dialog import EditLessonBlockDialog
+from .edit_lesson_block_dialog import EditLessonBlockDialog
 from functions import contrast_ratio
 from db_config import settings
+from data import TeacherDuty, Lesson
 
 class BlockSignaler(QObject):
     block_moved = pyqtSignal(Block, int)
@@ -25,16 +26,16 @@ class LessonBlock(BasicBlock):
             source = settings.move_lessons_from
         if settings.swap_lessons_from:
             source = settings.swap_lessons_from
-        # print('clicked')
         if source:
             source_block = source.block
             if (source_block.class_ == self.block.class_ and source_block.class_\
               or source_block.subclass == self.block.subclass and source_block.subclass) \
               and source_block.length == self.block.length:
                 if settings.move_lessons_from:
-                    lessons = source_block.events.copy()
-                    for lesson in lessons:
-                        self.db.add_lesson_to_block(lesson, self.block, lesson.block_locked)
+                    events = source_block.events.copy()
+                    for event in events:
+                        if isinstance(event, Lesson):
+                            self.db.add_lesson_to_block(event, self.block, event.block_locked)
                 else:
                     self.db.swap_lessons(self.block, source.block)
 
@@ -89,7 +90,7 @@ class LessonBlock(BasicBlock):
         EditLessonBlockDialog(self).exec()
 
     def delete(self):
-        if len(self.block.lessons):
+        if len(self.block.events):
             if QMessageBox.question(
                 None, 
                 'Usuwanie',
@@ -114,7 +115,7 @@ class LessonBlock(BasicBlock):
             return super().paint(painter, option)
         
         painter.setPen(QPen(Qt.NoPen))
-        rects, buckets, colors = self.get_rects()
+        rects, buckets, colors, _= self.get_rects()
         for rect, color in zip(rects, colors):
             if not color:
                 continue
@@ -125,15 +126,27 @@ class LessonBlock(BasicBlock):
         super().paint(painter, option)
 
     def get_rects(self):
-        lessons = list(filter(self.filter, self.block.events))
-        if self.db.settings().hide_empty_blocks and not len(lessons):
+        events = list(filter(self.filter, self.block.events))
+        if self.db.settings().hide_empty_blocks and not len(events):
             self.hide()
         show_full_subject_names = False
         rect = self.rect().adjusted(0.5,0,-0.5,0)
-        if self.block.class_ \
-          and not len([l for l in lessons if not l.subject.class_ is None]):
+        # split the rect
+        duties = []
+        lessons = []
+        # only consider splitting if block is assigned to a full class
+        split_the_rect = self.block.class_ is not None
+        for event in events:
+            if isinstance(event, TeacherDuty):
+                duties.append(event)
+            elif isinstance(event, Lesson):
+                lessons.append(event)
+                if event.subject.class_:
+                    split_the_rect = False
+        if len(lessons) == 0:
+            split_the_rect = False
+        if split_the_rect:
             rects = []
-
             buckets = {sub_class:[] for sub_class in self.block.class_.subclasses if sub_class in self.visible_classes}
             for lesson in lessons:
                 buckets[lesson.subject.parent()].append(lesson)
@@ -156,28 +169,33 @@ class LessonBlock(BasicBlock):
             buckets = {self.block.subclass: lessons}
             show_full_subject_names = True
         final_colors = []
-        for rect, subclass, lessons in zip(rects, buckets.keys(), buckets.values()):
-            if self.db.settings().hide_empty_blocks and not len(lessons):
-                final_colors.append(None)
-                continue
+        for rect, subclass, events in zip(rects, buckets.keys(), buckets.values()):
+            if self.db.settings().hide_empty_blocks and not len(events):
+                final_colors.append(QColor(self.block.color))
             # subclass, lessons = bucket
-            colors = list(set([lesson.subject.color for lesson in lessons]))
-            color = colors[0] if len(colors) == 1 else '#c0c0c0'
+            colors = list(set([lesson.subject.color for lesson in events if isinstance(lesson, Lesson)]))
+            if len(colors) == 0:
+                color = self.block.color
+            elif len(colors) == 1:
+                color = colors[0]
+            else:
+                color =  '#c0c0c0'
             color = QColor(color)
             color.setAlpha(self.db.settings().alpha)
             final_colors.append(color)
-        return rects, buckets, final_colors
+        return rects, buckets, final_colors, duties
 
        
     def write(self, specify_class=False):
+        # print(f'writing: {self.block}')
         n=0
-        rects, buckets, colors = self.get_rects()
+        rects, buckets, colors, duties = self.get_rects()
         if not rects:
             return
         for i in range(5):
             self.__getattribute__(f'text_item{i}').setHtml('')
         for rect, subclass, lessons, color in zip(rects, buckets.keys(), buckets.values(), colors):
-            if self.db.settings().hide_empty_blocks and not len(lessons):
+            if self.db.settings().hide_empty_blocks and not len(duties) and not len(lessons):
                 continue
 
             rect = self.mapRectToScene(rect)
@@ -205,7 +223,7 @@ class LessonBlock(BasicBlock):
             if self.db.settings().draw_blocks_full_width:
                 specify_class = True
             specify_subclass = len([l for l in lessons if not l.subject.basic]) or specify_class
-            text_item.write_lessons(lessons, self.block.start, self.block.length, specify_class, specify_subclass)
+            text_item.write_lessons(lessons, self.block, specify_class, specify_subclass)
             # recenter
             text_item.setZValue(self.zValue()+0.2)
             text_item.setPos(rect.center().x() - text_item.boundingRect().width()/2,\

@@ -24,6 +24,10 @@ class Lesson(Event):
     def teacher(self):
         return self.subject.teacher
     
+    @property
+    def students(self):
+        return self.subject.students
+    
     def collision_text(self):
         return f'{self.teacher.name} prowadzi {self.name_and_time()}'
 

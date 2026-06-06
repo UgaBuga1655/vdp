@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextOption, QFont, QTextCursor, QTextCharFormat
 from functions import display_hour
 from typing import List
-from data import Lesson, Metadata
+from data import Lesson, Metadata, TeacherDuty
 # from db_config import settings
 
 
@@ -116,8 +116,8 @@ class BlockText(QGraphicsTextItem):
     def set_custom_text(self, text):
         self.setHtml(text)
 
-    def write_lessons(self, lessons, start, length, show_class, show_subclass):
-        time = f'{display_hour(start)}-{display_hour(start+length)}'
+    def write_lessons(self, lessons, block, show_class, show_subclass):
+        time = f'{display_hour(block.start)}-{display_hour(block.start+block.length)}'
         if len(lessons):
             export_mode = self.db.settings().export_mode
             lines = []
@@ -141,8 +141,15 @@ class BlockText(QGraphicsTextItem):
             self.shrink()
             self.setHtml('<br>'.join(lines))
         else:
-            self.setHtml(time)
-            self.shrink(12)
+            lines = []
+            if block.text:
+                lines.append(block.text)
+            lines.append(time)
+            classrooms = '/'.join([l.classroom.name if l.classroom else '_'for l in block.events if isinstance(l, TeacherDuty)])
+            if classrooms:
+                lines.append(classrooms)
+            self.setHtml('<br>'.join(lines))
+            self.shrink()
         
 
 

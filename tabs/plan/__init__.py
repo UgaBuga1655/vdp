@@ -5,3 +5,5 @@ from .custom_block import *
 from .lesson_block import *
 from .plan_view import *
 from .plan import *
+from .edit_lesson_block_dialog import *
+from .edit_custom_block_dialog import *

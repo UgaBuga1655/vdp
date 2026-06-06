@@ -20,3 +20,7 @@ class Event(Base):
         "polymorphic_on": type,
         "polymorphic_identity": "event",
     }
+
+    @property
+    def students(self):
+        return []

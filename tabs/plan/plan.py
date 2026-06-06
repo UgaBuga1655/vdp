@@ -115,7 +115,7 @@ class PlanWidget(QWidget):
         self.view.load_data(self.db)
         self.view.set_classes(self.db.all_subclasses())
         self.db.update_block.connect(self.view.redraw_block)
-        self.db.update_custom_block.connect(self.view.redraw_block)
+        # self.db.update_custom_block.connect(self.view.redraw_block)
         self.db.redraw_plan.connect(self.stage_redraw)
 
     def stage_redraw(self):

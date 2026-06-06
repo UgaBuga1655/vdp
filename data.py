@@ -13,7 +13,6 @@ from itertools import combinations
 
 
 class Data(QObject):
-    update_custom_block = pyqtSignal(CustomBlock)
     update_block = pyqtSignal(Block)
     redraw_plan = pyqtSignal()
     teachers_changed = pyqtSignal()
@@ -520,9 +519,9 @@ class Data(QObject):
         #     self.update_block.emit(old_block)
 
     def swap_lessons(self, source:Block, block:Block):
-        source.lessons, block.lessons = block.lessons, source.lessons
+        source.events, block.events = block.events, source.events
         lesson: Lesson
-        for lesson in source.lessons + block.lessons:
+        for lesson in source.events + block.events:
             if lesson.block_locked:
                 self.clear_les_g_and_feas()
                 break
@@ -554,13 +553,13 @@ class Data(QObject):
         block.color = color
         self.session.commit()
         if block:
-            self.update_custom_block.emit(block)
+            self.update_block.emit(block)
 
     def update_custom_block_text(self, block: CustomBlock, text):
         block.text = text
         self.session.commit()
         if block:
-            self.update_custom_block.emit(block)
+            self.update_block.emit(block)
 
     def delete_unplaceable_custom_blocks(self):
         for custom_block in self.all_custom_blocks():
@@ -891,18 +890,15 @@ class Data(QObject):
 
         events = block.events
         for event in events:
-            if is_lesson_block:
-                teacher = event.subject.teacher  
-                students = set(event.subject.students)
+            teacher = event.teacher  
+            students = set(event.students)
+            if isinstance(event, Lesson):
                 required_classroom = event.subject.required_classroom
                 if required_classroom and event.classroom and event.classroom != required_classroom:
                     collisions[None].append(([
                         f'{event.get_name()} musi odbywać się w {required_classroom.name}',
                         ''
                     ]))
-            else:
-                teacher = event.teacher
-                students = set()
 
             if teacher and not self.is_teacher_available(teacher, block):
                 collisions[None].append((
@@ -910,12 +906,12 @@ class Data(QObject):
                     ''
                 ))
 
-            col_les: Lesson
+            col_les: Event
             for col_les in colliding_lessons:
                 if col_les == event:
                     continue
                 # teachers
-                if teacher and col_les.subject.teacher == teacher:
+                if teacher and col_les.teacher == teacher:
                     collisions[col_les.block].append((
                         f'{event.get_name()}: {teacher.name} prowadzi {col_les.name_and_time()}',
                         f'{col_les.get_name()}: {teacher.name} prowadzi {event.name_and_time()}'\
@@ -931,10 +927,10 @@ class Data(QObject):
                         f'{col_les.get_name()}: {event.collision_text()}',
                     ))
                 # students
-                # don't bother when classes are different
-                if not is_lesson_block or col_les.subject.absolute_class() != event.subject.absolute_class():
-                    continue
-                if len(students.intersection(col_les.subject.students)):
+                # # don't bother when classes are different
+                # if not is_lesson_block or col_les.subject.absolute_class() != event.subject.absolute_class():
+                #     continue
+                if len(students.intersection(col_les.students)):
                     collisions[col_les.block].append(( 
                       f'{event.get_name()}: Niektórzy uczniowie mają {col_les.name_and_time()}',
                       f'{col_les.subject.get_name()}: Niektórzy uczniowie mają {event.name_and_time()}'
@@ -985,14 +981,17 @@ class Data(QObject):
     def update_duty_teacher(self, duty: TeacherDuty, teacher: Teacher):
         duty.teacher = teacher
         self.session.commit()
+        self.update_block.emit(duty.block)
     
     def update_duty_classroom(self, duty: TeacherDuty, classroom: Classroom):
         duty.classroom = classroom
         self.session.commit()
+        self.update_block.emit(duty.block)
 
     def delete_duty(self, duty: TeacherDuty):
         self.session.delete(duty)
         self.session.commit()
+        self.update_block.emit(duty.block)
     
     # SETTINGS
     def settings(self):

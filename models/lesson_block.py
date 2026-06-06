@@ -4,13 +4,15 @@ from sqlalchemy.orm import relationship
 
 class LessonBlockDB(Block):
     __tablename__ = 'lesson_blocks'
-    id = Column(ForeignKey("blocks.id"), primary_key=True)
-    class_id = Column(Integer, ForeignKey('classes.id'))
-    subclass_id = Column(Integer, ForeignKey('subclasses.id'))
-    # events = relationship("Lesson", backref="block")
-    class_ = relationship("Class", back_populates='blocks')
-    subclass = relationship("Subclass", back_populates='blocks')
     __mapper_args__ = {"polymorphic_identity": "lesson_block"}
+    id = Column(ForeignKey("blocks.id"), primary_key=True)
+
+    class_id = Column(Integer, ForeignKey('classes.id'))
+    class_ = relationship("Class", back_populates='blocks')
+    subclass_id = Column(Integer, ForeignKey('subclasses.id'))
+    subclass = relationship("Subclass", back_populates='blocks')
+
+
     def parent(self):
         if self.class_:
             return self.class_

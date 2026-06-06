@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QHBoxLayout, QComboBox, QWidget, QPushButton, QGridLayout, QStackedLayout, QStackedWidget, QSizePolicy
 from PyQt5.QtCore import pyqtSignal
 from .mode_btn import ModeBtn
-from data import Class, Data
+from data import Class, Data, TeacherDuty
 from types import FunctionType
 
 class FilterWidget(QWidget):
@@ -108,7 +108,8 @@ class FilterWidget(QWidget):
             return None, None
         def filter(l):
             return not hasattr(l, 'subject') \
-                or l.subject in student.subjects
+                or l.subject in student.subjects \
+                or isinstance(l, TeacherDuty)
         return [student.subclass], filter
     
     def update_teacher_filter(self):

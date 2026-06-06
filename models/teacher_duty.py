@@ -16,4 +16,4 @@ class TeacherDuty(Event):
         return f'{self.classroom.name if self.classroom else "---"}'
     
     def name_and_time(self):
-        return f'Dyżur {self.teacher.name if self.teacher else "---"} w {self.classroom.name} ({self.block.print_time()})'
+        return f'Dyżur {self.teacher.name if self.teacher else "---"} w {self.classroom.name if self.classroom else "---"} ({self.block.print_time()})'
