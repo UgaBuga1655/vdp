@@ -16,7 +16,7 @@ class EditLessonBlockDialog(QDialog):
         self.db: 'Data' = parent_block.db
         self.block: Block = parent_block.block
         self.setWindowTitle(self.block.print_full_time())
-        self.lessons = self.block.lessons
+        self.lessons = self.block.events
         self.collisions = self.db.potential_collisions_at_block(self.block, exclude_self=True, get_classrooms=True)
 
         self.main_layout = QVBoxLayout()

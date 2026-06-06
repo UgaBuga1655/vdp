@@ -187,7 +187,7 @@ class SubjectsWindow(QWidget):
         self.display_r_checkbox.setCheckable(True)
         self.display_r_checkbox.blockSignals(True)
         self.display_r_checkbox.setChecked(not subject.basic)
-        self.display_r_checkbox.setCheckable(subject.my_class is not None)
+        self.display_r_checkbox.setCheckable(subject.class_ is not None)
         self.display_r_checkbox.blockSignals(False)
         
         # lessons

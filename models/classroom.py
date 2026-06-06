@@ -9,9 +9,8 @@ class Classroom(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     capacity = Column(Integer, nullable=False)
-    subjects = relationship("Subject", backref="required_classroom")
-    lessons = relationship("Lesson", backref='classroom')
-    duties = relationship('TeacherDuty', back_populates='classroom')
+    subjects = relationship("Subject", back_populates="required_classroom")
+    events = relationship('Event', back_populates='classroom')
     allow_lessons = Column(String, default='all') # 'all' / 'selected' / 'none'
 
     group_id = Column(Integer, ForeignKey('classroom_groups.id'))

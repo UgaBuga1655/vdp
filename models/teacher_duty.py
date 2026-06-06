@@ -1,19 +1,13 @@
-from db_config import Base, student_subject
+from db_config import Base
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
+from .event import Event
 
-class TeacherDuty(Base):
+class TeacherDuty(Event):
     __tablename__= 'teacher_duties'
-    id = Column(Integer, primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": "teacher_duty"}
 
-    block_id = Column(Integer, ForeignKey('blocks.id'))
-    block = relationship('Block', back_populates='duties')
-
-    teacher_id = Column(Integer, ForeignKey('teachers.id'))
-    teacher = relationship('Teacher', back_populates='duties')
-    
-    classroom_id = Column(Integer, ForeignKey('classrooms.id'))
-    classroom = relationship('Classroom', back_populates='duties')
+    id = Column(ForeignKey("events.id"), primary_key=True)
 
     def collision_text(self):
         return f'{self.teacher.name if self.teacher else "---"} ma dyżur w {self.classroom.name if self.classroom else "---"} ({self.block.print_time()})'

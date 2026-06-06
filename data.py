@@ -386,14 +386,14 @@ class Data(QObject):
     
     def pin_all_lessons(self, locked=True) -> None:
         for block in self.all_lesson_blocks():
-            for lesson in block.lessons:
+            for lesson in block.events:
                 lesson.block_locked = locked
             self.update_block.emit(block)
         self.session.commit()
 
     def pin_lessons_without_classrooms(self, pinned=True) -> None:
         for block in self.all_lesson_blocks():
-            for lesson in block.lessons:
+            for lesson in block.events:
                 if lesson.classroom:
                     continue
                 lesson.block_locked = pinned
@@ -489,7 +489,7 @@ class Data(QObject):
         old_block = lesson.block
         
         lesson.block = block
-        block.lessons.append(lesson)
+        block.events.append(lesson)
         if lesson.block_locked or lock:
             self.clear_les_g_and_feas()
         lesson.block_locked = lock
@@ -603,7 +603,7 @@ class Data(QObject):
     def update_classroom_name(self, classroom: Classroom, name: str) -> None:
         classroom.name = name
         self.session.commit()
-        for lesson in classroom.lessons:
+        for lesson in classroom.events:
             if lesson.block:
                 self.update_block.emit(lesson.block)
 
@@ -806,7 +806,7 @@ class Data(QObject):
         for bl in self.overlapping_blocks(block):
             if exclude_self and bl == block:
                 continue
-            events.extend(bl.lessons)
+            events.extend(bl.events)
         
         for bl in self.overlapping_custom_blocks(block):
             if exclude_self and bl == block:
@@ -887,10 +887,9 @@ class Data(QObject):
         collisions[None] = []
         colliding_lessons = []
         for bl in colliding_blocks:
-            colliding_lessons.extend(bl.lessons)
+            colliding_lessons.extend(bl.events)
 
-        events = block.lessons if is_lesson_block else block.duties
-        event: Lesson
+        events = block.events
         for event in events:
             if is_lesson_block:
                 teacher = event.subject.teacher  
@@ -941,7 +940,7 @@ class Data(QObject):
                       f'{col_les.subject.get_name()}: Niektórzy uczniowie mają {event.name_and_time()}'
                     ))
             for col_bl in colliding_custom_blocks:
-                for duty in col_bl.duties:
+                for duty in col_bl.events:
                     if duty == event:
                         continue
                     if duty.teacher == teacher and teacher:

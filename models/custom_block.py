@@ -8,7 +8,7 @@ class CustomBlock(Block):
     __tablename__ = 'custom_blocks'
     id = Column(ForeignKey("blocks.id"), primary_key=True)
     subclasses = relationship("Subclass", secondary=subclass_customblock, back_populates="custom_blocks")
-    duties = relationship('TeacherDuty', back_populates='block')
+    # duties = relationship('TeacherDuty', back_populates='block')
 
     __mapper_args__ = {"polymorphic_identity": "custom_block"}
     # def parent(self):

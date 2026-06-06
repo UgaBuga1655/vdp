@@ -21,7 +21,7 @@ class CustomBlock(BasicBlock):
         super().paint(painter, option)
         if not hasattr(self, 'block'):
             return
-        duties = list(filter(self.filter, self.block.duties))
+        duties = list(filter(self.filter, self.block.events))
         if not (len(duties) or self.db.settings().draw_custom_blocks):
             self.text_item0.hide()
             self.hide()
@@ -70,8 +70,8 @@ class CustomBlock(BasicBlock):
         # color.setAlpha(210)
         self.setBrush(color)
         text = self.block.text
-        duties = filter(self.filter, self.block.duties)
-        classrooms = [duty.classroom.name for duty in duties if duty.classroom]
+        events = filter(self.filter, self.block.events)
+        classrooms = [duty.classroom.name for duty in events if duty.classroom]
         classrooms = list(set(classrooms))
         classrooms.sort()
         classrooms = '/'.join(classrooms)

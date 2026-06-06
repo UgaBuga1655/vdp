@@ -12,7 +12,7 @@ class Block(Base):
     day = Column(Integer, nullable=False) # 0=mon, 1=tue etc.
     color = Column(String)
     text = Column(String)
-    duties = relationship('TeacherDuty', back_populates='block')
+    events = relationship('Event', back_populates='block')
 
     __mapper_args__ = {
         "polymorphic_on": type,

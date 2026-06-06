@@ -32,7 +32,7 @@ class LessonBlock(BasicBlock):
               or source_block.subclass == self.block.subclass and source_block.subclass) \
               and source_block.length == self.block.length:
                 if settings.move_lessons_from:
-                    lessons = source_block.lessons.copy()
+                    lessons = source_block.events.copy()
                     for lesson in lessons:
                         self.db.add_lesson_to_block(lesson, self.block, lesson.block_locked)
                 else:
@@ -57,7 +57,7 @@ class LessonBlock(BasicBlock):
         self.menu.insertAction(self.remove_action, manage_classrooms_action)
         manage_classrooms_action.triggered.connect(self.edit)
         
-        if len(self.block.lessons):
+        if len(self.block.events):
             # remove_lesson_action =  QAction('Usuń lekcję')
             # self.menu.insertAction(self.remove_action, remove_lesson_action)
             # remove_lesson_action.triggered.connect(self.remove_lesson)
@@ -125,7 +125,7 @@ class LessonBlock(BasicBlock):
         super().paint(painter, option)
 
     def get_rects(self):
-        lessons = list(filter(self.filter, self.block.lessons))
+        lessons = list(filter(self.filter, self.block.events))
         if self.db.settings().hide_empty_blocks and not len(lessons):
             self.hide()
         show_full_subject_names = False

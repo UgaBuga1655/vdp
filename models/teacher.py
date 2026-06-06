@@ -11,7 +11,7 @@ class Teacher(Base):
     av3 = Column(Integer)
     av4 = Column(Integer)
     av5 = Column(Integer)
-    subjects = relationship("Subject", backref='teacher')
+    subjects = relationship("Subject", back_populates='teacher')
     duties = relationship('TeacherDuty', back_populates='teacher')
 
     def __init__(self, name, av):

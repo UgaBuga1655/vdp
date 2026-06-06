@@ -32,7 +32,7 @@ class EditCustomBlockDialog(QDialog):
 
         self.duties = QGridLayout()
         self.main_layout.addLayout(self.duties)
-        for duty in custom_block.duties:
+        for duty in custom_block.events:
             self.place_duty(duty)
             
         row = QHBoxLayout()

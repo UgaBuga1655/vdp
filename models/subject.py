@@ -8,16 +8,18 @@ class Subject(Base):
     name = Column(String, nullable=False)
     short_name = Column(String)
     class_id = Column(Integer, ForeignKey('classes.id'))
+    class_ = relationship('Class', back_populates='subjects')
     subclass_id = Column(Integer, ForeignKey('subclasses.id'))
+    subclass = relationship('Subclass', back_populates='subjects')
     teacher_id = Column(Integer, ForeignKey('teachers.id'))
+    teacher = relationship('Teacher', back_populates='subjects')
     classroom_id = Column(Integer, ForeignKey('classrooms.id'))
+    required_classroom = relationship('Classroom', back_populates='subjects')
     basic = Column(Boolean)
     color = Column(String)
-    class_ = relationship('Class', back_populates='subjects')
-    subclass = relationship('Subclass', back_populates='subjects')
-    students = relationship("Student", secondary=student_subject, back_populates="subjects")
-    lessons = relationship("Lesson", backref="subject")
     target_block_length = Column(Integer, default=1)
+    students = relationship("Student", secondary=student_subject, back_populates="subjects")
+    lessons = relationship("Lesson", back_populates="subject")
 
 
     def parent(self):
