@@ -2,7 +2,7 @@ from __future__ import annotations
 from PyQt5.QtWidgets import QGraphicsRectItem, QToolTip, QGraphicsScene, QMenu
 from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
-from data import Data, Class, LessonBlockDB, CustomBlock
+from data import Data, Class, Block, CustomBlock
 from functions import snap_position, display_hour
 from .block_text import BlockText
 # from db_config import settings
@@ -26,7 +26,7 @@ class BasicBlock(QGraphicsRectItem):
         self.setBrush(QBrush(color))
         self.setPen(QPen(Qt.NoPen))
         self.moved = False
-        self.block: LessonBlockDB
+        self.block: Block
         self.collisions = dict()
         # settings = self.db.settings()
         self.text_item0 = BlockText(self, w, h)

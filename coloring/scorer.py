@@ -1,5 +1,5 @@
 from math import inf
-from data import Data, Subject, Teacher, Student, LessonBlockDB, Lesson, Classroom, Distance, Metadata
+from data import Data, Subject, Teacher, Student, Block, Lesson, Classroom, Distance, Metadata
 from sqlalchemy.orm import Session
 from networkx import Graph
 from functools import reduce
@@ -39,7 +39,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
             s.extend([l.id for l in subject.lessons])
         students.append(s)
 
-    blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(LessonBlockDB)}
+    blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(Block)}
     pinned_lessons = {l.id: (l.block_id, l.classroom_id) for l in session.query(Lesson) if l.block and l.block_locked}
     cl_groups = {cl.id: cl.group_id for cl in session.query(Classroom)}
     distances = {(dist.start_id, dist.end_id): dist.distance for dist in session.query(Distance)}

@@ -7,10 +7,10 @@ class Class(Base):
     __tablename__ = 'classes'
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False, unique=True)
-    students = relationship("Student", backref="my_class")
-    subclasses = relationship("Subclass", backref="my_class")
-    subjects = relationship("Subject", backref="my_class")
-    blocks = relationship("LessonBlockDB", backref="my_class")
+    students = relationship("Student", back_populates="class_")
+    subclasses = relationship("Subclass", back_populates="class_")
+    subjects = relationship("Subject", back_populates="class_")
+    blocks = relationship("LessonBlockDB", back_populates="class_")
     order = Column(Integer)
 
     def full_name(self):

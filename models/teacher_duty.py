@@ -6,8 +6,8 @@ class TeacherDuty(Base):
     __tablename__= 'teacher_duties'
     id = Column(Integer, primary_key=True)
 
-    block_id = Column(Integer, ForeignKey('custom_blocks.id'))
-    block = relationship('CustomBlock', back_populates='duties')
+    block_id = Column(Integer, ForeignKey('blocks.id'))
+    block = relationship('Block', back_populates='duties')
 
     teacher_id = Column(Integer, ForeignKey('teachers.id'))
     teacher = relationship('Teacher', back_populates='duties')

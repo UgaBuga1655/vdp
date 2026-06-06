@@ -10,7 +10,7 @@ from .custom_block import CustomBlock
 from .block import BasicBlock
 from .stats import Statistic, StudentDensityStat
 from functions import snap_position, display_hour
-from data import Data, Class, LessonBlockDB
+from data import Data, Class, LessonBlockDB, Block
 # from db_config import settings
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import to_hex
@@ -190,16 +190,16 @@ class MyView(QGraphicsView):
             i = int(i%self.l)
 
             if self.mode == 'new':
-                my_class = self.classes[i]
+                class_ = self.classes[i]
                 # find if block spans entire class
                 # either is wide
                 if self.new_block.boundingRect().width() -1 > self.block_w:
-                    my_class = my_class.get_class()
+                    class_ = class_.get_class()
                 # ... or is the only subclass
-                elif len(my_class.get_class().subclasses)==1:
-                    my_class = my_class.get_class()
+                elif len(class_.get_class().subclasses)==1:
+                    class_ = class_.get_class()
 
-                block = self.db.create_block(day, start, length, my_class)
+                block = self.db.create_block(day, start, length, class_)
 
             elif self.mode =='new_custom':
                 n_of_classes = int((self.new_block.boundingRect().width()+1)//self.block_w)
@@ -401,9 +401,9 @@ class MyView(QGraphicsView):
             if block.subclass in self.classes:
                 n = self.classes.index(block.subclass)
             # find first subclass
-            elif block.my_class:
+            elif block.class_:
                 n = -1
-                for subclass in block.my_class.subclasses:
+                for subclass in block.class_.subclasses:
                     if subclass in self.classes:
                         n = self.classes.index(subclass)
                         break
@@ -414,7 +414,7 @@ class MyView(QGraphicsView):
                 return
 
             # stretch the width if needed
-            if block.my_class:
+            if block.class_:
                 mask = [1 if cl.get_class().id == block.class_id else 0 for cl in self.classes]
                 width_multiplier = sum(mask)
             else:
@@ -522,7 +522,7 @@ class MyView(QGraphicsView):
         self.filter_func = filter
         self.draw()
 
-    def redraw_block(self, block: LessonBlockDB | CustomBlock):
+    def redraw_block(self, block: Block):
         if not block or not self.blocks[block]:
             return
         

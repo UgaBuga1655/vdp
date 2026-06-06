@@ -1,23 +1,24 @@
 from db_config import Base, days
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, String
 from sqlalchemy.orm import relationship
 from functions import display_hour
 
-class LessonBlockDB(Base):
+class Block(Base):
     __tablename__ = 'blocks'
     id = Column(Integer, primary_key=True)
+    type = Column(String(50))
     length = Column(Integer, nullable=False) # in 5 min blocks
     start = Column(Integer, nullable=False) # in 5 min blocks
     day = Column(Integer, nullable=False) # 0=mon, 1=tue etc.
-    class_id = Column(Integer, ForeignKey('classes.id'))
-    subclass_id = Column(Integer, ForeignKey('subclasses.id'))
-    lessons = relationship("Lesson", backref="block")
+    color = Column(String)
+    text = Column(String)
+    duties = relationship('TeacherDuty', back_populates='block')
 
-    def parent(self):
-        if self.my_class:
-            return self.my_class
-        if self.subclass:
-            return self.subclass
+    __mapper_args__ = {
+        "polymorphic_on": type,
+        "polymorphic_identity": "block",
+    }
+    
         
     def print_time(self):
         return f'{display_hour(self.start)}-{display_hour(self.start+self.length)}'

@@ -13,29 +13,31 @@ class Subject(Base):
     classroom_id = Column(Integer, ForeignKey('classrooms.id'))
     basic = Column(Boolean)
     color = Column(String)
+    class_ = relationship('Class', back_populates='subjects')
+    subclass = relationship('Subclass', back_populates='subjects')
     students = relationship("Student", secondary=student_subject, back_populates="subjects")
     lessons = relationship("Lesson", backref="subject")
     target_block_length = Column(Integer, default=1)
 
 
     def parent(self):
-        if self.my_class:
-            return self.my_class
+        if self.class_:
+            return self.class_
         if self.subclass:
             return self.subclass
         
     def absolute_class(self):
-        return self.my_class if self.my_class else self.subclass.my_class
+        return self.class_ if self.class_ else self.subclass.class_
         
     def class_name(self):
         # return(f'{self.class_id}, {self.subclass_id}')
-        return self.my_class.name if self.class_id is not None else self.subclass.my_class.name
+        return self.class_.name if self.class_id is not None else self.subclass.class_.name
 
     def get_name(self):
-        return f'{self.name}' + (' R' if self.my_class else '')
+        return f'{self.name}' + (' R' if self.class_ else '')
     
     def get_short_name(self):
-        return f'{self.short_name}' + (' R' if self.my_class else '')
+        return f'{self.short_name}' + (' R' if self.class_ else '')
         
     # def full_name(self, full_subclass_name = False):
     #     if self.my_class:
@@ -54,7 +56,7 @@ class Subject(Base):
         class_name = ''
         if show_class_name:
             class_name += self.class_name()
-        is_only_subclass = len(self.my_class.subclasses if self.my_class else self.subclass.my_class.subclasses) == 1
+        is_only_subclass = len(self.class_.subclasses if self.class_ else self.subclass.class_.subclasses) == 1
         if show_subclass_name:
             class_name +=  (self.subclass.name.upper() if (not is_only_subclass and self.subclass) else '') if self.basic else 'R'
                

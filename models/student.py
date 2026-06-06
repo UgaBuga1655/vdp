@@ -14,6 +14,8 @@ class Student(Base):
     class_id = Column(Integer, ForeignKey('classes.id'))
     subclass_id = Column(Integer, ForeignKey('subclasses.id'))
     subjects = relationship("Subject", secondary=student_subject, back_populates="students")
+    class_ = relationship('Class', back_populates='students')
+    subclass = relationship('Subclass', back_populates='students')
 
     def time_stats(self, only_day=None):
         days = [only_day] if only_day else range(5)

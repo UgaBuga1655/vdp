@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QComboBox, QDialogButtonBox
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QCursor
-from data import Subclass, Subject, Lesson, days, Data, LessonBlockDB
+from data import Subclass, Subject, Lesson, days, Data, Block
 # from db_config import settings
 
 enabled_flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable

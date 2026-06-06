@@ -1,15 +1,15 @@
 from PyQt5.QtWidgets import QAction, QMessageBox, QApplication
 from PyQt5.QtGui import QColor, QBrush, QPen
 from PyQt5.QtCore import Qt, QRectF, QObject, pyqtSignal
-from models import LessonBlockDB
+from models import Block
 from .block import BasicBlock
 from .manage_classrooms_dialog import EditLessonBlockDialog
 from functions import contrast_ratio
 from db_config import settings
 
 class BlockSignaler(QObject):
-    block_moved = pyqtSignal(LessonBlockDB, int)
-    block_updated = pyqtSignal(LessonBlockDB)
+    block_moved = pyqtSignal(Block, int)
+    block_updated = pyqtSignal(Block)
 
 
 class LessonBlock(BasicBlock):
@@ -28,7 +28,7 @@ class LessonBlock(BasicBlock):
         # print('clicked')
         if source:
             source_block = source.block
-            if (source_block.my_class == self.block.my_class and source_block.my_class\
+            if (source_block.class_ == self.block.class_ and source_block.class_\
               or source_block.subclass == self.block.subclass and source_block.subclass) \
               and source_block.length == self.block.length:
                 if settings.move_lessons_from:
@@ -130,11 +130,11 @@ class LessonBlock(BasicBlock):
             self.hide()
         show_full_subject_names = False
         rect = self.rect().adjusted(0.5,0,-0.5,0)
-        if self.block.my_class \
-          and not len([l for l in lessons if not l.subject.my_class is None]):
+        if self.block.class_ \
+          and not len([l for l in lessons if not l.subject.class_ is None]):
             rects = []
 
-            buckets = {sub_class:[] for sub_class in self.block.my_class.subclasses if sub_class in self.visible_classes}
+            buckets = {sub_class:[] for sub_class in self.block.class_.subclasses if sub_class in self.visible_classes}
             for lesson in lessons:
                 buckets[lesson.subject.parent()].append(lesson)
             n_of_buckets = len(buckets)

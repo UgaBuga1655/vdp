@@ -1,4 +1,4 @@
-from data import LessonBlockDB, Lesson
+from data import Block, Lesson
 from queue import PriorityQueue
 from itertools import count
 from random import choice, randint, shuffle
@@ -25,7 +25,7 @@ def random_coloring(params, queue, scorer, stop_event):
 
     queue.put(('done', data))
 
-def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, LessonBlockDB]:
+def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, Block]:
     # initialize data structures
     colors = {}
     rev_colors = {}

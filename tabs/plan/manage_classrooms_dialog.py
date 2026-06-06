@@ -3,7 +3,7 @@ from typing import List
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QComboBox, QDialogButtonBox, QGridLayout, QLabel, QWidget, QPushButton
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QCursor
-from data import Data, LessonBlockDB
+from data import Data, Block
 # from db_config import settings
 from models.lesson import Lesson
 from .add_lesson_dialog import AddLessonToBlockDialog
@@ -14,7 +14,7 @@ class EditLessonBlockDialog(QDialog):
         super().__init__()
 
         self.db: 'Data' = parent_block.db
-        self.block: LessonBlockDB = parent_block.block
+        self.block: Block = parent_block.block
         self.setWindowTitle(self.block.print_full_time())
         self.lessons = self.block.lessons
         self.collisions = self.db.potential_collisions_at_block(self.block, exclude_self=True, get_classrooms=True)

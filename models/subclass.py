@@ -7,16 +7,17 @@ class Subclass(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     class_id = Column(Integer, ForeignKey('classes.id'))
-    students = relationship("Student", backref="subclass")
-    subjects = relationship("Subject", backref="subclass")
-    blocks = relationship("LessonBlockDB", backref="subclass")
+    students = relationship("Student", back_populates="subclass")
+    subjects = relationship("Subject", back_populates="subclass")
+    blocks = relationship("LessonBlockDB", back_populates="subclass")
+    class_ = relationship('Class', back_populates='subclasses')
     custom_blocks = relationship("CustomBlock", secondary=subclass_customblock, back_populates="subclasses")
 
     def full_name(self):
-        if len(self.my_class.subclasses) == 1:
-            return self.my_class.name
+        if len(self.class_.subclasses) == 1:
+            return self.class_.name
         else:
-            return self.my_class.name + self.name
+            return self.class_.name + self.name
     
     def get_class(self):
-        return self.my_class
+        return self.class_

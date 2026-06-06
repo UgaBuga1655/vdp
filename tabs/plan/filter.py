@@ -87,14 +87,14 @@ class FilterWidget(QWidget):
             draw_custom_blocks = True
         )
         display_names = [
-            button.my_class
+            button.class_
             for button in self.findChildren(QPushButton)
-            if button.isChecked() and hasattr(button, 'my_class')
+            if button.isChecked() and hasattr(button, 'class_')
         ]
         def filter(l):
             return not hasattr(l, 'subject') \
                 or l.subject.subclass in display_names \
-                or l.subject.my_class
+                or l.subject.class_
         return display_names, filter
 
     def update_student_filter(self):
@@ -214,12 +214,12 @@ class FilterWidget(QWidget):
             widget.deleteLater()
         self.student_class_selection.clear()
 
-        for index, my_class in enumerate(self.classes):
-            self.student_class_selection.addItem(my_class.full_name(), my_class)
-            button = QPushButton(my_class.full_name())
+        for index, class_ in enumerate(self.classes):
+            self.student_class_selection.addItem(class_.full_name(), class_)
+            button = QPushButton(class_.full_name())
             button.setCheckable(True)
             button.setChecked(True)
-            button.my_class = my_class
+            button.class_ = class_
             button.clicked.connect(self.filter_btn_clicked)
             self.class_filter.layout().insertWidget(index, button)
 

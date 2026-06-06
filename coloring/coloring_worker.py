@@ -340,7 +340,7 @@ class ColoringThread(QThread):
         lesson_count = self.session.query(Lesson).count()
         self.update_bar_total.emit(lesson_count)
         classrooms = self.session.query(Classroom).filter(Classroom.allow_lessons=='all').all()
-        blocks = self.session.query(LessonBlockDB).all()
+        blocks = self.session.query(Block).all()
         for subject in self.session.query(Subject).all():
             if self.stop_event.is_set():
                 return None, None, None
@@ -417,7 +417,7 @@ class ColoringThread(QThread):
         # blocks taking place in different days can't possibly colide
         for day in range(5):
             self.update_bar.emit(f'Generowanie grafu bloków (dzień {day+1})')
-            blocks = self.session.query(LessonBlockDB).filter_by(day=day).all()
+            blocks = self.session.query(Block).filter_by(day=day).all()
             for block in blocks:
                 graph.add_node(block.id, day=block.day)
             x = len(blocks)
@@ -442,10 +442,10 @@ class ColoringThread(QThread):
         for duty in self.session.query(TeacherDuty).filter(TeacherDuty.classroom_id!=None).all():
             # get overlapping blocks
             block: CustomBlock = duty.block
-            overlapping_blocks = self.session.query(LessonBlockDB).filter(LessonBlockDB.day==block.day) \
+            overlapping_blocks = self.session.query(Block).filter(Block.day==block.day) \
                 .filter(or_(
-                        LessonBlockDB.start.between(block.start, block.start+block.length),
-                        and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
+                        Block.start.between(block.start, block.start+block.length),
+                        and_(Block.start <= block.start, block.start <= Block.start+Block.length)
                     )).all()
             for ov_bl in overlapping_blocks:
                 forbidden_blocks[duty.classroom_id].add(ov_bl.id)

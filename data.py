@@ -14,7 +14,7 @@ from itertools import combinations
 
 class Data(QObject):
     update_custom_block = pyqtSignal(CustomBlock)
-    update_block = pyqtSignal(LessonBlockDB)
+    update_block = pyqtSignal(Block)
     redraw_plan = pyqtSignal()
     teachers_changed = pyqtSignal()
     classrooms_changed = pyqtSignal()
@@ -54,7 +54,7 @@ class Data(QObject):
             if lesson.id in solution.keys():
                 # print(f'jest {lesson.id}')
                 block_id, classroom_id = solution[lesson.id]
-                lesson.block = self.session.query(LessonBlockDB).filter_by(id=block_id).first()
+                lesson.block = self.session.query(Block).filter_by(id=block_id).first()
                 lesson.classroom = self.session.query(Classroom).filter_by(id=classroom_id).first()
                 # print(f'{lesson}: {solution[lesson]}')
                 # lesson.block = self.session.query(LessonBlockDB).filter_by(id=solution[lesson]).first()
@@ -151,13 +151,13 @@ class Data(QObject):
 
 
     def move_subject(self, subject: Subject, target: Class | Subclass):
-        subject.my_class = None
+        subject.class_ = None
         subject.subclass = None
         subject.students = []
         if isinstance(target, Subclass):
             subject.subclass = target
         else:
-            subject.my_class = target
+            subject.class_ = target
         self.session.commit()
 
 
@@ -189,23 +189,23 @@ class Data(QObject):
         class_.name = name
         self.session.commit()
     
-    def delete_class(self, my_class: Class) -> None:
-        for subclass in my_class.subclasses:
+    def delete_class(self, class_: Class) -> None:
+        for subclass in class_.subclasses:
             self.delete_subclass(subclass, redraw=False)
-        for subject in my_class.subjects:
+        for subject in class_.subjects:
             self.delete_subject(subject)
-        for block in my_class.blocks:
+        for block in class_.blocks:
             self.delete_block(block)
-        self.session.delete(my_class)
+        self.session.delete(class_)
         self.session.commit()
         self.redraw_plan.emit()
     
-    def create_subclass(self, my_class: Class, redraw=True) -> Subclass:
-        names = [s.name for s in my_class.subclasses]
+    def create_subclass(self, class_: Class, redraw=True) -> Subclass:
+        names = [s.name for s in class_.subclasses]
         name = ascii_lowercase[len(names)]
-        subclass = Subclass(name=name, class_id=my_class.id)
-        if len(my_class.subclasses):
-            last_subclass = my_class.subclasses[-1]
+        subclass = Subclass(name=name, class_id=class_.id)
+        if len(class_.subclasses):
+            last_subclass = class_.subclasses[-1]
             for custom_block in self.all_custom_blocks():
                 if last_subclass in custom_block.subclasses:
                     custom_block.subclasses.append(subclass)
@@ -217,7 +217,7 @@ class Data(QObject):
 
     
     def delete_subclass(self, subclass: Subclass, redraw=True) -> None:
-        my_class: Class = subclass.my_class
+        class_: Class = subclass.class_
         for student in subclass.students:
             self.delete_student(student)
         for block in subclass.blocks:
@@ -228,13 +228,13 @@ class Data(QObject):
             custom_block.subclasses.remove(subclass)
         self.session.delete(subclass)
         self.session.commit()
-        for name, subclass in zip(ascii_lowercase, my_class.subclasses):
+        for name, subclass in zip(ascii_lowercase, class_.subclasses):
             subclass.name = name
         # if only one subclass left, move its blocks to class
-        if len(my_class.subclasses)==1:
-            for block in my_class.subclasses[0].blocks:
+        if len(class_.subclasses)==1:
+            for block in class_.subclasses[0].blocks:
                 block.subclass=None
-                block.my_class=my_class
+                block.class_=class_
         self.session.commit()
         self.redraw_plan.emit()
 
@@ -420,11 +420,11 @@ class Data(QObject):
         self.session.commit()
 
     @changes_bl_g
-    def create_block(self, day:int, start:int, length:int, my_class) -> LessonBlockDB:
-        if isinstance(my_class, Class):
-            block = LessonBlockDB(day=day, start=start, length=length, my_class=my_class)
+    def create_block(self, day:int, start:int, length:int, class_) -> LessonBlockDB:
+        if isinstance(class_, Class):
+            block = LessonBlockDB(day=day, start=start, length=length, class_=class_)
         else:
-            block = LessonBlockDB(day=day, start=start, length=length, subclass=my_class)
+            block = LessonBlockDB(day=day, start=start, length=length, subclass=class_)
         self.session.add(block)
         self.session.commit()
         return block
@@ -439,7 +439,7 @@ class Data(QObject):
             self.remove_lesson_from_block(lesson)
         self.session.commit()
     
-    def lesson_block_collides_with(self, block:LessonBlockDB, blocks: List[LessonBlockDB]):
+    def lesson_block_collides_with(self, block:Block, blocks: List[Block]):
         # get all other blocks during the same day
         for block_2 in blocks:
             if block.start <= block_2.start < block.start+block.length \
@@ -454,15 +454,15 @@ class Data(QObject):
         self.session.delete(block)
         self.session.commit()
     
-    def overlapping_blocks(self, block: LessonBlockDB):
+    def overlapping_blocks(self, block: Block):
         is_custom_block = isinstance(block, CustomBlock)
         return self.session.query(LessonBlockDB).filter_by(day=block.day)\
                 .filter(or_(
-                    LessonBlockDB.start.between(block.start, block.start+block.length-is_custom_block),
-                    and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length-is_custom_block)
+                    Block.start.between(block.start, block.start+block.length-is_custom_block),
+                    and_(Block.start <= block.start, block.start <= Block.start+Block.length-is_custom_block)
                 )).all()
     
-    def overlapping_custom_blocks(self, block: LessonBlockDB):
+    def overlapping_custom_blocks(self, block: Block):
         return self.session.query(CustomBlock).filter_by(day=block.day)\
                 .filter(or_(
                     CustomBlock.start.between(block.start, block.start+block.length-1),
@@ -470,7 +470,7 @@ class Data(QObject):
                 )).all()
     
     @changes_bl_g
-    def update_block_start(self, block: LessonBlockDB, start: int):
+    def update_block_start(self, block: Block, start: int):
         pre_overlapping = set(self.overlapping_blocks(block) + self.overlapping_custom_blocks(block))
         block.start = start
         self.session.commit()
@@ -479,7 +479,7 @@ class Data(QObject):
         # collisions = self.block_collisions(block)
         return to_remove
 
-    def add_lesson_to_block(self, lesson: Lesson, block: LessonBlockDB, lock=True):
+    def add_lesson_to_block(self, lesson: Lesson, block: Block, lock=True):
         if not lesson :
             return False
         
@@ -502,7 +502,7 @@ class Data(QObject):
         if not lesson_id :
             return False
         lesson = self.session.query(Lesson).filter_by(id=lesson_id).first()
-        block = self.session.query(LessonBlockDB).filter_by(id=block_id).first()
+        block = self.session.query(Block).filter_by(id=block_id).first()
         classroom = self.session.query(Classroom).filter_by(id=classroom_id).first()
         if not block:
             self.remove_lesson_from_block(lesson)
@@ -519,7 +519,7 @@ class Data(QObject):
         # if old_block:
         #     self.update_block.emit(old_block)
 
-    def swap_lessons(self, source:LessonBlockDB, block:LessonBlockDB):
+    def swap_lessons(self, source:Block, block:Block):
         source.lessons, block.lessons = block.lessons, source.lessons
         lesson: Lesson
         for lesson in source.lessons + block.lessons:
@@ -564,7 +564,7 @@ class Data(QObject):
 
     def delete_unplaceable_custom_blocks(self):
         for custom_block in self.all_custom_blocks():
-            orders = [scl.my_class.order for scl in custom_block.subclasses]
+            orders = [scl.class_.order for scl in custom_block.subclasses]
             orders.sort()
             for i in range(0, len(orders)-1):
                 if orders[i+1] - orders[i] > 1:
@@ -704,17 +704,17 @@ class Data(QObject):
  
 
    
-    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: LessonBlockDB|CustomBlock, session=None) -> List[Lesson]:
+    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: Block|CustomBlock, session=None) -> List[Lesson]:
         if not session:
             session = self.session
         if not teacher:
             return 0
         lesson_count = self.session.query(Lesson).filter_by(block_locked=True)\
                     .join(Lesson.subject).filter_by(teacher=teacher) \
-                    .join(Lesson.block).filter(LessonBlockDB.day == block.day) \
+                    .join(Lesson.block).filter(Block.day == block.day) \
                     .filter(or_(
-                        LessonBlockDB.start.between(block.start, block.start+block.length), 
-                        and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
+                        Block.start.between(block.start, block.start+block.length), 
+                        and_(Block.start <= block.start, block.start <= Block.start+Block.length)
                     )).count()
         duties_count = self.session.query(TeacherDuty).filter_by(teacher=teacher)\
                     .join(TeacherDuty.block).filter(CustomBlock.day==block.day) \
@@ -735,19 +735,19 @@ class Data(QObject):
     #                     and_(CustomBlock.start <= block.start, block.start < CustomBlock.start+CustomBlock.length)
     #                 )).all()
     
-    def get_collisions_for_students_at_block(self, students: List[Student], block: LessonBlockDB, session=None) -> List[Lesson]:
+    def get_collisions_for_students_at_block(self, students: List[Student], block: Block, session=None) -> List[Lesson]:
         if not session:
             session = self.session
         student_ids = [s.id for s in students]
         return session.query(Lesson).filter_by(block_locked=True) \
                     .join(Lesson.subject).filter(Subject.students.any(Student.id.in_(student_ids)))\
-                    .join(Lesson.block).filter(LessonBlockDB.day == block.day)\
+                    .join(Lesson.block).filter(Block.day == block.day)\
                     .filter(or_(
-                        LessonBlockDB.start.between(block.start, block.start+block.length),
-                        and_(LessonBlockDB.start <= block.start, block.start <= LessonBlockDB.start+LessonBlockDB.length)
+                        Block.start.between(block.start, block.start+block.length),
+                        and_(Block.start <= block.start, block.start <= Block.start+Block.length)
                     )).all()
     
-    def is_teacher_available(self, teacher: Teacher, block: LessonBlockDB) -> bool:
+    def is_teacher_available(self, teacher: Teacher, block: Block) -> bool:
         if teacher is None:
             return True
         mask_start = int(block.start//6)
@@ -778,7 +778,7 @@ class Data(QObject):
 
     #     return self.potential_clasroom_collisions(events)
     
-    def potential_collisions_at_block(self, block: LessonBlockDB|CustomBlock, exclude_self = False, get_subjects = False, get_classrooms = False, get_teachers = False):
+    def potential_collisions_at_block(self, block: Block|CustomBlock, exclude_self = False, get_subjects = False, get_classrooms = False, get_teachers = False):
         if isinstance(block, CustomBlock) and get_subjects:
             raise ValueError('Custom block do not have subjects')
         # get all subjects
@@ -788,8 +788,8 @@ class Data(QObject):
             if block.subclass:
                 subjects = [s for s in block.subclass.subjects]
             else:
-                subjects = [s for s in block.my_class.subjects]
-                for subclass in block.my_class.subclasses:
+                subjects = [s for s in block.class_.subjects]
+                for subclass in block.class_.subclasses:
                     subjects.extend(subclass.subjects)
             items.extend(subjects)
 
@@ -875,7 +875,7 @@ class Data(QObject):
         
 
     
-    def block_collisions(self, block: LessonBlockDB|CustomBlock):
+    def block_collisions(self, block: Block):
         # if not isinstance(block, LessonBlockDB):
             # return {}
         is_lesson_block = isinstance(block, LessonBlockDB)
