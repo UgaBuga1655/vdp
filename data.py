@@ -297,6 +297,8 @@ class Data(QObject):
                     self.add_subject_to_student(new_subject, student)
                     break
 
+        self.session.commit()
+
 
     # subjects
     def get_matching_subject(self, name):

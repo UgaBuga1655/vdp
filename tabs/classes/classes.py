@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QInputDialog, QPushButton, \
     QLineEdit, QScrollArea, QFileDialog
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 from data import Data, Class, Subclass, Student, Subject
 from sqlalchemy.exc import IntegrityError
 from pathlib import Path
@@ -196,12 +197,23 @@ class ClassesWidget(QWidget):
             name_row.addWidget(remove_subclass_btn)
             
 
-            #headers
-            student_header = QLabel('Uczeń')
-            student_header.setStyleSheet('font-weight: bold;')
-            student_list.addWidget(student_header, 1, 0, Qt.AlignCenter)
-            col = 1
             basic_subs = sorted(subclass.subjects, key=lambda x: x.get_name(0,0,0))
+            #headers
+            
+            font = QFont()
+            font.setBold(True)
+
+            extra_subs_header = QLabel('Przedmioty wpólne')
+            extra_subs_header.setFont(font)
+            student_list.addWidget(extra_subs_header, 0, 1, 1, len(extra_subs)+1, Qt.AlignCenter)
+            basic_subs_header = QLabel('Przedmioty podstawowe')
+            basic_subs_header.setFont(font)
+            student_list.addWidget(basic_subs_header, 0, len(extra_subs)+2, 1, len(basic_subs)+1, Qt.AlignCenter)
+
+            student_header = QLabel('Uczeń')
+            student_header.setFont(font)
+            student_list.addWidget(student_header, 2, 0, Qt.AlignCenter)
+            col = 1
 
             self.subjects[subclass] = []
             self.subjects[subclass].extend(extra_subs)
@@ -216,16 +228,17 @@ class ClassesWidget(QWidget):
                 if isinstance(subject, Subject):
                     checkbox = QCheckBox()
                     checkbox.clicked.connect(self.toggle_all_checkboxes(subject))
-                    student_list.addWidget(checkbox, 1, col, Qt.AlignCenter)
+                    
+                    student_list.addWidget(checkbox, 2, col, Qt.AlignCenter)
                     label = SubjectLabel(subject)
                     label.delete.connect(self.delete_subject)
                     label.edit.connect(self.edit_subject)
                     label.copy.connect(self.copy_subject)
-                    student_list.addWidget(label, 0, col)
+                    student_list.addWidget(label, 1, col)
                     self.labels[subject].append(label)
                 else:
                     label = NewSubjectLabel('+')
-                    student_list.addWidget(label, 0, col, Qt.AlignBottom)
+                    student_list.addWidget(label, 1, col, Qt.AlignBottom)
                     label.clicked.connect(self.new_subject(subject))
                 col += 1
 
@@ -259,6 +272,8 @@ class ClassesWidget(QWidget):
         label.setMinimumWidth(150)
         label.delete.connect(self.delete_student)
         label.update_name.connect(self.db.update_student_name)
+        label.move_student.connect(self.move_student)
+        student_list.addWidget(Color('#c0c0c0', brighten=n%2), n, 0)
         student_list.addWidget(label,n, 0)
 
         #subjects
@@ -312,6 +327,10 @@ class ClassesWidget(QWidget):
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {student.name}') != QMessageBox.StandardButton.Yes:
             return False
         self.db.delete_student(student)
+        self.load_class()
+
+    def move_student(self, student, subclass):
+        self.db.move_student(student, subclass)
         self.load_class()
 
     def delete_subject(self, subject):
@@ -413,8 +432,7 @@ class ClassesWidget(QWidget):
         if not ok:
             self.db.delete_class(class_)
 
-            self.load_data(self.db)
-            return
+        self.load_data(self.db)
         
 
             

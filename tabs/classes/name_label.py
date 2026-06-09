@@ -1,13 +1,14 @@
 from PyQt5.QtWidgets import QLabel, QMenu, QAction, QInputDialog
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
-from data import Student
+from data import Student, Subclass
 
 class NameLabel(QLabel):
     delete = pyqtSignal(Student)
     update_name = pyqtSignal(Student, str)
+    move_student = pyqtSignal(Student, Subclass)
 
 
-    def __init__(self, student):
+    def __init__(self, student: Student):
         super().__init__(student.name)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.student = student
@@ -17,13 +18,26 @@ class NameLabel(QLabel):
     def contextMenuEvent(self, event: QPoint):
         menu = QMenu(self)
 
-        action_delete = QAction("Usuń", self)
-        action_delete.triggered.connect(self.delete_student)
-
         action_edit = QAction("Edytuj", self)
         action_edit.triggered.connect(self.update_student_name)
-
         menu.addAction(action_edit)
+
+        n_of_subclasses = len(self.student.class_.subclasses)
+        if n_of_subclasses <= 2:
+            move_menu = menu
+            text = "Przenieś do "
+        else:
+            move_menu = menu.addMenu('Przenieś do')
+            text = ''
+        for subclass  in self.student.class_.subclasses:
+            if subclass == self.student.subclass:
+                continue
+            action = QAction(text + subclass.name.upper(), self)
+            action.triggered.connect(self.move_student_func(self.student, subclass))
+            move_menu.addAction(action)
+
+        action_delete = QAction("Usuń", self)
+        action_delete.triggered.connect(self.delete_student)
         menu.addAction(action_delete)
 
         menu.exec_(self.mapToGlobal(event))
@@ -38,3 +52,8 @@ class NameLabel(QLabel):
 
     def delete_student(self):
         self.delete.emit(self.student)
+
+    def move_student_func(self, student, subclass):
+        def func():
+            self.move_student.emit(student, subclass)
+        return func
