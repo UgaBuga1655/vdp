@@ -14,9 +14,20 @@ def display_hour(mins, as_absolute=True):
     mins = int(mins%12)*5
     return f'{hs}:{mins:02d}' 
 
-def shorten_name(name):
+def shorten_name(name: str):
     words = name.split()
-    return ' '.join([word[0:3] + '.' for word in words])
+    short = []
+    for word in words:
+        index = 3
+        for i, letter in enumerate(word[2:]):
+            if letter not in 'aąeęioóuy':
+                index = i + 3
+                break
+        short_word = word[0:index]
+        if short_word[-1] != '.':
+            short_word+='.'
+        short.append(short_word)
+    return ' '.join(short)
 
 def luminance(color: QColor):
     def to_linear(c):

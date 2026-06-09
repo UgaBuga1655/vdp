@@ -192,9 +192,10 @@ class ClassesWidget(QWidget):
             frame_layout.addLayout(name_row)
             name_row.addWidget(QLabel(subclass.name.upper()))
             name_row.addStretch()
-            remove_subclass_btn = QPushButton('Usuń podklasę')
-            remove_subclass_btn.clicked.connect(self.remove_subclass(subclass))
-            name_row.addWidget(remove_subclass_btn)
+            if len(my_class.subclasses) > 1:
+                remove_subclass_btn = QPushButton('Usuń podklasę')
+                remove_subclass_btn.clicked.connect(self.remove_subclass(subclass))
+                name_row.addWidget(remove_subclass_btn)
             
 
             basic_subs = sorted(subclass.subjects, key=lambda x: x.get_name(0,0,0))
@@ -386,7 +387,8 @@ class ClassesWidget(QWidget):
         filename, _ = QFileDialog.getSaveFileName(self, 
                                                 caption=f'Exportuj {class_.name}', 
                                                 directory=f'{class_.name}.csv')
-        class_.to_csv(filename=filename)
+        if filename:
+            class_.to_csv(filename=filename)
 
     def import_class(self):
         filename, _ = QFileDialog.getOpenFileName(self, 'Wybierz plik', '', f'Pliki csv (*.csv)')

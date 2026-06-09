@@ -32,7 +32,7 @@ class ImportSubjectsWidget(QWidget):
             split_name = name.split()
             if len(split_name[-1]) <= 2:
                 split_name.pop()
-            stripped_name = ' '.join(split_name)
+            stripped_name = ' '.join([w.capitalize() for w  in split_name])
             basic = name[-1]!='R'
             subject = self.db.create_subject(name=stripped_name, basic=basic, my_sub_class=class_)
             self.subjects[name] = subject
@@ -109,6 +109,7 @@ class ImportSubjectsWidget(QWidget):
 
             # teacher
             teacher_list = QComboBox()
+            teacher_list.addItem('', None)
             for teacher in self.db.all_teachers():
                 teacher_list.addItem(teacher.name, teacher)
             if subject.teacher:

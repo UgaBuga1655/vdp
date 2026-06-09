@@ -302,9 +302,8 @@ class Data(QObject):
 
     # subjects
     def get_matching_subject(self, name):
-        return self.session.query(Subject).filter(
-            or_(Subject.name.contains(name), 
-                literal(name).like('%' + Subject.name + '%'))).first()
+        return self.session.query(Subject).filter(Subject.name.ilike(name)).first()
+       
 
     def create_subject(self, name, basic, my_sub_class, color=None, teacher=None, short_name=None) -> Subject:
         # copy values if subject with same name exists or load deafaults
