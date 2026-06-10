@@ -7,7 +7,8 @@ from PyQt5.QtGui import QFont
 from data import Data, Class, Subclass, Student, Subject
 from sqlalchemy.exc import IntegrityError
 from pathlib import Path
-from csv import reader
+from csv import reader, Sniffer
+import chardet
 
 from models import student
 from .reorder_classes_dialog import ReorderClassesDialog
@@ -400,13 +401,14 @@ class ClassesWidget(QWidget):
         while class_name in class_names:
             class_name += '_copy'
 
-        format_dialog = ImportFormatDialog(self, filename)
+        format_dialog = ImportFormatDialog(self, class_name)
         ok = format_dialog.exec()
         if not ok:
             return
 
         name_cols = format_dialog.n_of_name_cols.value()
         n_of_subclasses = format_dialog.n_of_subclasses.value()
+        class_name = format_dialog.class_name.text()
 
         class_ = self.db.create_class(class_name)
         for _ in range(n_of_subclasses-1):
@@ -414,10 +416,18 @@ class ClassesWidget(QWidget):
 
         self.list.addItem(class_.name, class_)
 
-        with open(filename) as csvfile:
-            csvreader = reader(csvfile)
+        with open(filename, 'rb') as csvfile:
+            raw = csvfile.read()
+
+        result = chardet.detect(raw)
+        encoding=result['encoding']
+
+        with open(filename, encoding=encoding) as csvfile:
+            sample = csvfile.read(4096)
+            csvfile.seek(0)
+            dialect = Sniffer().sniff(sample, delimiters=",;|\t")
+            csvreader = reader(csvfile, dialect)
             students = []
-            # student_names = []
             subject_names = set()
             for row in csvreader:
                 name = ' '.join(row[:name_cols])

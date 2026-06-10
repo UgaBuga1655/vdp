@@ -3,3 +3,4 @@ networkx==3.6.1
 sqlalchemy
 pyqt5
 multiprocess
+chardet
