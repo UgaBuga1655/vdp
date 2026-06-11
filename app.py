@@ -14,6 +14,7 @@ from tabs import Tabs
 from functions import get_user_data_dir
 from settings_dialog import SettingsDialog
 from reports import RemainingLessonsWindow, TimeReport
+from datetime import datetime
 
 
 
@@ -21,6 +22,7 @@ user_data_dir = get_user_data_dir('VDP')
 os.makedirs(user_data_dir, exist_ok=True)
 db_name_path = os.path.join(user_data_dir, 'db_name')
 basedir = os.path.dirname(__file__)
+os.makedirs(f'{user_data_dir}/logs', exist_ok=True)
 
 
 class MainWindow(QMainWindow):
@@ -203,6 +205,8 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    now = datetime.now().strftime('%y%m%d-%H%M%S')
+    sys.stdout = open(f'{user_data_dir}/logs/{now}', 'w')
     app = QApplication(sys.argv)
     window = MainWindow()
     window.showMaximized()
