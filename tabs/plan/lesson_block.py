@@ -223,7 +223,7 @@ class LessonBlock(BasicBlock):
             if self.db.settings().draw_blocks_full_width:
                 specify_class = True
             specify_subclass = len([l for l in lessons if not l.subject.basic]) or specify_class
-            text_item.write_lessons(lessons, self.block, specify_class, specify_subclass)
+            text_item.write_lessons(lessons, duties, self.block, specify_class, specify_subclass)
             # recenter
             text_item.setZValue(self.zValue()+0.2)
             text_item.setPos(rect.center().x() - text_item.boundingRect().width()/2,\

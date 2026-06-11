@@ -116,7 +116,7 @@ class BlockText(QGraphicsTextItem):
     def set_custom_text(self, text):
         self.setHtml(text)
 
-    def write_lessons(self, lessons, block, show_class, show_subclass):
+    def write_lessons(self, lessons, duties, block, show_class, show_subclass):
         time = f'{display_hour(block.start)}-{display_hour(block.start+block.length)}'
         if len(lessons):
             export_mode = self.db.settings().export_mode
@@ -137,6 +137,14 @@ class BlockText(QGraphicsTextItem):
                     lines.append(line)
             lines.append(time)
             lines.append('/'.join([l.classroom.name if l.classroom else '_'for l in lessons ]))
+            if len(duties):
+                rooms = set()
+                for duty in duties:
+                    if duty.classroom:
+                        rooms.add(duty.classroom.name)
+                rooms = list(rooms)
+                lines.append(f"{block.text} ({'/'.join(rooms)})")
+
             self.setHtml('<br>'.join(lines))
             self.shrink()
             self.setHtml('<br>'.join(lines))

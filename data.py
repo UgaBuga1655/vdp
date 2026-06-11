@@ -472,6 +472,22 @@ class Data(QObject):
                     and_(CustomBlock.start <= block.start, block.start < CustomBlock.start+CustomBlock.length)
                 )).all()
     
+    def overlapping_duties(self, block, exclude_self = False):
+        return self.session.query(TeacherDuty).join(Block).filter(Block.day==block.day)\
+                .filter(or_(not exclude_self, Block.id != block.id))\
+                .filter(or_(
+                    Block.start.between(block.start, block.start+block.length-1),
+                    and_(Block.start <= block.start, block.start < Block.start+Block.length)
+                )).all()
+    
+    def overlapping_lessons(self, block, exclude_self = False):
+        return self.session.query(Lesson).join(Block).filter(Block.day==block.day)\
+                .filter(or_(not exclude_self, Block.id != block.id))\
+                .filter(or_(
+                    Block.start.between(block.start, block.start+block.length),
+                    and_(Block.start <= block.start, block.start <= Block.start+Block.length)
+                )).all()
+    
     @changes_bl_g
     def update_block_start(self, block: Block, start: int):
         pre_overlapping = set(self.overlapping_blocks(block) + self.overlapping_custom_blocks(block))
@@ -806,16 +822,19 @@ class Data(QObject):
 
 
         events = []
-        for bl in self.overlapping_blocks(block):
-            if exclude_self and bl == block:
-                continue
-            events.extend(bl.events)
+        # for bl in self.overlapping_blocks(block):
+        #     if exclude_self and bl == block:
+        #         continue
+        #     events.extend(bl.events)
         
-        for bl in self.overlapping_custom_blocks(block):
-            if exclude_self and bl == block:
-                continue
-            events.extend(bl.duties)
+        # for bl in self.overlapping_custom_blocks(block):
+        #     if exclude_self and bl == block:
+        #         continue
+        #     events.extend(bl.duties)
 
+        
+        events.extend(self.overlapping_duties(block, exclude_self=exclude_self))
+        events.extend(self.overlapping_lessons(block, exclude_self=exclude_self))
         
 
         event: TeacherDuty | Lesson
@@ -838,7 +857,7 @@ class Data(QObject):
             
             # find occupied classrooms
             if get_classrooms:
-                if event.classroom and not (isinstance(event, TeacherDuty) and isinstance(block, CustomBlock)):
+                if event.classroom and not (isinstance(event, TeacherDuty)):
                     collisions[event.classroom].append(event.name_and_time())
                 if event.classroom and not event.classroom.allow_lessons:
                     collisions[event.classroom].append(f'W {classroom.name} nie mogą odbywać się lekcje')
@@ -922,6 +941,8 @@ class Data(QObject):
                         if is_lesson_block else \
                         f'{col_les.get_name()}: {event.collision_text()}',
                     ))
+                if isinstance(col_les, TeacherDuty) and isinstance(event, TeacherDuty):
+                    continue
                 # classrooms
                 if event.classroom and col_les.classroom == event.classroom:
                     collisions[col_les.block].append((
