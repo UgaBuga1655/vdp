@@ -447,10 +447,13 @@ class Data(QObject):
                 yield block
 
     @changes_bl_g
-    def delete_block(self, block):
-        if hasattr(block, 'lessons'):
-            for lesson in block.lessons:
+    def delete_block(self, block: Block):
+        for lesson in block.events:
+            if isinstance(lesson, Lesson):
                 lesson.classroom = None
+            else:
+                self.session.delete(lesson)
+        
         self.session.delete(block)
         self.session.commit()
     

@@ -445,6 +445,8 @@ class ColoringThread(QThread):
         for duty in self.session.query(TeacherDuty).filter(TeacherDuty.classroom_id!=None).all():
             # get overlapping blocks
             block: CustomBlock = duty.block
+            if not block:
+                continue
             overlapping_blocks = self.session.query(Block).filter(Block.day==block.day) \
                 .filter(or_(
                         Block.start.between(block.start, block.start+block.length),
