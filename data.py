@@ -428,6 +428,21 @@ class Data(QObject):
         self.session.add(block)
         self.session.commit()
         return block
+    
+    def copy_block_down(self, block: LessonBlockDB) -> LessonBlockDB:
+        new_block = LessonBlockDB(
+            day=block.day, 
+            start=block.start+block.length+1, 
+            length=block.length, 
+            class_=block.class_,
+            subclass=block.subclass,
+            color=block.color,
+            text=block.text
+        )
+        self.session.add(new_block)
+        self.session.commit()
+        self.update_block.emit(new_block)
+
 
     def all_lesson_blocks(self) -> List[LessonBlockDB]:
         return self.session.query(LessonBlockDB).all()

@@ -523,6 +523,8 @@ class MyView(QGraphicsView):
         self.draw()
 
     def redraw_block(self, block: Block):
+        if block not in self.blocks:
+            self.draw_block(block)
         if not block or not self.blocks[block]:
             return
         

@@ -58,6 +58,10 @@ class LessonBlock(BasicBlock):
         self.menu.insertAction(self.remove_action, manage_classrooms_action)
         manage_classrooms_action.triggered.connect(self.edit)
         
+        copy_action =  QAction('Kopiuj')
+        self.menu.insertAction(self.remove_action, copy_action)
+        copy_action.triggered.connect(self.copy)
+        
         if len(self.block.events):
             # remove_lesson_action =  QAction('Usuń lekcję')
             # self.menu.insertAction(self.remove_action, remove_lesson_action)
@@ -88,6 +92,9 @@ class LessonBlock(BasicBlock):
     
     def edit(self):
         EditLessonBlockDialog(self).exec()
+
+    def copy(self):
+        self.db.copy_block_down(self.block)
 
     def delete(self):
         if len(self.block.events):
