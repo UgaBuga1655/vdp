@@ -317,11 +317,16 @@ class MyView(QGraphicsView):
 
         # self.l = len(self.classes)
         days = 'Poniedziałek Wtorek Środa Czwartek Piątek'.split()
+        white_pen = QPen()
+        white_pen.setColor(QColor('white'))
+        wider_pen = QPen()
+        wider_pen.setWidth(7)
         for day in range(5):
             pos = self.day_w*(day+1)+self.left_bar_w
-            line = scene.addLine(pos, 0, pos, self.scene_height)
+            line = scene.addLine(pos, 4, pos, self.scene_height-4, wider_pen)
             line.setZValue(1_000_000)
-            line.setPen(wide_pen)
+            white_line = scene.addLine(pos, 0, pos, self.scene_height, white_pen)
+            white_line.setZValue(1_000_001)
             
             text = scene.addSimpleText(days[day])
             text_x = pos - (self.day_w + text.boundingRect().width())/2

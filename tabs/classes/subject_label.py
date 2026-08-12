@@ -6,7 +6,7 @@ from vertical_label import VerticalLabel
 class CopySubjectsDialog(QDialog):
     def __init__(self, parent, targets):
         super().__init__(parent=parent)
-        self.setWindowTitle('Kopiuj Lekcje')
+        self.setWindowTitle('Kopiuj Przedmiot')
         layout = QVBoxLayout(self)
         self.target_list = QComboBox()
         layout.addWidget(self.target_list)
@@ -31,17 +31,7 @@ class SubjectLabel(VerticalLabel):
         self.subject = subject
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenuEvent)
-    def copy_subjects(self):
-        if self.subject.subclass:
-            targets = self.db.all_subclasses()
-        else:
-            targets = self.db.all_classes()
-        dialog = CopySubjectsDialog(self, targets)
-        ok = dialog.exec()
-        if not ok:
-            return
-        target = dialog.target_list.currentData()
-        self.copy.emit(self.subject, target)
+
 
     def contextMenuEvent(self, ev):
         menu = QMenu(self)

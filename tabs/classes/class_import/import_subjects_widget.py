@@ -29,7 +29,7 @@ class ImportSubjectsWidget(QWidget):
         self.grid = QGridLayout()
         container.setLayout(self.grid)
         for row, name in enumerate(subject_names):
-            split_name = name.split()
+            split_name = name.strip().split()
             if len(split_name[-1]) <= 2:
                 split_name.pop()
             stripped_name = ' '.join([w.capitalize() for w  in split_name])

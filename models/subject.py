@@ -36,10 +36,10 @@ class Subject(Base):
         return self.class_.name if self.class_id is not None else self.subclass.class_.name
 
     def get_name(self):
-        return f'{self.name}' + (' R' if self.class_ else '')
+        return self.name + '' if self.basic else ' R'
     
     def get_short_name(self):
-        return f'{self.short_name}' + (' R' if self.class_ else '')
+        return self.short_name + '' if self.basic else ' R'
         
     # def full_name(self, full_subclass_name = False):
     #     if self.my_class:

@@ -353,11 +353,12 @@ class ClassesWidget(QWidget):
             subject_window.teacher_changed.connect(label.setToolTip)
         subject_window.color_changed.connect(self.load_class)
 
-    def copy_subject(self, subject):
+    def copy_subject(self, subject: Subject):
         if subject.subclass:
             targets = self.db.all_subclasses()
         else:
             targets = self.db.all_classes()
+        targets.remove(subject.parent())
         dialog = CopySubjectsDialog(self, targets)
         ok = dialog.exec()
         if not ok:

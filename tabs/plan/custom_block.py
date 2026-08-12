@@ -69,17 +69,26 @@ class CustomBlock(BasicBlock):
         color.setAlpha(self.db.settings().alpha)
         # color.setAlpha(210)
         self.setBrush(color)
-        text = self.block.text
+        name = self.block.text
         events = filter(self.filter, self.block.events)
         classrooms = [duty.classroom.name for duty in events if duty.classroom]
         classrooms = list(set(classrooms))
         classrooms.sort()
         classrooms = '/'.join(classrooms)
+
+        delimiter = ' ' if self.block.length <=2 else '<br>'
+        lines = []
+        if name:
+            lines.append(name)
         if classrooms:
-            if self.block.length <= 2:
-                text = f'{classrooms} ({self.block.print_time()})'
-            else:
-                text += '<br>' + self.block.print_time() + '<br>' + classrooms
+            lines.append(classrooms)
+        lines.append(self.block.print_time())
+        text = delimiter.join(lines)
+        # if self.block.length <= 2:
+            
+        #     text = f'{name} ({self.block.print_time()}) {classrooms}'
+        # else:
+        #     text += '<br>' + self.block.print_time()
         self.text_item0.set_custom_text(text)
         if contrast_ratio(color, QColor('black')) < 4.5:
             self.text_item0.setDefaultTextColor(QColor('#ffffff'))
