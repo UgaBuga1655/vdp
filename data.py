@@ -45,10 +45,6 @@ class Data(QObject):
         if not self.session.query(Results).count():
             results = Results()
             self.session.add(results)
-        for block in self.session.query(Block).all():
-            if not block.color or block.color == '#c0c0c0c':
-                block.color = '#c0c0c0'
-            # self.db.session.commit()
         self.session.commit()
 
     def save_solution(self, solution):
