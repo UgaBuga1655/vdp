@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from pathlib import Path
 from csv import reader, Sniffer
 import chardet
+from icu import Collator, Locale
 
 from models import student
 from .reorder_classes_dialog import ReorderClassesDialog
@@ -21,6 +22,8 @@ from .subject_label import CopySubjectsDialog
 from .class_import import *
 
 class ClassesWidget(QWidget):
+    collator = Collator.createInstance(Locale("pl_PL"))
+    
     def __init__(self,parent):
         super().__init__(parent=parent)
         self.db: Data = parent.db
@@ -246,7 +249,7 @@ class ClassesWidget(QWidget):
 
             #load students
             student: Student
-            for student in sorted(subclass.students, key=lambda s: s.name):
+            for student in sorted(subclass.students, key=lambda s: self.collator.getSortKey(s.name)):
                 self.add_student_to_list(student, student_list)
 
             new_student_row = QHBoxLayout()

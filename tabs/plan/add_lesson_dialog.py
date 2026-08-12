@@ -68,7 +68,7 @@ class AddLessonToBlockDialog(QDialog):
         none_viable = True
         self.select_next_subject = False
         for i, subject in enumerate(subjects):
-            self.subject_list.addItem(subject.name, subject)
+            self.subject_list.addItem(subject.get_name(0, 0, 0), subject)
             collisions = '\n'.join(self.collisions[subject])
 
             if collisions:

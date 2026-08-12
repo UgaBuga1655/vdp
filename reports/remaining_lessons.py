@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeWidget, QPushButton, QSiz
 from PyQt5.QtCore import QSize, Qt, QPoint
 from PyQt5.QtGui import QCursor
 from data import Data
+from typing import List
+from models import Subject
 
 class RemainingLessonsWindow(QWidget):
     def __init__(self, db: Data):
@@ -50,7 +52,7 @@ class RemainingLessonsWindow(QWidget):
                 self.tree.addTopLevelItem(class_item)
         self.tree.expandAll()
 
-    def add_subjects_to_item(self, item: QTreeWidgetItem, subjects):
+    def add_subjects_to_item(self, item: QTreeWidgetItem, subjects: List[Subject]):
         for subject in subjects:
                 subject_item = QTreeWidgetItem(item, [subject.get_name(0,0,0)])
                 for lesson in subject.lessons:

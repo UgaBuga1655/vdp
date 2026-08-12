@@ -4,3 +4,4 @@ sqlalchemy
 pyqt5
 multiprocess
 chardet
+icu

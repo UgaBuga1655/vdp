@@ -55,15 +55,19 @@ class Subject(Base):
         
     def get_name(self, short=False, show_class_name = True, show_subclass_name = True):
         name = self.short_name if short else self.name
+       
         class_name = ''
         if show_class_name:
             class_name += self.class_name()
         is_only_subclass = len(self.class_.subclasses if self.class_ else self.subclass.class_.subclasses) == 1
         if show_subclass_name:
-            class_name +=  (self.subclass.name.upper() if (not is_only_subclass and self.subclass) else '') if self.basic else 'R'
+            class_name +=  (self.subclass.name.upper() if (not is_only_subclass and self.subclass) else '') if self.basic else ''
                
+        if not self.basic:
+            class_name += 'R'
         if class_name:
             name += ' ' + class_name
+
         return name
         
         

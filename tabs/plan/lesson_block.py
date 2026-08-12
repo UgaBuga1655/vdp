@@ -178,9 +178,18 @@ class LessonBlock(BasicBlock):
         final_colors = []
         for rect, subclass, events in zip(rects, buckets.keys(), buckets.values()):
             if self.db.settings().hide_empty_blocks and not len(events):
-                final_colors.append(QColor(self.block.color))
+                final_colors.append(None)
+                continue
             # subclass, lessons = bucket
-            colors = list(set([lesson.subject.color for lesson in events if isinstance(lesson, Lesson)]))
+            colors = set()
+            for lesson in events:
+                if isinstance(lesson, TeacherDuty):
+                    continue
+                if lesson.subject.color:
+                    colors.add(lesson.subject.color)
+
+            colors = list(colors)
+
             if len(colors) == 0:
                 color = self.block.color
             elif len(colors) == 1:
@@ -190,6 +199,8 @@ class LessonBlock(BasicBlock):
             color = QColor(color)
             color.setAlpha(self.db.settings().alpha)
             final_colors.append(color)
+        if len(rects)!= len(final_colors):
+            print(len(rects), len(final_colors))
         return rects, buckets, final_colors, duties
 
        

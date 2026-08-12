@@ -10,7 +10,7 @@ class Block(Base):
     length = Column(Integer, nullable=False) # in 5 min blocks
     start = Column(Integer, nullable=False) # in 5 min blocks
     day = Column(Integer, nullable=False) # 0=mon, 1=tue etc.
-    color = Column(String)
+    color = Column(String, default='#c0c0c0')
     text = Column(String)
     events = relationship('Event', back_populates='block')
 
