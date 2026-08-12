@@ -18,3 +18,6 @@ class LessonBlockDB(Block):
             return self.class_
         if self.subclass:
             return self.subclass
+        
+    def print_full_time(self):
+        return self.parent().full_name() + ' ' + super().print_full_time()

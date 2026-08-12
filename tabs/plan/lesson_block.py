@@ -124,7 +124,7 @@ class LessonBlock(BasicBlock):
         painter.setPen(QPen(Qt.NoPen))
         rects, buckets, colors, _= self.get_rects()
         for rect, color in zip(rects, colors):
-            if not color:
+            if color is None:
                 continue
             brush = QBrush(color)
             painter.fillRect(rect, brush)
@@ -158,49 +158,49 @@ class LessonBlock(BasicBlock):
             for lesson in lessons:
                 buckets[lesson.subject.parent()].append(lesson)
             n_of_buckets = len(buckets)
-            if not n_of_buckets:
-                return (None, None, None)
+            # if not n_of_buckets:
+            #     return (None, None, None)
             
             width = rect.width()/n_of_buckets
             height = rect.height() 
             y = rect.top()
+            left = rect.left()
             for n in range(n_of_buckets):
                 if self.db.settings().draw_blocks_full_width:
                     rects.append(rect)
+                    # print(left, y, width, height)
                 else:
-                    x = rect.left()
-                    x += width * n
+                    x = left + width * n
                     rects.append(QRectF(x, y, width, height))
         else:
             rects = [rect]
             buckets = {self.block.subclass: lessons}
             show_full_subject_names = True
         final_colors = []
-        for rect, subclass, events in zip(rects, buckets.keys(), buckets.values()):
-            if self.db.settings().hide_empty_blocks and not len(events):
+        for rect, subclass, lessons in zip(rects, buckets.keys(), buckets.values()):
+            if self.db.settings().hide_empty_blocks and not len(lessons + duties):
                 final_colors.append(None)
                 continue
             # subclass, lessons = bucket
             colors = set()
-            for lesson in events:
-                if isinstance(lesson, TeacherDuty):
-                    continue
-                if lesson.subject.color:
-                    colors.add(lesson.subject.color)
+            for lesson in lessons:
+
+                colors.add(lesson.subject.color)
 
             colors = list(colors)
+            # print(colors)
 
-            if len(colors) == 0:
+            if len(lessons) == 0:
                 color = self.block.color
             elif len(colors) == 1:
                 color = colors[0]
             else:
-                color =  '#c0c0c0'
+                color = '#c0c0c0'
             color = QColor(color)
             color.setAlpha(self.db.settings().alpha)
             final_colors.append(color)
-        if len(rects)!= len(final_colors):
-            print(len(rects), len(final_colors))
+        # if len(rects)!= len(final_colors):
+        #     print(len(rects), len(final_colors))
         return rects, buckets, final_colors, duties
 
        
@@ -233,7 +233,7 @@ class LessonBlock(BasicBlock):
             text_item.set_w(rect.width())
 
             # correct color
-            if contrast_ratio(color, QColor('black')) < 4.5:
+            if color and contrast_ratio(color, QColor('black')) < 4.5:
                 text_item.setDefaultTextColor(QColor('white'))
             else:
                 text_item.setDefaultTextColor(QColor('black'))
