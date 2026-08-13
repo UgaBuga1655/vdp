@@ -123,7 +123,7 @@ class FilterWidget(QWidget):
             return None, None
         classes = self.db.all_subclasses()
         def filter(l):
-            return l.teacher == teacher
+            return teacher in l.teachers
         return classes, filter
     
     def update_classroom_filter(self):

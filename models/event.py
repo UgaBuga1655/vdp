@@ -24,3 +24,7 @@ class Event(Base):
     @property
     def students(self):
         return []
+
+    @property
+    def teachers(self):
+        return [self.teacher]

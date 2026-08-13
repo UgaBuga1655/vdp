@@ -1,4 +1,4 @@
-from db_config import Base, student_subject
+from db_config import Base, student_subject, teacher_subject
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
@@ -11,8 +11,9 @@ class Subject(Base):
     class_ = relationship('Class', back_populates='subjects')
     subclass_id = Column(Integer, ForeignKey('subclasses.id'))
     subclass = relationship('Subclass', back_populates='subjects')
-    teacher_id = Column(Integer, ForeignKey('teachers.id'))
-    teacher = relationship('Teacher', back_populates='subjects')
+    # teacher_id = Column(Integer, ForeignKey('teachers.id'))
+    # teacher = relationship('Teacher', backref='subjects_old')
+    teachers = relationship('Teacher', secondary=teacher_subject, back_populates='subjects')
     classroom_id = Column(Integer, ForeignKey('classrooms.id'))
     required_classroom = relationship('Classroom', back_populates='subjects')
     basic = Column(Boolean)

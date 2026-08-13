@@ -20,6 +20,13 @@ student_subject = Table(
     Column("subject_id", Integer, ForeignKey("subjects.id"), primary_key=True),
 )
 
+teacher_subject = Table(
+    'teacher_subject',
+    Base.metadata,
+    Column('teacher_id', Integer, ForeignKey('teachers.id'), primary_key=True),
+    Column('subject_id', Integer, ForeignKey('subjects.id'), primary_key=True)
+)
+
 class Settings():
     def __init__(self):
         # self.allow_creating_conflicts = False

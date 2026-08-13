@@ -20,6 +20,22 @@ class AddLessonDialog(QDialog):
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
+class AddTeacherDialog(QDialog):
+    def __init__(self, parent, teachers):
+        super().__init__(parent=parent)
+        self.setWindowTitle('Dodaj Nauczyciela')
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        self.teacher = QComboBox()
+        layout.addWidget(self.teacher)
+        for teacher in teachers:
+            self.teacher.addItem(teacher.name, teacher)
+
+        buttonBox = QDialogButtonBox()
+        layout.addWidget(buttonBox)
+        buttonBox.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
 
 class CopySubjectsDialog(QDialog):
     def __init__(self, parent, targets):
@@ -91,19 +107,26 @@ class SubjectsWindow(QWidget):
 
 
         # subject info row
-        teacher_row = QHBoxLayout()
-        main_layout.addLayout(teacher_row)
-        teacher_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        
+        subject_info_row = QHBoxLayout()
+        main_layout.addLayout(subject_info_row)
+        subject_info_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
         # teachers
-        teacher_row.addWidget(QLabel('Nauczyciel:'))
-        self.teacher_list = QComboBox()
-        self.teacher_list.addItem('')
-        for t in self.db.all_teachers():
-            self.teacher_list.addItem(t.name, t)
-        self.teacher_list.currentTextChanged.connect(self.set_teacher)
-        self.teacher_list.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        teacher_row.addWidget(self.teacher_list)
+        subject_info_row.addWidget(QLabel('Nauczyciele:'))
+        self.teachers_row = QHBoxLayout()
+        subject_info_row.addLayout(self.teachers_row)
+        self.add_teacher_btn = QPushButton('+')
+        self.add_teacher_btn.setFixedWidth(20)
+        self.add_teacher_btn.clicked.connect(self.add_teacher)
+        self.teachers_row.addWidget(self.add_teacher_btn)
+        self.teachers_row.addStretch()
+        # teacher_list = QComboBox()
+        # self.teacher_list.addItem('')
+        # for t in self.db.all_teachers():
+        #     self.teacher_list.addItem(t.name, t)
+        # self.teacher_list.currentTextChanged.connect(self.set_teacher)
+        # self.teacher_list.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        # teacher_row.addWidget(self.teacher_list)
 
         planning_info_row = QHBoxLayout()
         main_layout.addLayout(planning_info_row)
@@ -162,11 +185,14 @@ class SubjectsWindow(QWidget):
             self.load_subject(subject)
 
 
-    def load_subject(self, subject):
+    def load_subject(self, subject: Subject):
         # teacher
-        teacher = subject.teacher
-        teacher_name = teacher.name if teacher else ''
-        self.teacher_list.setCurrentText(teacher_name)
+        teachers = subject.teachers
+        teachers
+        for teacher in teachers:
+            teacher_btn = QPushButton(teacher.name)
+            self.teachers_row.insertWidget(0, teacher_btn)
+            teacher_btn.clicked.connect(self.remove_teacher(teacher, teacher_btn))
 
         # classroom
         classroom = subject.required_classroom
@@ -208,6 +234,27 @@ class SubjectsWindow(QWidget):
         self.db.update_subject_teacher(subject, teacher)
         self.teacher_changed.emit(teacher.name)
 
+    def add_teacher(self):
+        teachers = self.db.all_teachers()
+        for teacher in self.subject.teachers:
+            teachers.remove(teacher)
+        dialog = AddTeacherDialog(self, teachers)
+        ok = dialog.exec()
+        if not ok:
+            return
+        teacher = dialog.teacher.currentData()
+        self.db.add_teacher_to_subject(self.subject, teacher)
+        btn = QPushButton(teacher.name)
+        btn.clicked.connect(self.remove_teacher(teacher, btn))
+        self.teachers_row.insertWidget(0, btn)
+
+    def remove_teacher(self, teacher, btn: QPushButton):
+        def func():
+            self.db.remove_teacher_from_subject(self.subject, teacher)
+            btn.deleteLater()
+        return func
+            
+        
     def add_lesson(self):
         dialog = AddLessonDialog(self)
         ok = dialog.exec()

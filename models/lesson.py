@@ -21,13 +21,23 @@ class Lesson(Event):
         return self.subject.get_name()
     
     @property
-    def teacher(self):
-        return self.subject.teacher
+    def teachers(self):
+        return self.subject.teachers
+
+    @property
+    def teacher_names(self):
+        if len(self.teachers) == 1:
+            return self.teachers[0].name
+        if len(self.teachers) == 2:
+            return ' i '.join([t.name for t in self.teachers])
+        return ', '.join([t.name for t in self.teachers[:-1]]) + ' i ' + self.teachers[-1].name
     
     @property
     def students(self):
         return self.subject.students
     
-    def collision_text(self):
-        return f'{self.teacher.name} prowadzi {self.name_and_time()}'
+    def collision_text(self, teacher_name=None):
+        if teacher_name is None:
+            self.teacher_name = self.teacher_names
+        return f'{teacher_name} prowadzi {self.name_and_time()}'
 

@@ -45,6 +45,10 @@ class Data(QObject):
         if not self.session.query(Results).count():
             results = Results()
             self.session.add(results)
+        # for subject in self.session.query(Subject):
+        #     if subject.teacher and subject.teacher not in subject.teachers:
+        #         print(subject.id, subject.teacher_id)
+        #         subject.teachers.append(subject.teacher)
         self.session.commit()
 
     def save_solution(self, solution):
@@ -305,19 +309,21 @@ class Data(QObject):
         return self.session.query(Subject).filter(Subject.name.ilike(name)).first()
        
 
-    def create_subject(self, name, basic, my_sub_class, color=None, teacher=None, short_name=None) -> Subject:
+    def create_subject(self, name, basic, my_sub_class, color=None, teachers=None, short_name=None) -> Subject:
+        if teachers is None:
+            teachers = []
         # copy values if subject with same name exists or load deafaults
         if not (color or teacher or short_name):
             same_name_subject = self.get_matching_subject(name)
             if same_name_subject:
                 color = same_name_subject.color
-                teacher = same_name_subject.teacher
+                teachers = same_name_subject.teachers
                 short_name = same_name_subject.short_name
             else:
                 color = '#c0c0c0'
-                teacher = None
+                teachers = []
                 short_name = shorten_name(name)
-        subject = Subject(name=name, basic=basic, color=color, short_name=short_name, teacher=teacher)
+        subject = Subject(name=name, basic=basic, color=color, short_name=short_name, teachers=teachers)
         self.session.add(subject)
         my_sub_class.subjects.append(subject)
         self.session.commit()
@@ -328,15 +334,37 @@ class Data(QObject):
         self.session.commit()
 
     # @changes_les_g_or_feas
-    def update_subject_teacher(self, subject: Subject, teacher: Teacher) -> None:
-        if subject.teacher == teacher:
+    # def update_subject_teacher(self, subject: Subject, teacher: Teacher) -> None:
+    #     if subject.teacher == teacher:
+    #         return
+    #     self.clear_les_g_and_feas()
+    #     subject.teacher = teacher
+    #     for lesson in subject.lessons:
+    #         if lesson.block is None:
+    #             continue
+    #         self.update_block.emit(lesson.block)
+    #     self.session.commit()
+
+    def add_teacher_to_subject(self, subject: Subject, teacher: Teacher) -> None:
+        if teacher in subject.teachers:
             return
-        self.clear_les_g_and_feas()
-        subject.teacher = teacher
+        subject.teachers.append(teacher)
         for lesson in subject.lessons:
             if lesson.block is None:
                 continue
             self.update_block.emit(lesson.block)
+        self.clear_les_g_and_feas()
+        self.session.commit()
+
+    def remove_teacher_from_subject(self, subject: Subject, teacher: Teacher) -> None:
+        if teacher not in subject.teachers:
+            return
+        subject.teachers.remove(teacher)
+        for lesson in subject.lessons:
+            if lesson.block is None:
+                continue
+            self.update_block.emit(lesson.block)
+        self.clear_les_g_and_feas()
         self.session.commit()
 
     def update_subject_name(self, subject: Subject, name: str) -> None:
@@ -744,7 +772,7 @@ class Data(QObject):
         if not teacher:
             return 0
         lesson_count = self.session.query(Lesson).filter_by(block_locked=True)\
-                    .join(Lesson.subject).filter_by(teacher=teacher) \
+                    .join(Lesson.subject).filter(teacher in Lesson.subject.teachers) \
                     .join(Lesson.block).filter(Block.day == block.day) \
                     .filter(or_(
                         Block.start.between(block.start, block.start+block.length), 
@@ -855,13 +883,12 @@ class Data(QObject):
         event: TeacherDuty | Lesson
         for event in events:
             # find busy teachers
-            teacher = event.teacher
-            if teacher:
+            for teacher in event.teachers:
                 for subject in teacher.subjects:
                     if subject in collisions:
-                        collisions[subject].append(event.collision_text())
+                        collisions[subject].append(event.collision_text(teacher.name))
                 if teacher in collisions:
-                    collisions[teacher].append(event.collision_text())
+                    collisions[teacher].append(event.collision_text(teacher.name))
 
             # find busy students
             if get_subjects and not isinstance(event, TeacherDuty):
@@ -883,8 +910,9 @@ class Data(QObject):
             subject: Subject
             for subject in subjects:
                 # teacher
-                if not self.is_teacher_available(subject.teacher, block):
-                    collisions[subject].append(f'{subject.teacher.name} nie jest dostępny w tych godzinach')
+                for teacher in subject.teachers:
+                    if not self.is_teacher_available(teacher, block):
+                        collisions[subject].append(f'{teacher.name} nie jest dostępny w tych godzinach')
 
                 # is required classroom available
                 if subject.required_classroom:
@@ -928,7 +956,7 @@ class Data(QObject):
 
         events = block.events
         for event in events:
-            teacher = event.teacher  
+            teachers = set(event.teachers)  
             students = set(event.students)
             if isinstance(event, Lesson):
                 required_classroom = event.subject.required_classroom
@@ -937,19 +965,23 @@ class Data(QObject):
                         f'{event.get_name()} musi odbywać się w {required_classroom.name}',
                         ''
                     ]))
-
-            if teacher and not self.is_teacher_available(teacher, block):
-                collisions[None].append((
-                    f'{event.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
-                    ''
-                ))
+            for teacher in teachers:
+                if teacher and not self.is_teacher_available(teacher, block):
+                    collisions[None].append((
+                        f'{event.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
+                        ''
+                    ))
 
             col_les: Event
             for col_les in colliding_lessons:
                 if col_les == event:
                     continue
                 # teachers
-                if teacher and col_les.teacher == teacher:
+                for teacher in teachers:
+                    if teacher is None:
+                        continue
+                    if teacher not in col_les.teachers:
+                        continue
                     collisions[col_les.block].append((
                         f'{event.get_name()}: {teacher.name} prowadzi {col_les.name_and_time()}',
                         f'{col_les.get_name()}: {teacher.name} prowadzi {event.name_and_time()}'\

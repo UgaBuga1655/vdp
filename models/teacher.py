@@ -1,4 +1,4 @@
-from db_config import Base
+from db_config import Base, teacher_subject
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -11,7 +11,7 @@ class Teacher(Base):
     av3 = Column(Integer)
     av4 = Column(Integer)
     av5 = Column(Integer)
-    subjects = relationship("Subject", back_populates='teacher')
+    subjects = relationship("Subject", secondary=teacher_subject, back_populates="teachers")
     duties = relationship('TeacherDuty', back_populates='teacher')
 
     def __init__(self, name, av):
