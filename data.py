@@ -771,8 +771,8 @@ class Data(QObject):
             session = self.session
         if not teacher:
             return 0
-        lesson_count = self.session.query(Lesson).filter_by(block_locked=True)\
-                    .join(Lesson.subject).filter(teacher in Lesson.subject.teachers) \
+        lesson_count = self.session.query(Teacher).filter_by(id=teacher.id).join(Teacher.subjects)\
+                    .join(Subject.lessons).filter_by(block_locked=True)\
                     .join(Lesson.block).filter(Block.day == block.day) \
                     .filter(or_(
                         Block.start.between(block.start, block.start+block.length), 

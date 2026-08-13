@@ -329,9 +329,11 @@ class ColoringThread(QThread):
                         graph.add_edge(*pair)
                         break
         for pair in combinations(graph.nodes, 2):
-            if pair[0].teacher == pair[1].teacher and pair[0].teacher is not None:
-                graph.add_edge(*pair)
-                continue
+            for teacher in pair[0].teachers:
+                if teacher in pair[1].teachers:
+            # if len(set(pair[0].teachers).intersection(set(pair[1].teachers))):
+                    graph.add_edge(*pair)
+                    break
         
         feasible_blocks = {}
         tick_2 = perf_counter()
@@ -354,7 +356,12 @@ class ColoringThread(QThread):
                 feasible_blocks[lesson.id] = []
             for block in blocks:
                 # teacher not available
-                if not self.db.is_teacher_available(subject.teacher, block):
+                t_av = True
+                for teacher in subject.teachers:
+                    if not self.db.is_teacher_available(teacher, block):
+                        t_av = False
+                        # break
+                if not t_av:
                     continue
 
                 # block is in the wrong class
@@ -368,7 +375,11 @@ class ColoringThread(QThread):
                     continue
 
                 # teacher is busy
-                if self.db.get_lesson_collisions_for_teacher_at_block(subject.teacher, block, self.session):
+                for teacher in subject.teachers:
+                    if self.db.get_lesson_collisions_for_teacher_at_block(teacher, block, self.session):
+                        t_av = False
+                        # break
+                if not t_av:
                     continue
 
                 # students are busy
