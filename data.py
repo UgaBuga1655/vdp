@@ -45,8 +45,8 @@ class Data(QObject):
         if not self.session.query(Results).count():
             results = Results()
             self.session.add(results)
-        for subject in self.session.query(Subject):
-            subject.basic = subject.class_ is None
+        # for subject in self.session.query(Subject):
+        #     subject.basic = subject.class_ is None
         #     if subject.teacher and subject.teacher not in subject.teachers:
         #         print(subject.id, subject.teacher_id)
         #         subject.teachers.append(subject.teacher)
@@ -382,6 +382,9 @@ class Data(QObject):
 
     def update_subject_is_basic(self, subject: Subject, basic: bool) -> None:
         subject.basic = basic
+        for lesson in subject.lessons:
+            if lesson.block:
+                self.update_block.emit(lesson.block)
         self.session.commit()
 
     @changes_les_g_or_feas

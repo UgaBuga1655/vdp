@@ -296,6 +296,9 @@ class SubjectsWindow(QWidget):
     def update_subject_is_basic(self):
         basic = not self.display_r_checkbox.isChecked()
         self.db.update_subject_is_basic(self.subject, basic)
+        self.short_name_updated.emit(
+            self.subject.short_name + '' if self.subject.basic else ' R'
+        )
 
     def set_classroom(self):
         classroom = self.classroom_list.currentData()
