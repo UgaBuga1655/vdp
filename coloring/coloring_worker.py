@@ -1,7 +1,7 @@
 from numpy import average
 from .functions import mutate_batch
 from PyQt5.QtCore import QThread, pyqtSignal
-from networkx import Graph
+from networkx import Graph, draw, spring_layout
 from itertools import combinations
 from data import *
 from time import perf_counter
@@ -10,7 +10,7 @@ from .functions import random_coloring, mutate_batch, legalize_batch
 from .scorer import scorer_factory, rank
 import multiprocess as mp
 import math
-
+import matplotlib.pyplot as plt
 
 class ColoringThread(QThread):
     update_bar = pyqtSignal(str)
@@ -53,7 +53,7 @@ class ColoringThread(QThread):
             self.bl_g, self.for_bl = self.generate_block_graph()
             needs_legalisation = True
         if self.les_g is None or self.feas is None:
-            self.les_g, _, self.feas = self.generate_lesson_graph(self.for_bl)
+            self.les_g, labels, self.feas = self.generate_lesson_graph(self.for_bl)
             if self.les_g is None:
                 return
             needs_legalisation = True
@@ -361,7 +361,7 @@ class ColoringThread(QThread):
                     if not self.db.is_teacher_available(teacher, block):
                         t_av = False
                         # break
-                if not t_av:
+                if t_av == False:
                     continue
 
                 # block is in the wrong class
@@ -379,7 +379,7 @@ class ColoringThread(QThread):
                     if self.db.get_lesson_collisions_for_teacher_at_block(teacher, block, self.session):
                         t_av = False
                         # break
-                if not t_av:
+                if t_av == False:
                     continue
 
                 # students are busy
@@ -423,6 +423,7 @@ class ColoringThread(QThread):
                 graph.remove_node(subject)
         tick_3 = perf_counter()
         print(f'Naniesiono lekcje w {tick_3-tick_2:.2f}s')
+        # print(feasible_blocks)
         
         return graph, labels, feasible_blocks
 
@@ -449,7 +450,7 @@ class ColoringThread(QThread):
         classrooms = self.session.query(Classroom).all()
         # classroom is occupied during that block
         forbidden_blocks = {cl.id: set() for cl in classrooms}
-        for lesson in self.session.query(Lesson).filter(Lesson.classroom_id!= None).all():
+        for lesson in self.session.query(Lesson).filter_by(block_locked=True).filter(Lesson.classroom_id!= None).all():
             block = lesson.block_id
             forbidden_blocks[lesson.classroom_id].add(block)
             forbidden_blocks[lesson.classroom_id].update(graph[block])

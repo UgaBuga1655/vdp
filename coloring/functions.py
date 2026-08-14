@@ -25,7 +25,7 @@ def random_coloring(params, queue, scorer, stop_event):
 
     queue.put(('done', data))
 
-def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, Block]:
+def crazy(les_g: Graph, bl_g, feas):
     # initialize data structures
     colors = {}
     rev_colors = {}
@@ -49,10 +49,12 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, Block]:
         for color in feas[lesson]:
             # point in space and time is occupied
             if color in rev_colors:
+                # print(lesson, color, 'color occupied')
                 continue
             block, classroom = color
-            # collifing lesson
+            # colliding lesson
             if block in adj_colors[lesson]:
+                # print(lesson, color, 'colliding lesson')
                 continue
             # classroom occupied by other lesson
             classroom_is_occupied = False
@@ -61,6 +63,7 @@ def crazy(les_g: Graph, bl_g, feas) -> dict[Lesson, Block]:
                     classroom_is_occupied = True
                     break
             if classroom_is_occupied:
+                # print(lesson, color, 'classroom occupied')
                 continue
             
             color = (block, classroom)
@@ -166,7 +169,7 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             return True
         return is_viable
     
-    if mutate:
+    if mutate and len(child):
         for _ in range(randint(0, 6)):
             if len(child_uncolored):
                 lesson = choice(child_uncolored)

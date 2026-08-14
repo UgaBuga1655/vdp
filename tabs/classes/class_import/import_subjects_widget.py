@@ -108,15 +108,15 @@ class ImportSubjectsWidget(QWidget):
             col += 1
 
             # teacher
-            teacher_list = QComboBox()
-            teacher_list.addItem('', None)
-            for teacher in self.db.all_teachers():
-                teacher_list.addItem(teacher.name, teacher)
-            if subject.teacher:
-                teacher_list.setCurrentText(subject.teacher.name)
-            teacher_list.currentTextChanged.connect(self.set_subject_teacher(subject))
-            self.grid.addWidget(teacher_list, row, col)
-            col += 1
+            # teacher_list = QComboBox()
+            # teacher_list.addItem('', None)
+            # for teacher in self.db.all_teachers():
+            #     teacher_list.addItem(teacher.name, teacher)
+            # if len(subject.teachers):
+            #     teacher_list.setCurrentText(subject.teachers[0].name)
+            # teacher_list.currentTextChanged.connect(self.set_subject_teacher(subject))
+            # self.grid.addWidget(teacher_list, row, col)
+            # col += 1
             
 
 
@@ -148,9 +148,9 @@ class ImportSubjectsWidget(QWidget):
             btn.setStyleSheet(f'background-color: {color}')
         return func
     
-    def set_subject_teacher(self, subject):
-        def func():
-            teacher = self.sender().currentData()
-            self.db.update_subject_teacher(subject, teacher)
-        return func
+    # def set_subject_teacher(self, subject):
+    #     def func():
+    #         teacher = self.sender().currentData()
+    #         self.db.update_subject_teacher(subject, teacher)
+    #     return func
     

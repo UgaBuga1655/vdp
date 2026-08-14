@@ -7,7 +7,7 @@ from PyQt5.QtGui import QFont
 from data import Data, Class, Subclass, Student, Subject
 from sqlalchemy.exc import IntegrityError
 from pathlib import Path
-from csv import reader, Sniffer
+from csv import reader, Sniffer, get_dialect
 import chardet
 # from icu import Collator, Locale
 import locale
@@ -432,7 +432,10 @@ class ClassesWidget(QWidget):
         with open(filename, encoding=encoding) as csvfile:
             sample = csvfile.read(4096)
             csvfile.seek(0)
-            dialect = Sniffer().sniff(sample, delimiters=",;|\t")
+            try:
+                dialect = Sniffer().sniff(sample, delimiters=",;|\t")
+            except:
+                dialect = get_dialect('excel')
             csvreader = reader(csvfile, dialect)
             students = []
             subject_names = set()

@@ -285,8 +285,10 @@ class SubjectsWindow(QWidget):
             self.color_changed.emit(color)
 
     def set_short_name(self, short_name):
-        self.short_name_updated.emit(short_name)
         self.db.update_subject_short_name(self.subject, short_name)
+        if not self.subject.basic:
+            short_name += ' R'
+        self.short_name_updated.emit(short_name)
 
     def set_name(self, name):
         self.db.update_subject_name(self.subject, name)

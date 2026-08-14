@@ -45,7 +45,8 @@ class Data(QObject):
         if not self.session.query(Results).count():
             results = Results()
             self.session.add(results)
-        # for subject in self.session.query(Subject):
+        for subject in self.session.query(Subject):
+            subject.basic = subject.class_ is None
         #     if subject.teacher and subject.teacher not in subject.teachers:
         #         print(subject.id, subject.teacher_id)
         #         subject.teachers.append(subject.teacher)
@@ -313,7 +314,7 @@ class Data(QObject):
         if teachers is None:
             teachers = []
         # copy values if subject with same name exists or load deafaults
-        if not (color or teacher or short_name):
+        if not (color and teacher and short_name):
             same_name_subject = self.get_matching_subject(name)
             if same_name_subject:
                 color = same_name_subject.color
@@ -668,10 +669,6 @@ class Data(QObject):
         for lesson in classroom.events:
             if lesson.block:
                 self.update_block.emit(lesson.block)
-
-        for duty in classroom.duties:
-            if duty.block:
-                self.update_custom_block.emit(duty.block)
         self.classrooms_changed.emit()
 
     def delete_classroom(self, classroom: Classroom) -> None:
@@ -766,13 +763,13 @@ class Data(QObject):
  
 
    
-    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: Block, session=None) -> List[Lesson]:
+    def get_lesson_collisions_for_teacher_at_block(self, teacher: Teacher, block: Block, session=None) -> int:
         if not session:
             session = self.session
         if not teacher:
             return 0
-        lesson_count = self.session.query(Teacher).filter_by(id=teacher.id).join(Teacher.subjects)\
-                    .join(Subject.lessons).filter_by(block_locked=True)\
+        lesson_count = self.session.query(Lesson).filter_by(block_locked=True)\
+                    .join(Lesson.subject).join(Subject.teachers).filter(Teacher.id == teacher.id) \
                     .join(Lesson.block).filter(Block.day == block.day) \
                     .filter(or_(
                         Block.start.between(block.start, block.start+block.length), 
@@ -784,6 +781,11 @@ class Data(QObject):
                         Block.start.between(block.start, block.start+block.length), 
                         and_(Block.start <= block.start, block.start <= Block.start+Block.length)
                     )).count()
+        # print(duties_count)
+        if lesson_count:
+            print('l', lesson_count)
+        if duties_count:
+            print('d', duties_count)
         return lesson_count + duties_count
     
 

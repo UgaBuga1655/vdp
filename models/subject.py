@@ -56,6 +56,8 @@ class Subject(Base):
         
     def get_name(self, short=False, show_class_name = True, show_subclass_name = True):
         name = self.short_name if short else self.name
+        if not name:
+            name = ''
        
         class_name = ''
         if show_class_name:

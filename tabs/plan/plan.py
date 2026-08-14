@@ -15,6 +15,7 @@ from PyQt5.QtPrintSupport import QPrinter
 from progress_dialog import ProgressDialog
 from .params_plot import ParamReport
 from .pop_dialog import PopDialog
+# import networkx as nx
         
 
 class PlanWidget(QWidget):
@@ -340,6 +341,10 @@ class PlanWidget(QWidget):
         self.redraw()
         if self.db.settings().verbose:
             self.show_params_plot()
+            # les_g = results[4]
+            # pos = nx.circular_layout(les_g)
+            # nx.draw(les_g, pos, with_labels=True)
+            # plt.show()
     
     def show_params_plot(self):
         if not len(self.db.last_params()[0]):
