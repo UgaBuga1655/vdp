@@ -400,9 +400,17 @@ class Data(QObject):
             setattr(subject, f'inconv{i+1}',conv[i])
         for lesson in subject.lessons:
             if lesson.block:
-                self.update_block(lesson)
+                self.update_block.emit(lesson.block)
 
     def is_subject_forbidden(self, subject, block):
+        mask_start = int(block.start//6)
+        mask_end = int((block.start+block.length-0.5)//6) + 1
+        mask = 0
+        for shift in range(mask_start, mask_end):
+            mask |=  1 << shift
+        return mask & subject.__getattribute__(f'for{block.day+1}') 
+
+    def is_subject_inconvinient(self, subject, block):
         mask_start = int(block.start//6)
         mask_end = int((block.start+block.length-0.5)//6) + 1
         mask = 0
