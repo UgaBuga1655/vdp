@@ -53,12 +53,12 @@ class ColoringThread(QThread):
             self.bl_g, self.for_bl = self.generate_block_graph()
             needs_legalisation = True
         if self.les_g is None or self.feas is None:
-            self.les_g, labels, self.feas = self.generate_lesson_graph(self.for_bl)
+            self.les_g, labels, self.feas, self.inconv = self.generate_lesson_graph(self.for_bl)
             if self.les_g is None:
                 return
             needs_legalisation = True
 
-        self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g)
+        self.scorer = scorer_factory(self.db, self.session, self.bl_g, self.les_g, self.inconv)
 
         self.pop_start_time = perf_counter()
         # pick up when we've finished
@@ -336,6 +336,7 @@ class ColoringThread(QThread):
                     break
         
         feasible_blocks = {}
+        inconvient_blocks = {}
         tick_2 = perf_counter()
         print(f'Naniesiono przedmioty w {tick_2-tick_1:.2f}s')
         self.update_bar.emit('Generowanie grafu lekcji')
@@ -354,6 +355,7 @@ class ColoringThread(QThread):
             unpinned_lessons = []
             for lesson in subject.lessons:
                 feasible_blocks[lesson.id] = []
+                inconvient_blocks[lesson.id] = []
             for block in blocks:
                 # teacher not available
                 t_av = True
@@ -407,6 +409,13 @@ class ColoringThread(QThread):
                     for bl, cl in many_blocks:
                         feasible_blocks[lesson.id].append((bl, cl))
                         # if bl not in forbidden_blocks[cl]:
+                    # check if inconvinient
+                    if self.db.is_subject_inconvinient(subject, block):
+                        # print('inconvinient', lesson.id, block.id)
+                        inconvient_blocks[lesson.id].append(block.id)
+                    # else:
+
+                    #     print('convinient', lesson.id, block.id)
             for lesson in subject.lessons:
                 # if there is no possible blocks dont put it in graph
                 if len(feasible_blocks[lesson.id]) == 0:
@@ -427,9 +436,9 @@ class ColoringThread(QThread):
                 graph.remove_node(subject)
         tick_3 = perf_counter()
         print(f'Naniesiono lekcje w {tick_3-tick_2:.2f}s')
-        # print(feasible_blocks)
+        # print(inconvient_blocks)
         
-        return graph, labels, feasible_blocks
+        return graph, labels, feasible_blocks, inconvient_blocks
 
     def generate_block_graph(self):
         graph = Graph()

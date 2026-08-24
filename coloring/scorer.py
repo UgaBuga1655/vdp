@@ -9,7 +9,7 @@ import numpy as np
 # param_names = ['Nieprzypisane lekcje', 'Rozłozenie lekcji w tygodniu', 'Pojedyncze lekcje nauczyciela', 'Bieganie uczniów']
 # MAX_BREAK = 4 # * 5 minutes: max length of a break for lessons to be considered grouped
 
-def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
+def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv: dict):
     def get_weight(lesson):
         return les_g.nodes[lesson]['weight'] if lesson in les_g else 0
     def get_distance(cl1, cl2):
@@ -72,6 +72,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         else:
             uncolored_lessons = 0
         lesson_distribution = 0
+        lesson_at_inconvinient_times = 0
         distributions = np.zeros((5, 12*8), np.int16)
         # multiple lessons on the same day
         for subject in subjects:
@@ -85,6 +86,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
                 if lesson not in color:
                     continue
                 bl_id = color[lesson][0]
+                if bl_id in inconv[lesson]:
+                    lesson_at_inconvinient_times += weight
                 day, start, length = blocks[bl_id]
 
                 distributions[day, start:start+length] += get_weight(lesson)
@@ -220,6 +223,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph):
         params = [
             uncolored_lessons,
             lesson_distribution,
+            lesson_at_inconvinient_times,
             single_lessons,
             students_running_around,
             teachers_running_around,

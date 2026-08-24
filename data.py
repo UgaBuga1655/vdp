@@ -416,7 +416,7 @@ class Data(QObject):
         mask = 0
         for shift in range(mask_start, mask_end):
             mask |=  1 << shift
-        return mask & subject.__getattribute__(f'for{block.day+1}')
+        return mask & subject.__getattribute__(f'inconv{block.day+1}')
 
     @changes_les_g_or_feas
     def update_subject_classroom(self, subject: Subject, classroom: Classroom | None) -> None:
