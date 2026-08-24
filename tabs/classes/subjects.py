@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from PyQt5.QtGui import QColor, QCursor
 
 from data import Data, Class, Subclass, Subject
+from .convinience_view import ConvinienceDialog
 
 class AddLessonDialog(QDialog):
     def __init__(self, parent):
@@ -70,6 +71,7 @@ class SubjectsWindow(QWidget):
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.move(QCursor.pos() + QPoint(10,10))
         self.allow_conflicts = self.db.settings().allow_conflicts
+        self.convinience_dialog = None
 
         top_row = QHBoxLayout()
         main_layout.addLayout(top_row)
@@ -138,6 +140,11 @@ class SubjectsWindow(QWidget):
         bl_len.setMinimum(1)
         bl_len.valueChanged.connect(self.set_target_block_length)
         planning_info_row.addWidget(bl_len)
+
+        convinience_btn = QPushButton('Rozłożenie lekcji')
+        planning_info_row.addWidget(convinience_btn)
+        convinience_btn.clicked.connect(self.edit_convinience)
+
 
         # required classroom
         planning_info_row.addWidget(QLabel('Wymagana sala:'))
@@ -226,13 +233,10 @@ class SubjectsWindow(QWidget):
             self.lessons.addWidget(btn)
             btn.clicked.connect(self.remove_lesson)
 
-    def set_teacher(self):
-        teacher = self.teacher_list.currentData()
-        subject = self.subject
-        if not (subject and teacher):
-            return False
-        self.db.update_subject_teacher(subject, teacher)
-        self.teacher_changed.emit(teacher.name)
+    def edit_convinience(self):
+       conv_dialog = ConvinienceDialog(self.subject, self)
+       ok = conv_dialog.exec()
+
 
     def add_teacher(self):
         teachers = self.db.all_teachers()

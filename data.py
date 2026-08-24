@@ -45,7 +45,12 @@ class Data(QObject):
         if not self.session.query(Results).count():
             results = Results()
             self.session.add(results)
-        # for subject in self.session.query(Subject):
+        for subject in self.session.query(Subject):
+            for day in range(5):
+                if getattr(subject, f'for{day+1}') is None:
+                    setattr(subject, f'for{day+1}', 0)
+                if getattr(subject, f'inconv{day+1}') is None:
+                    setattr(subject, f'inconv{day+1}', 0)
         #     subject.basic = subject.class_ is None
         #     if subject.teacher and subject.teacher not in subject.teachers:
         #         print(subject.id, subject.teacher_id)
@@ -387,6 +392,23 @@ class Data(QObject):
             if lesson.block:
                 self.update_block.emit(lesson.block)
         self.session.commit()
+
+    @changes_les_g_or_feas
+    def update_subject_convinience(self, subject: Subject, forb, conv):
+        for i in range(5):
+            setattr(subject, f'for{i+1}',forb[i])
+            setattr(subject, f'inconv{i+1}',conv[i])
+        for lesson in subject.lessons:
+            if lesson.block:
+                self.update_block(lesson)
+
+    def is_subject_forbidden(self, subject, block):
+        mask_start = int(block.start//6)
+        mask_end = int((block.start+block.length-0.5)//6) + 1
+        mask = 0
+        for shift in range(mask_start, mask_end):
+            mask |=  1 << shift
+        return mask & subject.__getattribute__(f'for{block.day+1}')
 
     @changes_les_g_or_feas
     def update_subject_classroom(self, subject: Subject, classroom: Classroom | None) -> None:
@@ -932,6 +954,10 @@ class Data(QObject):
                         f'{subject.required_classroom.name} jest zajęte przez {les}'
                         for les in collisions[subject.required_classroom]
                     ])
+
+                # forbidden time
+                if self.is_subject_forbidden(subject, block):
+                    collisions[subject].append('Nie może odbywać się w tym czasie')
                 
                 # is there an available classroom with enough capacity
                 n_of_students = len(subject.students)
@@ -977,8 +1003,13 @@ class Data(QObject):
                         f'{event.get_name()} musi odbywać się w {required_classroom.name}',
                         ''
                     ]))
+                if self.is_subject_forbidden(event.subject, block):
+                    collisions[None].append(([
+                        f'{event.get_name()} nie może odbywać się w tym czasie',
+                        ''
+                    ]))
             for teacher in teachers:
-                if teacher and not self.is_teacher_available(teacher, block):
+                if not self.is_teacher_available(teacher, block):
                     collisions[None].append((
                         f'{event.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
                         ''

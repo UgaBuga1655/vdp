@@ -22,6 +22,17 @@ class Subject(Base):
     students = relationship("Student", secondary=student_subject, back_populates="subjects")
     lessons = relationship("Lesson", back_populates="subject")
 
+    for1 = Column(Integer, default=0)
+    for2 = Column(Integer, default=0)
+    for3 = Column(Integer, default=0)
+    for4 = Column(Integer, default=0)
+    for5 = Column(Integer, default=0)
+
+    inconv1 = Column(Integer, default=0)
+    inconv2 = Column(Integer, default=0)
+    inconv3 = Column(Integer, default=0)
+    inconv4 = Column(Integer, default=0)
+    inconv5 = Column(Integer, default=0)
 
     def parent(self):
         if self.class_:

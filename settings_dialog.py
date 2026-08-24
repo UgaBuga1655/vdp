@@ -41,7 +41,7 @@ class SettingsDialog(QWidget):
         # generations
         generations = QHBoxLayout()
         generations.addWidget(QLabel('Liczba pokoleń:'))
-        gen_spin = QSpinBox(value=self.settings.generations)
+        gen_spin = QSpinBox(value=self.settings.generations, maximum=10000)
         generations.addWidget(gen_spin)
         gen_spin.valueChanged.connect(self.update_generations)
         main_layout.addLayout(generations)

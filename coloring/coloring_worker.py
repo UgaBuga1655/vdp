@@ -364,6 +364,10 @@ class ColoringThread(QThread):
                 if t_av == False:
                     continue
 
+                # time forbidden
+                if self.db.is_subject_forbidden(subject, block):
+                    continue
+
                 # block is in the wrong class
                 if isinstance(block, LessonBlockDB):
                     possible_sub_classes = [block.parent()]
