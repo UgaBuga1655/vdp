@@ -72,7 +72,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
         else:
             uncolored_lessons = 0
         lesson_distribution = 0
-        lesson_at_inconvinient_times = 0
+        lesson_at_inconvinient_times = uncolored_lessons
         distributions = np.zeros((5, 12*8), np.int16)
         # multiple lessons on the same day
         for subject in subjects:

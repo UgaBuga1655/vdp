@@ -10,6 +10,7 @@ class Results(Base):
     for_bl = Column(PickleType)
     les_g = Column(PickleType)
     feas = Column(PickleType)
+    inconv = Column(PickleType)
     best_params = Column(PickleType)
     all_params = Column(PickleType)
     stats = Column(PickleType)

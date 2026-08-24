@@ -46,6 +46,7 @@ class ColoringThread(QThread):
         self.for_bl = last_result.for_bl
         self.les_g = last_result.les_g
         self.feas = last_result.feas
+        self.inconv = last_result.inconv
 
         # create new graphs if haven't already or were deleted
         needs_legalisation = False
@@ -293,6 +294,7 @@ class ColoringThread(QThread):
             self.for_bl, 
             self.les_g, 
             self.feas, 
+            self.inconv,
             self.best_params, 
             self.all_params, 
             [self.times]]

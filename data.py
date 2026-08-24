@@ -1133,7 +1133,7 @@ class Data(QObject):
     def pop_exists(self) -> bool:
         return len(self.stats()) != 0
     
-    def save_results(self, best_result, population, bl_g,for_bl, les_g, feas, best_params, all_params, stats):
+    def save_results(self, best_result, population, bl_g,for_bl, les_g, feas, inconv, best_params, all_params, stats):
         stat_size = self.settings().stat_size
         if stat_size < len(all_params[0]):
             best_params = [p[-stat_size:] for p in best_params]
@@ -1147,6 +1147,7 @@ class Data(QObject):
             for_bl=for_bl,
             les_g=les_g,
             feas=feas,
+            inconv=inconv,
             best_params=best_params,
             all_params=all_params,
             stats=stats
