@@ -22,6 +22,7 @@ class SubjectLabel(VerticalLabel):
     delete = pyqtSignal(Subject)
     edit = pyqtSignal(Subject)
     copy = pyqtSignal(Subject)
+    move_subject = pyqtSignal(Subject)
 
     def __init__(self, subject: Subject):
         name = subject.get_name(1,0,0) if subject else ''
@@ -43,6 +44,12 @@ class SubjectLabel(VerticalLabel):
         action_copy = QAction('Kopiuj', self)
         action_copy.triggered.connect(lambda: self.copy.emit(self.subject))
         menu.addAction(action_copy)
+
+        if self.subject.subclass:
+
+            action_move = QAction('Przenieś do wspólnych', self)
+            action_move.triggered.connect(lambda: self.move_subject.emit(self.subject))
+            menu.addAction(action_move)
 
         action_delete = QAction("Usuń", self)
         action_delete.triggered.connect(lambda: self.delete.emit(self.subject))

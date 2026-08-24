@@ -242,6 +242,7 @@ class ClassesWidget(QWidget):
                     label.delete.connect(self.delete_subject)
                     label.edit.connect(self.edit_subject)
                     label.copy.connect(self.copy_subject)
+                    label.move_subject.connect(self.move_subject)
                     student_list.addWidget(label, 1, col)
                     self.labels[subject].append(label)
                 else:
@@ -345,6 +346,11 @@ class ClassesWidget(QWidget):
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {subject.get_name(0,0,0)}') != QMessageBox.StandardButton.Yes:
             return False
         self.db.delete_subject(subject)
+        self.load_class()
+
+    def move_subject(self, subject: Subject):
+        class_ = subject.absolute_class()
+        self.db.move_subject(subject, class_, clear_students=False)
         self.load_class()
     
     def edit_subject(self, subject):

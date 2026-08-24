@@ -154,10 +154,11 @@ class Data(QObject):
         self.session.commit()
 
 
-    def move_subject(self, subject: Subject, target: Class | Subclass):
+    def move_subject(self, subject: Subject, target: Class | Subclass, clear_students = True):
         subject.class_ = None
         subject.subclass = None
-        subject.students = []
+        if clear_students:
+            subject.students = []
         if isinstance(target, Subclass):
             subject.subclass = target
         else:
