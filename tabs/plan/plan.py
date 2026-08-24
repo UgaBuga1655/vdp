@@ -158,7 +158,7 @@ class PlanWidget(QWidget):
             os.makedirs(f'{parent_folder}/{subclass.full_name()}', exist_ok=True)
             def filter_func(l):
                 return not hasattr(l, 'subject') \
-                    or l.subject.parent() in [subclass, subclass.my_class]
+                    or l.subject.parent() in [subclass, subclass.class_]
             self.hidden_view.filter_func = filter_func
             self.hidden_view.set_classes([subclass])
             self.hidden_view.draw()
@@ -187,7 +187,7 @@ class PlanWidget(QWidget):
         for teacher in self.db.all_teachers():
             filename = f'{parent_folder}/nauczyciele/{teacher.name}'
             def filter_func(l):
-                return l.teacher == teacher
+                return teacher in l.teachers
             self.hidden_view.filter_func = filter_func
             self.hidden_view.set_classes(self.db.all_subclasses())
             self.hidden_view.draw()

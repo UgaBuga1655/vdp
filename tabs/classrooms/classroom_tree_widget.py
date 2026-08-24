@@ -220,28 +220,27 @@ class ClassroomTreeWidget(QTreeWidget):
             self.db.update_classroom_name(classroom, name_edit.text())
         return func
  
-    def delete_classroom(self, classroom_item: QTreeWidgetItem, classroom):
+    def delete_classroom(self, classroom_item: QTreeWidgetItem, classroom: Classroom):
         def func():
-            n_of_lessons = len(classroom.lessons)
-            n_of_duties = len(classroom.duties)
-            if n_of_lessons + n_of_duties:
-                match n_of_lessons:
+            n_of_events = len(classroom.events)
+            if n_of_events:
+                match n_of_events:
                     case 1:
-                        lessons = 'odbywa się 1 lekcja'
-                    case _ if n_of_lessons%10 in [2,3,4] and (n_of_lessons<10 or n_of_lessons>20):
-                        lessons = f'odbywają się {n_of_lessons} lekcje'
+                        lessons = 'odbywa się 1 lekcja/dyżur'
+                    case _ if n_of_events%10 in [2,3,4] and (n_of_events<10 or n_of_events>20):
+                        lessons = f'odbywają się {n_of_events} lekcje i/lub dyżury'
                     case _:
-                        lessons = f'odbywa się {n_of_lessons} lekcji'
+                        lessons = f'odbywa się {n_of_events} lekcji i/lub dyżurów'
                 
-                match n_of_duties:
-                    case 1:
-                        duties = '1 dyżur'
-                    case _ if n_of_duties%10 in [2,3,4] and (n_of_duties<10 or n_of_duties>20):
-                        duties = f'{n_of_duties} dyżury'
-                    case _:
-                        duties = f'{n_of_duties} dyżurów'
+                # match n_of_duties:
+                #     case 1:
+                #         duties = '1 dyżur'
+                #     case _ if n_of_duties%10 in [2,3,4] and (n_of_duties<10 or n_of_duties>20):
+                #         duties = f'{n_of_duties} dyżury'
+                #     case _:
+                        # duties = f'{n_of_duties} dyżurów'
                 
-                message = f'W sali "{classroom.name}" {lessons} i {duties}. Czy na pewno chcesz ją usunąć?'
+                message = f'W sali "{classroom.name}" {lessons}. Czy na pewno chcesz ją usunąć?'
                 if QMessageBox.question(self, 'Uwaga', message) != QMessageBox.StandardButton.Yes:
                     return
 

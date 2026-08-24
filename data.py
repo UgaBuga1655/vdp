@@ -438,6 +438,12 @@ class Data(QObject):
         if lesson.block:
             self.update_block.emit(lesson.block)
 
+    def update_event_classroom(self, event, classroom):
+        event.classroom = classroom
+        self.session.commit()
+        if event.block:
+            self.update_block.emit(event.block)
+
     @changes_les_g_or_feas
     def update_lesson_pinned(self, lesson: Lesson, locked: bool) -> None:
         lesson.block_locked = locked
@@ -647,7 +653,8 @@ class Data(QObject):
     # classrooms
     def all_classrooms(self) -> List[Classroom]:
         return self.session.query(Classroom).all()
-    
+
+    @changes_bl_g
     def create_classroom(self, group: ClassroomGroup, name: str) -> Classroom:
         classroom = Classroom(name=name, capacity=15, group=group)
         self.session.add(classroom)
@@ -655,6 +662,7 @@ class Data(QObject):
         self.classrooms_changed.emit()
         return classroom
 
+    @changes_bl_g
     def update_classroom_capacity(self, classroom: Classroom, capacity: int) -> None:
         classroom.capacity = capacity
         self.session.commit()
@@ -675,10 +683,8 @@ class Data(QObject):
         self.classrooms_changed.emit()
 
     def delete_classroom(self, classroom: Classroom) -> None:
-        for lesson in classroom.lessons:
-            self.update_lesson_classroom(lesson, None)
-        for duty in classroom.duties:
-            self.update_duty_classroom(duty, None)
+        for event in classroom.events:
+            self.update_event_classroom(lesson, None)
         self.session.delete(classroom)
         self.session.commit()
 
