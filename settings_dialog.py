@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpinBox, QCheckBox, QHBoxLayout, QLabel, QPushButton, QGridLayout, QDoubleSpinBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpinBox, QCheckBox, QHBoxLayout, QLabel, QPushButton, QGridLayout, \
+    QDoubleSpinBox, QStackedLayout, QComboBox
 from PyQt5.QtCore import Qt
 from data import Data
 # from db_config import settings
@@ -37,14 +38,30 @@ class SettingsDialog(QWidget):
         # self.preserve_population = QCheckBox('Użyj ostatniej populacji')
         # self.preserve_population.setChecked(self.settings.preserve_population)
         # main_layout.addWidget(self.preserve_population)
+        finish_line = QHBoxLayout()
+        main_layout.addLayout(finish_line)
+        finish_line.addWidget(QLabel('Skończ generować po'))
+
+        finish_condition = QStackedLayout()
+        finish_line.addLayout(finish_condition)
         
         # generations
-        generations = QHBoxLayout()
-        generations.addWidget(QLabel('Liczba pokoleń:'))
         gen_spin = QSpinBox(value=self.settings.generations, maximum=10000)
-        generations.addWidget(gen_spin)
         gen_spin.valueChanged.connect(self.update_generations)
-        main_layout.addLayout(generations)
+        finish_condition.addWidget(gen_spin)
+
+        computing_time_spin = QSpinBox(value=self.settings.computing_time, maximum=10000)
+        computing_time_spin.valueChanged.connect(self.update_computing_time)
+        finish_condition.addWidget(computing_time_spin)
+
+
+        self.finish_combo = QComboBox()
+        finish_line.addWidget(self.finish_combo)
+        self.finish_combo.addItems(['pokoleniach.', 'minutach.'])
+        self.finish_combo.currentIndexChanged.connect(finish_condition.setCurrentIndex)
+        self.finish_combo.currentIndexChanged.connect(self.set_finish_condition)
+        if self.settings.finish_after_time_passed:
+            self.finish_combo.setCurrentIndex(1)
 
         # cutoff
         cutoff = QHBoxLayout()
@@ -95,6 +112,8 @@ class SettingsDialog(QWidget):
         self.cutoff = self.settings.cutoff
         self.params = self.settings.scoring_weights.copy()
         self.max_break = self.settings.max_break
+        self.computing_time = self.settings.computing_time
+        self.finish_after_time_passed = self.settings.finish_after_time_passed
 
     def update_verbose(self, value):
         self.verbose = value
@@ -118,10 +137,18 @@ class SettingsDialog(QWidget):
         self.max_break = val//5
         self.max_break_spin.setValue(self.max_break*5)
 
+    def update_computing_time(self, value):
+        self.computing_time = value
+
+    def set_finish_condition(self, index):
+        self.finish_after_time_passed = index==1
+
     def apply(self):
         self.db.update_settings(
             verbose=self.verbose, 
             generations=self.generations,
+            computing_time=self.computing_time,
+            finish_after_time_passed = self.finish_after_time_passed,
             pop_size=self.pop_size,
             cutoff=self.cutoff,
             scoring_weights=self.params.copy(),

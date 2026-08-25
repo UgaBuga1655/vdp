@@ -4,7 +4,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from networkx import Graph, draw, spring_layout
 from itertools import combinations
 from data import *
-from time import perf_counter
+from time import perf_counter, time
 from .queue_listener import QueueListener
 from .functions import random_coloring, mutate_batch, legalize_batch
 from .scorer import scorer_factory, rank
@@ -17,6 +17,7 @@ class ColoringThread(QThread):
     # next_generation = pyqtSignal(int, int)
     update_bar_total = pyqtSignal(int)
     increment_bar = pyqtSignal(int)
+    set_bar = pyqtSignal(int)
     finished = pyqtSignal(dict, list)
     stopped = pyqtSignal()
     
@@ -27,11 +28,23 @@ class ColoringThread(QThread):
         self.session = self.db.get_scoped_session()
         self.processes = []
         self.mode = mode
+        self.settings = None
+
+    def finish_condition_satisfied(self):
+
+        if self.finish_after_time_passed:
+            if time() - self.computation_start >= self.settings.computing_time*60:
+                return True
+        else:
+            if self.completed_generations >= self.generations:
+                return True
+        return False
 
 
 
     def run(self): 
         self.settings = self.session.query(Metadata).first()
+        self.finish_after_time_passed = self.settings.finish_after_time_passed
         # self.bl_g, self.for_bl = None, None
         # self.les_g, self.feas = None, None
         self.recent_pop = []
@@ -196,6 +209,7 @@ class ColoringThread(QThread):
         for p in self.processes:
             p.join()
         duration = perf_counter() - self.pop_start_time
+        self.computation_start = time()
         avg = duration/self.settings.pop_size
         print(f'Wygenerowano populację w {duration:.2f}s ({avg:.4f} na osobnika)')
         self.pop_size = self.settings.pop_size
@@ -214,10 +228,13 @@ class ColoringThread(QThread):
             for old_params, new_param in zip(self.best_params, self.population[0][-1]):
                 old_params.append(new_param)
         
-        self.starting_gen = len(self.best_params[0])-1
+        self.starting_gen = 0
 
         self.update_bar.emit(f'Pokolenie {self.starting_gen} {self.population[0][-1]}')
-        self.update_bar_total.emit(self.generations)
+        if self.finish_after_time_passed:
+            self.update_bar_total.emit(self.settings.computing_time*60 )
+        else:
+            self.update_bar_total.emit(self.generations)
 
         self.times = []
         self.completed_generations = 0
@@ -270,14 +287,18 @@ class ColoringThread(QThread):
         duration = end - self.gen_start
         self.times.append(duration)
         print(f'Generation {self.completed_generations + self.starting_gen}: {duration:.2f}s')
-        displayed_params = [round(p, 2) for p in self.population[0][-1]]
+        displayed_params = [round(float(p), 1) for p in self.population[0][-1]]
         self.update_bar.emit(f'Pokolenie {self.completed_generations + self.starting_gen} {displayed_params}')
         # print(self.population[0][-1])
-        self.increment_bar.emit(1)
-        if self.completed_generations < self.settings.generations:
-            self.do_next_generation()
+        if self.finish_after_time_passed:
+            seconds_passed = int(time()-self.computation_start)
+            self.set_bar.emit(seconds_passed)
         else:
+            self.increment_bar.emit(1)
+        if self.finish_condition_satisfied():
             self.finish_everything()
+        else:
+            self.do_next_generation()
 
     def finish_everything(self):
         rank(self.goats, self.settings.scoring_weights, self.all_params, note_results=False)

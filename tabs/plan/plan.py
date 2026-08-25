@@ -321,6 +321,7 @@ class PlanWidget(QWidget):
         self.coloring_thread.update_bar.connect(self.update_bar)
         self.coloring_thread.update_bar_total.connect(self.bar.set_total)
         self.coloring_thread.increment_bar.connect(self.bar.next)
+        self.coloring_thread.set_bar.connect(self.bar.set)
         # self.thread.next_generation.connect(self.update_bar)
         self.coloring_thread.finished.connect(self.show_solution)
         self.coloring_thread.start()

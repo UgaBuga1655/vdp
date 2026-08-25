@@ -34,6 +34,8 @@ class Metadata(Base):
     verbose = Column(Boolean, default=True)
     stat_size = Column(Integer, default=50)
     pop_size = Column(Integer, default=6000)
+    computing_time = Column(Integer, default=30)
+    finish_after_time_passed = Column(Boolean, default=False)
     generations = Column(Integer, default=30)
     cutoff = Column(Double, default=0.25)
 

@@ -36,3 +36,6 @@ class ProgressDialog(QDialog):
             self.bar.setValue(int(self.curr/self.total*100))
         else: 
             self.bar.setValue(100)
+
+    def set(self, n):
+        self.bar.setValue(int(n/self.total*100))
