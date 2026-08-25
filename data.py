@@ -55,6 +55,7 @@ class Data(QObject):
         #     if subject.teacher and subject.teacher not in subject.teachers:
         #         print(subject.id, subject.teacher_id)
         #         subject.teachers.append(subject.teacher)
+        # self.clear_all_lesson_blocks(leave_locked=True)
         self.session.commit()
 
     def save_solution(self, solution):

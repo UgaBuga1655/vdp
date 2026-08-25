@@ -210,7 +210,8 @@ class MyView(QGraphicsView):
             self.new_block.delete()
             self.draw_block(block)
 
-            self.blocks[block].bring_forward()
+            if self.blocks[block]:
+                self.blocks[block].bring_forward()
         self.block_start = -1
         self.new_block = False
 

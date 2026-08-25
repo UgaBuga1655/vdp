@@ -27,4 +27,4 @@ class Event(Base):
 
     @property
     def teachers(self):
-        return [self.teacher]
+        return [self.teacher] if self.teacher else []

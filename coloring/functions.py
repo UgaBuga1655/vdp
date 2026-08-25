@@ -2,7 +2,7 @@ from data import Block, Lesson
 from queue import PriorityQueue
 from itertools import count
 from random import choice, randint, shuffle
-from networkx import Graph
+from networkx import Graph, get_node_attributes
 from collections.abc import Callable
 # from db_config import settings
 
@@ -31,6 +31,8 @@ def crazy(les_g: Graph, bl_g, feas):
     rev_colors = {}
     adj_colors = {}
     uncolored = []
+    other_lessons = get_node_attributes(les_g, 'other_lessons')
+    bl_days = get_node_attributes(bl_g, 'day')
     
     queue = PriorityQueue()
 
@@ -65,8 +67,21 @@ def crazy(les_g: Graph, bl_g, feas):
             if classroom_is_occupied:
                 # print(lesson, color, 'classroom occupied')
                 continue
-            
+
             color = (block, classroom)
+            # other lesson on the same day
+            lessons_on_the_same_day = False
+            for les in other_lessons[lesson]:
+                if les not in colors:
+                    continue
+                other_block, _ = colors[les]
+                if bl_days[other_block] == bl_days[block]:
+                    # print(bl_days[other_block], )
+                    lessons_on_the_same_day = True
+                    # print(lesson, bl_days[block], 'other lessons in the same day')
+            if lessons_on_the_same_day:
+                continue
+            
             colors[lesson] = color
             rev_colors[color] = lesson
 
@@ -116,6 +131,8 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
     child = coloring.copy()
     rev_child = rev_coloring.copy()
     child_uncolored = uncolored.copy()
+    other_lessons = get_node_attributes(les_g, 'other_lessons')
+    bl_days = get_node_attributes(bl_g, 'day')
 
     def uncolor(lesson):
         child_uncolored.append(lesson)
@@ -162,6 +179,12 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
             # other lesson interferes
             if block in adj_cols:
                 return False
+            # other lesson on the same day
+            for other_lesson in other_lessons[lesson]:
+                if other_lesson not in child:
+                    continue
+                if bl_days[child[other_lesson][0]] == bl_days[color[0]]:
+                    return False
             # classroom is occupied
             for n_bl in bl_g[block]:
                 if (n_bl, classroom) in rev_child:

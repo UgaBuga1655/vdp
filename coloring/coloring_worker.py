@@ -396,8 +396,8 @@ class ColoringThread(QThread):
                     continue
 
                 # lesson happening this day
-                # if block.day in [les.block.day for les in subject.lessons if les.block]:
-                #     continue
+                if block.day in [les.block.day for les in subject.lessons if les.block_locked]:
+                    continue
                 
                 many_blocks = [(block.id, cl_id) for cl_id in feasible_classrooms if block.id not in forbidden_blocks[cl_id]]
                 # differing for lessons
@@ -423,7 +423,9 @@ class ColoringThread(QThread):
                 if len(feasible_blocks[lesson.id]) == 0:
                     continue
                 # add lesson to graph with the same neigbours as subject
-                graph.add_node(lesson.id, weight=len(subject.students), subject=subject.id)
+                other_lessons = [l.id for l in subject.lessons]
+                other_lessons.remove(lesson.id)
+                graph.add_node(lesson.id, weight=len(subject.students), subject=subject.id, other_lessons=other_lessons)
                 unpinned_lessons.append(lesson.id)
                 labels[lesson] = f'{subject.get_name()} ({lesson.length})'
                 for neighbour in graph[subject]:
