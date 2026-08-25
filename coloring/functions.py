@@ -216,6 +216,12 @@ def mutate(les_g, bl_g, feas, coloring: dict, rev_coloring: dict, uncolored: lis
                 if n_block == block or n_block in bl_g[block]:
                     uncolor(neighbour)
                     continue
+
+            for other_lesson in other_lessons[lesson]:
+                if other_lesson not in child:
+                    continue
+                if bl_days[child[other_lesson][0]] == bl_days[color[0]]:
+                    uncolor(other_lesson)
                 
             
             # classroom is occupied
