@@ -125,9 +125,11 @@ class PlanWidget(QWidget):
 
     def redraw(self):
         if self.need_redrawing:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             self.class_filter.load_data(self.db)
             self.class_filter.update_filter()
             self.need_redrawing = False
+            QApplication.restoreOverrideCursor()
 
     def export(self):
         self.db.update_settings(

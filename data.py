@@ -1062,7 +1062,7 @@ class Data(QObject):
                 for duty in col_bl.events:
                     if duty == event:
                         continue
-                    if duty.teacher == teacher and teacher:
+                    if duty.teacher in event.teachers:
                         collisions[col_bl].append((
                             f'{event.get_name()}: {duty.collision_text()}',
                             f'{duty.get_name()}: {teacher.name} prowadzi {event.name_and_time()}' \
@@ -1169,3 +1169,34 @@ class Data(QObject):
         res = self.session.query(Results).options(load_only(Results.bl_g, Results.for_bl)).first()
         res.bl_g, res.for_bl = None, None
         self.session.commit()
+
+    def harden_blocks(self):
+        # group lessons in blocks
+        for subject in self.session.query(Subject).filter(Subject.target_block_length>1):
+            lessons = [l.length for l in subject.lessons]
+            lessons.sort()
+            for lesson in subject.lessons[::-1]:
+                self.delete_lesson(lesson)
+            while len(lessons)>=subject.target_block_length:
+                self.create_lesson(
+                    sum(lessons[:subject.target_block_length])+5*(subject.target_block_length-1),
+                    subject
+                    )
+                lessons = lessons[subject.target_block_length:]
+            if sum(lessons):
+                self.create_lesson(sum(lessons)+5*(len(lessons)-1), subject)
+            self.update_subject_target_block_length(subject, 1)
+
+        # make longer blocks
+        for l_block in self.session.query(LessonBlockDB):
+            if self.session.query(LessonBlockDB).filter_by(
+                subclass=l_block.subclass,
+                class_=l_block.class_,
+                start=l_block.start+l_block.length+1,
+                length=l_block.length,
+                day=l_block.day
+            ).count():
+                self.create_block(l_block.day, l_block.start, l_block.length*2+1, l_block.parent())
+        self.redraw_plan.emit()
+            
+            

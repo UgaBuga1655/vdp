@@ -90,11 +90,14 @@ class MainWindow(QMainWindow):
         unlock_all_action.triggered.connect(self.unlock_all_lessons)
         unlock_all_without_classroom = QAction('Odepnij nieprzypisane do sali', self)
         unlock_all_without_classroom.triggered.connect(self.unlock_all_lessons_without_classrooms)
+        harden_blocks = QAction('Połącz &bloki', self)
+        harden_blocks.triggered.connect(self.db.harden_blocks)
 
         plan_menu.addActions([
             lock_all_action,
             unlock_all_action,
-            unlock_all_without_classroom
+            unlock_all_without_classroom,
+            harden_blocks
         ])
 
         coloring_menu = menu.addMenu('&Uzupełnianie')
