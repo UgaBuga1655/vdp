@@ -1,5 +1,5 @@
 from db_config import Base, student_subject
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from numpy import zeros
 from .day_stat import DayStat
@@ -16,6 +16,7 @@ class Student(Base):
     subjects = relationship("Subject", secondary=student_subject, back_populates="students")
     class_ = relationship('Class', back_populates='students')
     subclass = relationship('Subclass', back_populates='students')
+    sen = Column(Boolean, default=False)
 
     def time_stats(self, only_day=None):
         days = [only_day] if only_day else range(5)

@@ -123,6 +123,7 @@ class TeachersWidget(QWidget):
         container.setLayout(container_layout)
 
         self.frame = AvFrame()
+        self.frame.setMinimumWidth(1000)
         container_layout.addWidget(self.frame)
 
         layout.addWidget(container)

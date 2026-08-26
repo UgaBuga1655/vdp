@@ -12,7 +12,7 @@ import chardet
 # from icu import Collator, Locale
 import locale
 
-from models import student
+from vertical_label import VerticalLabel
 from .reorder_classes_dialog import ReorderClassesDialog
 from .subject_label import SubjectLabel
 from .new_subject_label import NewSubjectLabel
@@ -250,6 +250,8 @@ class ClassesWidget(QWidget):
                     student_list.addWidget(label, 1, col, Qt.AlignBottom)
                     label.clicked.connect(self.new_subject(subject))
                 col += 1
+            
+            student_list.addWidget(VerticalLabel('Orzeczenie'), 1, col, Qt.AlignBottom)
 
             #load students
             student: Student
@@ -297,6 +299,12 @@ class ClassesWidget(QWidget):
             # checkbox.setStyleSheet(f'background-color: {subject.color}')
             checkbox.toggled.connect(self.set_student_subject(student, subject))
             student_list.addWidget(checkbox, n, i+1, Qt.AlignCenter)
+        column = len(self.subjects[student.subclass])+1
+        student_list.addWidget(Color('#c0c0c0', brighten=n%2), n, column)
+        sen = QCheckBox()
+        sen.setChecked(student.sen)
+        sen.toggled.connect(self.set_student_sen(student))
+        student_list.addWidget(sen, n, column, Qt.AlignCenter)
 
     def new_student(self, subclass, student_list):
         def func():
@@ -330,6 +338,11 @@ class ClassesWidget(QWidget):
                 self.db.add_subject_to_student(subject, student)
             else:
                 self.db.remove_subject_from_student(subject, student)
+        return func
+    
+    def set_student_sen(self, student):
+        def func(sen):
+            self.db.update_student_is_sen(student, sen)
         return func
 
     def delete_student(self, student: Student):

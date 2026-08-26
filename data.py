@@ -273,6 +273,10 @@ class Data(QObject):
         student.name = name
         self.session.commit()
 
+    def update_student_is_sen(self, student, sen):
+        student.sen = sen
+        self.session.commit()
+
     @changes_les_g_or_feas
     def remove_subject_from_student(self, subject: Subject, student: Student):
         student.subjects.remove(subject)
@@ -712,6 +716,10 @@ class Data(QObject):
         if allow == 'none':
             for subject in classroom.subjects:
                 self.update_subject_classroom(subject, None)
+        self.session.commit()
+
+    def update_classroom_allow_pw(self, classroom: Classroom, allow: bool) -> None:
+        classroom.allow_pw = allow
         self.session.commit()
 
     def update_classroom_name(self, classroom: Classroom, name: str) -> None:

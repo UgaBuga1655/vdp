@@ -181,6 +181,11 @@ class ClassroomTreeWidget(QTreeWidget):
         allow_lessons.currentIndexChanged.connect(self.set_allow_lessons(allow_lessons, classroom))
         row.addWidget(allow_lessons)
 
+        allow_pw = QCheckBox('Przypisuj dyżury')
+        allow_pw.setChecked(classroom.allow_pw)
+        allow_pw.toggled.connect(self.set_allow_pw(classroom))
+        row.addWidget(allow_pw)
+
         del_btn = QPushButton('X', classroom_widget)
         del_btn.setMaximumWidth(20)
         del_btn.clicked.connect(self.delete_classroom(classroom_item, classroom))
@@ -215,6 +220,11 @@ class ClassroomTreeWidget(QTreeWidget):
             self.db.update_classroom_allow_lessons(classroom, allow)
         return func
     
+    def set_allow_pw(self, classroom):
+        def func(allow):
+            self.db.update_classroom_allow_pw(classroom, allow)
+        return func
+
     def update_classroom_name(self, classroom, name_edit):
         def func():
             self.db.update_classroom_name(classroom, name_edit.text())

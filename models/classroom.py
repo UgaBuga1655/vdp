@@ -12,6 +12,7 @@ class Classroom(Base):
     subjects = relationship("Subject", back_populates="required_classroom")
     events = relationship('Event', back_populates='classroom')
     allow_lessons = Column(String, default='all') # 'all' / 'selected' / 'none'
+    allow_pw = Column(Boolean, default=False)
 
     group_id = Column(Integer, ForeignKey('classroom_groups.id'))
     group = relationship('ClassroomGroup', back_populates='classrooms')
