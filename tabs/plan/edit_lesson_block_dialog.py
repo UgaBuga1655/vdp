@@ -160,28 +160,7 @@ class EditLessonBlockDialog(QDialog):
         del_btn = QPushButton('X')
         del_btn.setFixedWidth(20)
         self.duties.addWidget(del_btn, row, 0)
-
-
-        classroom_select = QComboBox()
-        classroom_select.addItem('---', None)
-        for i, classroom in enumerate(self.db.all_classrooms()):
-            classroom_select.addItem(classroom.name, classroom)
-
-            collision = '\n'.join(self.collisions[classroom])
-            if not collision:
-                continue
-            classroom_select.setItemData(i+1, collision, Qt.ToolTipRole)
-            if not self.db.settings().allow_conflicts:
-                classroom_select.setItemData(i+1, 0, Qt.UserRole - 1)
-            else:
-                classroom_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
-        classroom_select.currentIndexChanged.connect(
-            self.update_duty_classroom(duty, classroom_select)
-        )
-        self.duties.addWidget(classroom_select, row, 2)
-        if duty.classroom:
-            classroom_select.setCurrentText(duty.classroom.name)
-
+        
         teacher_select = QComboBox()
         teacher_select.addItem('---', None)
         for i, teacher in enumerate(self.db.all_teachers()):
@@ -201,8 +180,45 @@ class EditLessonBlockDialog(QDialog):
         if duty.teacher:
             teacher_select.setCurrentText(duty.teacher.name)
 
+
+        teacher_pinned = QPushButton('📌')
+        teacher_pinned.setFixedSize(20,20)
+        teacher_pinned.setCheckable(True)
+        teacher_pinned.setChecked(duty.teacher_pinned)
+        teacher_pinned.toggled.connect(self.update_duty_teacher_pinned(duty))
+        self.duties.addWidget(teacher_pinned, row, 2)
+
+
+        classroom_select = QComboBox()
+        classroom_select.addItem('---', None)
+        for i, classroom in enumerate(self.db.all_classrooms()):
+            classroom_select.addItem(classroom.name, classroom)
+
+            collision = '\n'.join(self.collisions[classroom])
+            if not collision:
+                continue
+            classroom_select.setItemData(i+1, collision, Qt.ToolTipRole)
+            if not self.db.settings().allow_conflicts:
+                classroom_select.setItemData(i+1, 0, Qt.UserRole - 1)
+            else:
+                classroom_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
+        classroom_select.currentIndexChanged.connect(
+            self.update_duty_classroom(duty, classroom_select)
+        )
+        self.duties.addWidget(classroom_select, row, 3)
+        if duty.classroom:
+            classroom_select.setCurrentText(duty.classroom.name)
+
+        
+        classroom_pinned = QPushButton('📌')
+        classroom_pinned.setFixedSize(20,20)
+        classroom_pinned.setCheckable(True)
+        classroom_pinned.setChecked(duty.classroom_pinned)
+        classroom_pinned.toggled.connect(self.update_duty_classroom_pinned(duty))
+        self.duties.addWidget(classroom_pinned, row, 4)
+
         del_btn.clicked.connect(self.delete_duty(duty,
-            [teacher_select, classroom_select, del_btn]))
+        [teacher_select, classroom_select, del_btn, teacher_pinned, classroom_pinned]))
 
     def update_duty_classroom(self, duty, select):
         def func():
@@ -214,6 +230,16 @@ class EditLessonBlockDialog(QDialog):
         def func():
             teacher = select.currentData()
             self.db.update_duty_teacher(duty, teacher)
+        return func
+
+    def update_duty_teacher_pinned(self, duty):
+        def func(checked):
+            self.db.update_duty_teacher_pinned(duty, checked)
+        return func
+    
+    def update_duty_classroom_pinned(self, duty):
+        def func(checked):
+            self.db.update_duty_classroom_pinned(duty, checked)
         return func
 
     def add_duty(self):

@@ -113,6 +113,10 @@ class Data(QObject):
         self.session.commit()
         self.teachers_changed.emit()
 
+    def update_teacher_working_hours(self, teacher: Teacher, hours: int):
+        teacher.working_hours = hours
+        self.session.commit()
+
     def all_teachers(self):
         return self.session.query(Teacher).order_by(Teacher.name).all()
 
@@ -1110,11 +1114,20 @@ class Data(QObject):
         duty.teacher = teacher
         self.session.commit()
         self.update_block.emit(duty.block)
+
+    def update_duty_teacher_pinned(self, duty: TeacherDuty, pinned: bool):
+        duty.teacher_pinned = pinned
+        self.session.commit()
     
     def update_duty_classroom(self, duty: TeacherDuty, classroom: Classroom):
         duty.classroom = classroom
         self.session.commit()
         self.update_block.emit(duty.block)
+
+
+    def update_duty_classroom_pinned(self, duty: TeacherDuty, pinned: bool):
+        duty.classroom_pinned = pinned
+        self.session.commit()
 
     def delete_duty(self, duty: TeacherDuty):
         self.session.delete(duty)

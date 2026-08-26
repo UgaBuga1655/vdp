@@ -13,6 +13,7 @@ class Teacher(Base):
     av5 = Column(Integer)
     subjects = relationship("Subject", secondary=teacher_subject, back_populates="teachers")
     duties = relationship('TeacherDuty', back_populates='teacher')
+    working_hours = Column(Integer, default=20)
 
     def __init__(self, name, av):
         self.name = name

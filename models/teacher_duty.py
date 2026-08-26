@@ -8,6 +8,8 @@ class TeacherDuty(Event):
     __mapper_args__ = {"polymorphic_identity": "teacher_duty"}
 
     id = Column(ForeignKey("events.id"), primary_key=True)
+    teacher_pinned = Column(Boolean, default=False)
+    classroom_pinned = Column(Boolean, default=False)
 
     def collision_text(self):
         return f'{self.teacher.name if self.teacher else "---"} ma dyżur w {self.classroom.name if self.classroom else "---"} ({self.block.print_time()})'

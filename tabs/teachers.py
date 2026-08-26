@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QGridLayout,\
-      QLabel, QInputDialog, QMessageBox, QPushButton, QHBoxLayout, QDialogButtonBox
+      QLabel, QInputDialog, QMessageBox, QPushButton, QHBoxLayout, QDialogButtonBox, QSpinBox
       
 from PyQt5 import QtCore
 from data import Data, Teacher
@@ -119,7 +119,7 @@ class TeachersWidget(QWidget):
         layout.addLayout(top_row)
 
         container = QWidget()
-        container_layout = QVBoxLayout()
+        container_layout = QHBoxLayout()
         container.setLayout(container_layout)
 
         self.frame = AvFrame()
@@ -128,6 +128,21 @@ class TeachersWidget(QWidget):
         layout.addWidget(container)
         if not self.list.currentText():
             self.frame.hide()
+
+        right_column = QVBoxLayout()
+        container_layout.addLayout(right_column)
+
+        hours_row = QHBoxLayout()
+        hours_row.addWidget(QLabel('Godziny pracy:'))
+        self.hours_spin = QSpinBox()
+        self.hours_spin.valueChanged.connect(self.update_teacher_workong_hours)
+        hours_row.addWidget(self.hours_spin)
+        hours_row.addStretch()
+
+        # right_column.addWidget(QLabel('Przedmioty'))
+
+        right_column.addLayout(hours_row)
+        right_column.addStretch()
 
         self.button_row = QDialogButtonBox()
         del_teacher_btn = self.button_row.addButton('Usuń nauczyciela', QDialogButtonBox.ButtonRole.ActionRole)
@@ -179,6 +194,9 @@ class TeachersWidget(QWidget):
                 cell = self.frame.availability.itemAtPosition(row, col).widget()
                 cell.available = av[col-1]>>row-1 & 1
                 cell.show_true_color()
+        self.hours_spin.blockSignals(True)
+        self.hours_spin.setValue(teacher.working_hours)
+        self.hours_spin.blockSignals(False)
 
     def save_av(self):
         teacher = self.list.currentData()
@@ -190,6 +208,9 @@ class TeachersWidget(QWidget):
                 val = self.frame.availability.itemAtPosition(row+1, col+1).widget().available
                 av[col] |= val << row
         self.db.update_teacher_av(teacher, av)
+
+    def update_teacher_workong_hours(self, hours):
+        self.db.update_teacher_working_hours(self.list.currentData(), hours)
 
 
 
