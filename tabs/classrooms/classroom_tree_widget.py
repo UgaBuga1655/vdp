@@ -171,15 +171,15 @@ class ClassroomTreeWidget(QTreeWidget):
         row.addWidget(capacity)
 
         row.addWidget(QLabel('Lekcje:'))
-        self.allow_lessons = QComboBox(classroom_widget)
+        allow_lessons = QComboBox(classroom_widget)
 
-        self.allow_lessons.addItem('Wszystkie', 'all')
-        self.allow_lessons.addItem('Przypisane', 'selected')
-        self.allow_lessons.addItem('Żadne', 'none')
+        allow_lessons.addItem('Wszystkie', 'all')
+        allow_lessons.addItem('Przypisane', 'selected')
+        allow_lessons.addItem('Żadne', 'none')
         index = ['all', 'selected', 'none'].index(classroom.allow_lessons)
-        self.allow_lessons.setCurrentIndex(index)
-        self.allow_lessons.currentIndexChanged.connect(self.set_allow_lessons(classroom))
-        row.addWidget(self.allow_lessons)
+        allow_lessons.setCurrentIndex(index)
+        allow_lessons.currentIndexChanged.connect(self.set_allow_lessons(allow_lessons, classroom))
+        row.addWidget(allow_lessons)
 
         del_btn = QPushButton('X', classroom_widget)
         del_btn.setMaximumWidth(20)
@@ -209,9 +209,9 @@ class ClassroomTreeWidget(QTreeWidget):
             self.db.update_classroom_capacity(classroom, capacity)
         return func
 
-    def set_allow_lessons(self, classroom):
+    def set_allow_lessons(self, spinbox, classroom):
         def func():
-            allow = self.allow_lessons.currentData()
+            allow = spinbox.currentData()
             self.db.update_classroom_allow_lessons(classroom, allow)
         return func
     

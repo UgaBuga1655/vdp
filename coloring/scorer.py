@@ -36,6 +36,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
     for student in session.query(Student):
         s = []
         for subject in student.subjects:
+            if subject.is_a_project:
+                continue
             s.extend([l.id for l in subject.lessons])
         students.append(s)
 

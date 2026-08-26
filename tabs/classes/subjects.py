@@ -134,16 +134,21 @@ class SubjectsWindow(QWidget):
         main_layout.addLayout(planning_info_row)
 
         # target block length
-        planning_info_row.addWidget(QLabel('Docelowo lekcji w bloku:'))
-        bl_len = QSpinBox()
-        bl_len.setValue(subject.target_block_length)
-        bl_len.setMinimum(1)
-        bl_len.valueChanged.connect(self.set_target_block_length)
-        planning_info_row.addWidget(bl_len)
+        # planning_info_row.addWidget(QLabel('Docelowo lekcji w bloku:'))
+        # bl_len = QSpinBox()
+        # bl_len.setValue(subject.target_block_length)
+        # bl_len.setMinimum(1)
+        # bl_len.valueChanged.connect(self.set_target_block_length)
+        # planning_info_row.addWidget(bl_len)
 
         convinience_btn = QPushButton('Rozłożenie lekcji')
         planning_info_row.addWidget(convinience_btn)
         convinience_btn.clicked.connect(self.edit_convinience)
+
+        project = QCheckBox('Projektowy')
+        planning_info_row.addWidget(project)
+        project.setChecked(self.subject.is_a_project)
+        project.toggled.connect(self.set_is_a_project)
 
 
         # required classroom
@@ -310,5 +315,8 @@ class SubjectsWindow(QWidget):
 
     def set_target_block_length(self, length: int):
         self.db.update_subject_target_block_length(self.subject, length)
+
+    def set_is_a_project(self, project: bool):
+        self.db.update_subject_is_project(self.subject, project)
 
 

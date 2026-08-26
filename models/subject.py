@@ -17,6 +17,7 @@ class Subject(Base):
     classroom_id = Column(Integer, ForeignKey('classrooms.id'))
     required_classroom = relationship('Classroom', back_populates='subjects')
     basic = Column(Boolean)
+    is_a_project = Column(Boolean, default=False)
     color = Column(String)
     target_block_length = Column(Integer, default=1)
     students = relationship("Student", secondary=student_subject, back_populates="subjects")

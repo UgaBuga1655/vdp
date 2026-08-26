@@ -369,7 +369,7 @@ class ColoringThread(QThread):
         blocks = self.session.query(Block).all()
         for subject in self.session.query(Subject).all():
             if self.stop_event.is_set():
-                return None, None, None
+                return None, None, None, None
             feasible_classrooms = [
                 cr.id 
                 for cr in classrooms 
