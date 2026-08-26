@@ -15,6 +15,8 @@ class StudentDensityStat(Statistic):
         self.stats = [[0]*8*12 for _ in range(5)]
         lesson: Lesson
         for lesson in self.db.all_lessons():
+            if lesson.subject.is_a_project:
+                continue
             self.add_lesson(lesson)
         # print(self.stats)
 

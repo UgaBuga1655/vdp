@@ -153,7 +153,8 @@ class BlockText(QGraphicsTextItem):
             if block.text:
                 lines.append(block.text)
             lines.append(time)
-            classrooms = '/'.join([l.classroom.name if l.classroom else '_'for l in block.events if isinstance(l, TeacherDuty)])
+            classrooms = [l.classroom.name if l.classroom else '_'for l in block.events if isinstance(l, TeacherDuty)]
+            classrooms = '/'.join(list(set(classrooms)))
             if classrooms:
                 lines.append(classrooms)
             self.setHtml('<br>'.join(lines))

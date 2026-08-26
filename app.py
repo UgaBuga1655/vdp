@@ -105,10 +105,13 @@ class MainWindow(QMainWindow):
         color_lessons_action.triggered.connect(self.color_lessons)
         settings_action = QAction('U&stawienia', self)
         settings_action.triggered.connect(self.coloring_settings)
+        duties = QAction('Uzupełnij &dyżury', self)
+        duties.triggered.connect(self.db.fill_duties)
 
         coloring_menu.addActions([
             color_lessons_action,
-            settings_action
+            settings_action,
+            duties
         ])
 
         reports_menu = menu.addMenu('&Raporty')

@@ -1,5 +1,4 @@
-from turtle import st
-
+import math
 from sqlalchemy.orm import sessionmaker, scoped_session, load_only
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, or_, and_, literal
@@ -554,12 +553,16 @@ class Data(QObject):
         self.session.delete(block)
         self.session.commit()
     
-    def overlapping_blocks(self, block: Block):
+    def overlapping_blocks(self, block: Block, other_classes=True):
         is_custom_block = isinstance(block, CustomBlock)
         return self.session.query(LessonBlockDB).filter_by(day=block.day)\
                 .filter(or_(
                     Block.start.between(block.start, block.start+block.length-is_custom_block),
                     and_(Block.start <= block.start, block.start <= Block.start+Block.length-is_custom_block)
+                ))\
+                .filter(or_(
+                    other_classes,
+                    isinstance(block, LessonBlockDB) and LessonBlockDB.class_ == block.class_
                 )).all()
     
     def overlapping_custom_blocks(self, block: Block):
@@ -1225,4 +1228,87 @@ class Data(QObject):
                 self.create_block(l_block.day, l_block.start, l_block.length*2+1, l_block.parent())
         self.redraw_plan.emit()
             
-            
+
+    def fill_duties(self, lesson_length=6):
+        for duty in self.session.query(TeacherDuty).filter_by(teacher=None, classroom_pinned=False, teacher_pinned=False).all()[::-1]:
+            # self.delete_duty(duty)
+            self.session.delete(duty)
+        print('Uzupełniam dyżury')
+        total_students = {}
+        total_sen_students = {}
+        student_counts = {}
+        available_classrooms = self.session.query(Classroom).filter_by(allow_pw=True).order_by(Classroom.capacity).all()
+        for class_ in self.session.query(Class).all():
+            total_students[class_] = len(class_.students)
+            total_sen_students[class_] = self.session.query(Student).filter_by(class_=class_, sen=True).count()
+
+        for day in range(5):
+            # print(day)
+            for start in range(12*8):
+                # print(start)
+                classrooms = [[cl, cl.capacity] for cl in available_classrooms]
+                # print(classrooms)
+                blocks = self.session.query(LessonBlockDB).filter_by(day=day).filter_by(length=6).filter(Block.start==start).all()
+                if len(blocks) == 0:
+                    # print(f'no blocks at {day}, {start}')
+                    continue
+                student_counts = []
+                for block in blocks:
+                    # ovelapping_blocks = self.overlapping_blocks(block, other_classes=False)
+                    # lessons = [ev for ev in block.events if isinstance(ev, Lesson)]a
+                    lessons = []
+                    for other_block in self.overlapping_blocks(block, other_classes=False):
+                        lessons.extend([ev for ev in other_block.events if isinstance(ev, Lesson) and not ev.subject.is_a_project])
+                    busy_students = 0
+                    busy_sen_students = 0
+                    for lesson in lessons:
+                        for student in lesson.students:
+                            if student.sen:
+                                busy_sen_students += 1
+                            busy_students += 1
+                    # print(f'busy: {busy_students}, {busy_sen_students}')
+
+                    s = total_students[block.class_] - busy_students
+                    ss = total_sen_students[block.class_] - busy_sen_students
+                    # print(s, ss)
+                    if s:
+                        student_counts.append((s, ss, block))
+
+                student_counts.sort(key=lambda x: x[0], reverse=True)
+                # print(student_counts)
+                for s, ss, block in student_counts:
+                    # print(s, ss, block.print_full_time())
+                    succes = False
+                    block: LessonBlockDB
+                    max_cap = -math.inf
+                    max_cap_i = -1
+                    for i, cl in enumerate(classrooms):
+                        classroom, capacity = cl
+                        if capacity>max_cap:
+                            max_cap = capacity
+                            max_cap_i = i
+                        # print(classroom.name, capacity)
+                        if capacity >= s:
+                            required_teachers = max(round(s/10), 2) + ss
+                            classrooms[i][1]-=s
+                            # print(f'{block.print_full_time()}: {s} uczniów, w tym {ss} z orzeczeniem - {required_teachers} dyżurów w {classroom.name} ({capacity})')
+                            succes = True
+                            for _ in range(required_teachers):
+                                duty = TeacherDuty(block=block, classroom=classroom)
+                                self.session.add(duty)
+                            break
+                    if not succes:
+                        classroom, capacity = classrooms[max_cap_i]
+                        classrooms[max_cap_i][1] -= s
+                        print(f'{block.print_full_time()}: nie udało się umieścić dyżuru ({s}) - wepchnięto do {classroom.name} ({capacity})')
+                # print()
+        self.session.commit()
+                         
+                
+            # blocks_ = {}
+            # for day in range(5):
+            #     blocks = self.session.query(LessonBlockDB) \
+            #         .filter_by(class_=class_, length=lesson_length, day=day) \
+            #         .order_by(LessonBlockDB.start).all()
+            #     for block in blocks:
+
