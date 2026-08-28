@@ -18,10 +18,24 @@ class Student(Base):
     subclass = relationship('Subclass', back_populates='students')
     sen = Column(Boolean, default=False)
 
+    def target_5_min_slots_in_school(self):
+        time = 0
+        n_of_lessons = 0
+        for subject in self.subjects:
+            for lesson in subject.lessons:
+                n_of_lessons += lesson.length // 30
+        time = n_of_lessons * 45
+        time += 425
+        # print(time)
+        time //= 5
+        # print(time)
+        return time
+        
+
     def time_stats(self, only_day=None):
         days = [only_day] if only_day else range(5)
         matrix = zeros([5, 12*8])
-        stats = [DayStat() for _ in range(5)]
+        stats = [DayStat() for _ in range(6)]
 
         for subject in self.subjects:
             for lesson in subject.lessons:
@@ -29,6 +43,7 @@ class Student(Base):
                     continue
                 day = lesson.block.day
                 stats[day].time_in_lessons += lesson.length//5
+                stats[-1].time_in_lessons += lesson.length//5
                 for n in range(lesson.length//5):
                     matrix[lesson.block.day, lesson.block.start+n] = 1
 
@@ -37,6 +52,7 @@ class Student(Base):
             end_time = None
             curr_break_time = 0
             free_work_time = 0
+            time_before_lessons = 0
             for time, busy in enumerate(matrix[day,]):
                 if busy:
                     end_time = time
@@ -54,8 +70,11 @@ class Student(Base):
                 stats[day].time_in_school = 0
             else:
                 stats[day].time_in_school = end_time - start_time + 1
+                stats[-1].time_in_school += end_time - start_time +1
             stats[day].free_work_time = free_work_time - 12
+            stats[-1].free_work_time += free_work_time - 12
             stats[day].free_work_time_between_lessons = free_work_between_lessons
+            stats[-1].free_work_time_between_lessons += free_work_between_lessons
 
         return stats
                         

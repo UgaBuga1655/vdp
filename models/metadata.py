@@ -41,17 +41,17 @@ class Metadata(Base):
 
     scoring_names = Column(PickleType, default= [
         'Nieprzypisane lekcje', 
-        'Rozłożenie lekcji w tygodniu', 
         'Lekcje w nieodpowiednim czasie',
         'Pojedyncze lekcje nauczyciela', 
         'Bieganie uczniów', 
+        'Nadmiar czasu w szkole',
         'Bieganie nauczycieli', 
         'Rozłożenie uczniow',
         'Średni czas PW'
         ]
     )
     scoring_weights = Column(PickleType, default=
-        [6, 5, 3, 2, 2, 3, 4, 3]
+        [6, 5, 3, 2, 3, 3, 4, 3]
     )
 
     stat_names = Column(PickleType, default=['Czas pokolenia'])

@@ -1252,13 +1252,13 @@ class Data(QObject):
                     # find how much students need to be taken care of
                     lessons = []
                     for other_block in self.overlapping_blocks(block, other_classes=False):
-                        lessons.extend([ev for ev in other_block.events if isinstance(ev, Lesson) and not ev.subject.is_a_project])
+                        lessons.extend([ev for ev in other_block.events if isinstance(ev, Lesson)])
                     busy_students = 0
                     busy_sen_students = 0
                     for lesson in lessons:
                         for student in lesson.students:
-                            if student.sen:
-                                busy_sen_students += 1
+                            # if student.sen:
+                                # busy_sen_students += 1
                             busy_students += 1
 
                     s = total_students[block.class_] - busy_students
@@ -1279,7 +1279,7 @@ class Data(QObject):
                             max_cap = capacity
                             max_cap_i = i
                         if capacity >= s:
-                            required_teachers = max(round(s/10), 2) + ss
+                            required_teachers = max(round(s/10), 2) #+ ss
                             classrooms[i][1]-=s
                             # print(f'{block.print_full_time()}: {s} uczniów, w tym {ss} z orzeczeniem - {required_teachers} dyżurów w {classroom.name} ({capacity})')
                             succes = True
@@ -1452,30 +1452,31 @@ class Data(QObject):
                 day, start, end = busy_hours.pop(0)
 
                 duties_before = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None))\
-                    .join(Block).filter_by(day=day).filter(Block.start+Block.length<start.block.start).filter(start.block.start - Block.start - Block.length <= 2).all()
+                    .join(Block).filter_by(day=day).filter(Block.start+Block.length<start.block.start).order_by(Block.start.desc()).all()
                 duties_after = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None))\
-                    .join(Block).filter_by(day=day).filter(end.block.start+end.block.length<Block.start).filter(Block.start - end.block.start - end.block.length <= 2).all()
+                    .join(Block).filter_by(day=day).filter(end.block.start+end.block.length<Block.start).order_by(Block.start).all()
 
                 duties_before = list(filter(lambda d: self.is_teacher_available(teacher, d.block), duties_before))
                 duties_after = list(filter(lambda d: self.is_teacher_available(teacher, d.block), duties_after))
+
                 if not len(duties_before) + len(duties_after):
                     continue
 
                 found = None
 
                 for duty in duties_after:
-                    if duty.classroom == end.classroom:
+                    gap = duty.block.start - end.block.start - end.block.length
+                    if duty.classroom == end.classroom and gap <= 3:
                         found = duty
                         hours = (day, start, found)
-                        gap = found.block.start - end.block.start - end.block.length
                         break
 
                 if found is None:
                     for duty in duties_before:
-                        if duty.classroom == start.classroom:
+                        gap = start.block.start - duty.block.start - duty.block.length
+                        if duty.classroom == start.classroom and gap <= 3:
                             found = duty
                             hours = (day, found, end)
-                            gap = start.block.start - found.block.start - found.block.length
                             break
 
                 if found is None:
@@ -1506,4 +1507,5 @@ class Data(QObject):
                 break
 
         if len(duties_to_fill):
-            print(f'Dyżury doklejone do dni pracy nauczycieli, pozostało {len(duties_to_fill)} dyżurów')  
+            d_count = self.session.query(TeacherDuty).count()
+            print(f'Dyżury doklejone do dni pracy nauczycieli, pozostało {len(duties_to_fill)} z {d_count} dyżurów')  

@@ -23,6 +23,9 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
     
     settings = session.query(Metadata).first()
     MAX_BREAK = settings.max_break
+    # LESSON_REAL_LEN = 30
+    # LESSON_OFFICIAL_LEN = 45
+    # TIME_CONSTANT = 425
     
     
     teachers = []
@@ -32,14 +35,18 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
             t.extend([l.id for l in subject.lessons])
         teachers.append(t)
     
-    students = []
+    students = {}
+    time_in_school = {}
     for student in session.query(Student):
         s = []
         for subject in student.subjects:
-            if subject.is_a_project:
-                continue
-            s.extend([l.id for l in subject.lessons])
-        students.append(s)
+            for lesson in subject.lessons:
+                if subject.is_a_project:
+                    continue
+                s.append(lesson.id)
+        students[student.id] = s
+        # print(f'{student.name}: {t//60}:{t%60:02d}')
+        time_in_school[student.id] = student.target_5_min_slots_in_school()
 
     blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(Block)}
     pinned_lessons = {l.id: (l.block_id, l.classroom_id) for l in session.query(Lesson) if l.block and l.block_locked}
@@ -79,7 +86,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
         # multiple lessons on the same day
         for subject in subjects:
             lessons, days, target_bl_len = subject
-            days = [day.copy() for day in days]
+            # days = [day.copy() for day in days]
             # print(days)
             if not len(lessons):
                 continue
@@ -95,7 +102,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
                 distributions[day, start:start+length] += get_weight(lesson)
                 # if target_bl_len == 1:
                 #     lesson_distribution += weight * len(days[day])
-                days[day].append((start, length+start))
+                # days[day].append((start, length+start))
 
             # if target_bl_len < 2:
             #     continue
@@ -103,25 +110,25 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
             # cost = - (len(lessons)%target_bl_len)
             # cost = 0
             
-            for day in days:
-                if not len(day):
-                    continue
-                # print(day)
-                lesson_groupings = []
-                day.sort(key= lambda x: x[0])
-                block_end = day[0][1]
-                grouping_length = 1
-                for block in day[1:]:
-                    if block[0] > block_end + MAX_BREAK:
-                        lesson_groupings.append(grouping_length)
-                    else:
-                        grouping_length += 1
-                    block_end = block[1]
-                lesson_groupings.append(grouping_length)
-                d_cost = len(day)
-                if target_bl_len in lesson_groupings or target_bl_len<max(lesson_groupings):
-                    d_cost -= target_bl_len
-                lesson_distribution += d_cost * (d_cost+1) // 2
+            # for day in days:
+            #     if not len(day):
+            #         continue
+            #     # print(day)
+            #     lesson_groupings = []
+            #     day.sort(key= lambda x: x[0])
+            #     block_end = day[0][1]
+            #     grouping_length = 1
+            #     for block in day[1:]:
+            #         if block[0] > block_end + MAX_BREAK:
+            #             lesson_groupings.append(grouping_length)
+            #         else:
+            #             grouping_length += 1
+            #         block_end = block[1]
+            #     lesson_groupings.append(grouping_length)
+            #     d_cost = len(day)
+            #     if target_bl_len in lesson_groupings or target_bl_len<max(lesson_groupings):
+            #         d_cost -= target_bl_len
+            #     lesson_distribution += d_cost * (d_cost+1) // 2
                 
 
             # add cost
@@ -170,7 +177,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
         # students
         students_running_around = 0
         avg_PW_time = 0
-        for student in students:
+        surplus_time = 0
+        for student_id, student in students.items():
             days = [[] for _ in range(5)]
             for lesson in student:
                 if lesson in pinned_lessons:
@@ -182,6 +190,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
                 day, start, length = blocks[block]
                 days[day].append((start, length, clrm))
 
+            student_time_in_school = 0
             student_running = 0
             student_PW = 0
             n_of_PW = 0
@@ -192,6 +201,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
                 day.sort(key=lambda les: les[0])
                 
                 start, length, clrm = day[0]
+                end = day[-1][0] + day[-1][1]
+                student_time_in_school += (end - start)
                 student_PW += start
                 n_of_PW += 1
                 # for five_min_block in range(length):
@@ -214,6 +225,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
                 students_running_around += student_running/runs
             if n_of_PW:
                 avg_PW_time += student_PW/n_of_PW
+            if student_time_in_school > time_in_school[student_id]:
+                surplus_time += (student_time_in_school - time_in_school[student_id])
         
         student_distribution = 0
         STUDENTS_BUSY_TARGET = len(students)//2
@@ -224,10 +237,10 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
 
         params = [
             uncolored_lessons,
-            lesson_distribution,
             lesson_at_inconvinient_times,
             single_lessons,
             students_running_around,
+            surplus_time,
             teachers_running_around,
             student_distribution,
             -avg_PW_time
