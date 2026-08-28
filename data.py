@@ -9,6 +9,7 @@ from functions import shorten_name
 from db_config import Base
 from models import *
 from itertools import combinations, pairwise
+from numpy import array, zeros
 
 
 class Data(QObject):
@@ -1084,7 +1085,7 @@ class Data(QObject):
                         continue
                     if duty.teacher in event.teachers:
                         collisions[col_bl].append((
-                            f'{event.get_name()}: {duty.collision_text()}',
+                            f'{event.get_name()}: {duty.collision_text(duty.teacher.name)}',
                             f'{duty.get_name()}: {teacher.name} prowadzi {event.name_and_time()}' \
                             if is_lesson_block else \
                             f'{duty.get_name()}: {event.collision_text()}',
@@ -1332,10 +1333,10 @@ class Data(QObject):
                 working_time += events[-1].block.length
             working_time *= 5
             working_percentage = working_time / teacher.working_hours / 3 * 5
-            teachers.append((teacher, working_time, working_percentage, gaps))
+            teachers.append((teacher, working_time, working_percentage, gaps, events))
 
         teachers.sort(key = lambda t: t[2])
-        for teacher, working_time, working_percentage, _ in teachers:
+        for teacher, working_time, working_percentage, _, _ in teachers:
             print(f'{teacher.name} pracuje {working_time//60}:{working_time%60:02d}, czyli {round(working_percentage,1)}% ze swoich {teacher.working_hours} godzin.')
 
         duties_to_fill = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None)).all()
@@ -1347,45 +1348,63 @@ class Data(QObject):
                 print(len(teachers_with_no_gaps))
                 break
             # take the least busy teacher
-            teacher, working_time, working_percentage, gaps = teachers.pop(0)
-            print(f'próbuję znaleźć dyżur dla: {teacher.name}')
+            teacher, working_time, working_percentage, gaps, events = teachers.pop(0)
+            print(f'próbuję znaleźć dyżur dla: {teacher.name} ({working_percentage:.01f}%)')
             if not len(gaps):
+                events.sort(key = lambda e: (e.block.day, e.block.start))
+                start_end = [[None, None] for _ in range(5)]
+                first = events[0]
+                start_end[first.block.day][0] = first
+                for first, second in pairwise(events):
+                    if first.block.day != second.block.day:
+                        start_end[first.block.day][1] = first
+                        start_end[second.block.day][0] = second
+                last = events[-1]
+                start_end[last.block.day][1] = last
+                busy_hours = []
+                for day in range(5):
+                    start, end = start_end[day]
+                    if start is None:
+                        continue
+                    busy_hours.append((day, start, end))
+                busy_hours.sort(key = lambda x: x[2].block.start + x[2].block.start - x[1].block.start)
                 teachers_with_no_gaps.append((
                     teacher,
                     working_time,
                     working_percentage,
-                    gaps
+                    events,
+                    busy_hours
                 ))
                 continue
             # iterate until found a duty or no more gaps that can be filled 
             time_left = (teacher.working_hours * 60 - working_time)//5
             while len(gaps):
                 duration, first, second = gaps.pop(0)
-                print(f'duration: {duration} {first.block.print_full_time()} {second.block.print_full_time()}')
-                empty_duties = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None))\
+                # print(f'duration: {duration} {first.block.print_full_time()} {second.block.print_full_time()}')
+                duties_before = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None))\
                     .join(Block).filter_by(day=first.block.day).filter(Block.length <= duration)\
                     .filter(Block.length<=time_left).filter(
                     Block.start.between(first.block.start +first.block.length,second.block.start-lesson_length)
                     ).order_by(Block.start).all()
                 
-                empty_duties = list(filter(
-                    lambda x: self.is_teacher_available(teacher, x.block) and self.get_lesson_collisions_for_teacher_at_block(teacher, x.block)==0,
-                    empty_duties
+                duties_before = list(filter(
+                    lambda x: self.is_teacher_available(teacher, x.block),
+                    duties_before
                     ))
                 
-                if not len(empty_duties):
+                if not len(duties_before):
                     continue
 
                 found = None
                 # try to find one in a matching room
-                for duty in empty_duties:
+                for duty in duties_before:
                     if duty.classroom == first.classroom or duty.classroom == second.classroom:
                         found = duty
                         break
 
                 # nie znaleziono nic w tym okienku
                 if not found:
-                    found = empty_duties[0]
+                    found = duties_before[0]
 
                 
                 working_time += found.block.length * 5
@@ -1401,39 +1420,90 @@ class Data(QObject):
                     break
 
                 self.update_duty_teacher(found, teacher)
+                events.append(found)
                 if found in duties_to_fill:
                     duties_to_fill.remove(found)
                 else:
                     print(found.block.print_full_time())
 
                 if first_gap >= lesson_length:
-                    for i, gap in enumerate(gaps):
-                        if gap[0]>=first_gap:
-                            break
-                    gaps.insert(i, (first_gap, first, found))
+                    gaps.append((first_gap, first, found))
 
                 if second_gap >= lesson_length:
-                    for i, gap in enumerate(gaps):
-                        if gap[0]>=second_gap:
-                            break
-                    gaps.insert(i, (second_gap, found, second))
+                    gaps.append((second_gap, found, second))
+
+                gaps.sort(key=lambda g: g[0])
                 
                 working_percentage = working_time / teacher.working_hours / 3 * 5
 
-                for i, t in enumerate(teachers):
-                    if t[2]>=working_percentage:
-                        break
-                print(f'inserting {teacher.name} ({working_percentage:.1f}%) at {i}')
-                teachers.insert(i, (
-                    teacher,
-                    working_time,
-                    working_percentage,
-                    gaps
-                ))
+                teachers.append((teacher,working_time,working_percentage, gaps, events))
+                teachers.sort(key=lambda x: x[2])
                 break
 
         if len(duties_to_fill):
-            print(f'Nauczyciele nie mają okienek, pozostało {len(duties_to_fill)} dyżurów')        
+            print(f'Nauczyciele nie mają okienek, pozostało {len(duties_to_fill)} dyżurów')  
 
+        while len(duties_to_fill):
+            if not len(teachers_with_no_gaps):
+                break
+            teacher, working_time, working_percentage, events, busy_hours = teachers_with_no_gaps.pop(0)
+            print(f'[przyklejanie] próbuję znaleźć dyżur dla: {teacher.name} ({working_percentage:.01f}%)')
+            while len(busy_hours):
+                day, start, end = busy_hours.pop(0)
 
+                duties_before = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None))\
+                    .join(Block).filter_by(day=day).filter(Block.start+Block.length<start.block.start).filter(start.block.start - Block.start - Block.length <= 2).all()
+                duties_after = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None))\
+                    .join(Block).filter_by(day=day).filter(end.block.start+end.block.length<Block.start).filter(Block.start - end.block.start - end.block.length <= 2).all()
 
+                duties_before = list(filter(lambda d: self.is_teacher_available(teacher, d.block), duties_before))
+                duties_after = list(filter(lambda d: self.is_teacher_available(teacher, d.block), duties_after))
+                if not len(duties_before) + len(duties_after):
+                    continue
+
+                found = None
+
+                for duty in duties_after:
+                    if duty.classroom == end.classroom:
+                        found = duty
+                        hours = (day, start, found)
+                        gap = found.block.start - end.block.start - end.block.length
+                        break
+
+                if found is None:
+                    for duty in duties_before:
+                        if duty.classroom == start.classroom:
+                            found = duty
+                            hours = (day, found, end)
+                            gap = start.block.start - found.block.start - found.block.length
+                            break
+
+                if found is None:
+                    if len(duties_after):
+                        found = duties_after[0]
+                        hours = (day, start, found)
+                        gap = found.block.start - end.block.start - end.block.length
+
+                    else:
+                        found = duties_before[0]
+                        hours = (day, found, end)
+                        gap = start.block.start - found.block.start - found.block.length
+
+                if gap == 1:
+                    working_time += 5
+                working_time += found.block.length * 5
+                working_percentage = working_time / teacher.working_hours / 3 * 5
+                if working_percentage > 100:
+                    break
+                # print(found)
+                duties_to_fill.remove(found)
+                self.update_duty_teacher(found, teacher)
+
+                busy_hours.append(hours)
+                busy_hours.sort(key = lambda x: x[2].block.start + x[2].block.start - x[1].block.start)
+                teachers_with_no_gaps.append((teacher, working_time, working_percentage, events, busy_hours))
+                teachers_with_no_gaps.sort(key = lambda t: t[2])
+                break
+
+        if len(duties_to_fill):
+            print(f'Dyżury doklejone do dni pracy nauczycieli, pozostało {len(duties_to_fill)} dyżurów')  
