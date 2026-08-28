@@ -1,5 +1,5 @@
 from db_config import Base, teacher_subject
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 
 class Teacher(Base):
@@ -14,6 +14,7 @@ class Teacher(Base):
     subjects = relationship("Subject", secondary=teacher_subject, back_populates="teachers")
     duties = relationship('TeacherDuty', back_populates='teacher')
     working_hours = Column(Integer, default=20)
+    assign_duties = Column(Boolean, default=True)
 
     def __init__(self, name, av):
         self.name = name

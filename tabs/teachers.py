@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QGridLayout,\
-      QLabel, QInputDialog, QMessageBox, QPushButton, QHBoxLayout, QDialogButtonBox, QSpinBox
-      
+      QLabel, QInputDialog, QMessageBox, QPushButton, QHBoxLayout, QDialogButtonBox, QSpinBox, \
+      QCheckBox
 from PyQt5 import QtCore
 from data import Data, Teacher
 from sqlalchemy.exc import IntegrityError
@@ -142,6 +142,10 @@ class TeachersWidget(QWidget):
 
         # right_column.addWidget(QLabel('Przedmioty'))
 
+        self.assign_duties = QCheckBox('Przydzielaj dyżury')
+        self.assign_duties.toggled.connect(self.update_teacher_assign_duties)
+        right_column.addWidget(self.assign_duties)
+
         right_column.addLayout(hours_row)
         right_column.addStretch()
 
@@ -198,6 +202,9 @@ class TeachersWidget(QWidget):
         self.hours_spin.blockSignals(True)
         self.hours_spin.setValue(teacher.working_hours)
         self.hours_spin.blockSignals(False)
+        self.assign_duties.blockSignals(True)
+        self.assign_duties.setChecked(teacher.assign_duties)
+        self.assign_duties.blockSignals(False)
 
     def save_av(self):
         teacher = self.list.currentData()
@@ -213,6 +220,8 @@ class TeachersWidget(QWidget):
     def update_teacher_workong_hours(self, hours):
         self.db.update_teacher_working_hours(self.list.currentData(), hours)
 
+    def update_teacher_assign_duties(self, assign):
+        self.db.update_teacher_assign_duties(self.list.currentData(), assign)
 
 
     def load_data(self, db):

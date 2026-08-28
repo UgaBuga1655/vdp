@@ -117,6 +117,10 @@ class Data(QObject):
         teacher.working_hours = hours
         self.session.commit()
 
+    def update_teacher_assign_duties(self, teacher: Teacher, assign: bool):
+        teacher.assign_duties = assign
+        self.session.commit()
+
     def all_teachers(self):
         return self.session.query(Teacher).order_by(Teacher.name).all()
 
@@ -1332,7 +1336,7 @@ class Data(QObject):
         self.generate_duties()
         # calculate working time
         teachers = []
-        for teacher in self.session.query(Teacher).all():
+        for teacher in self.session.query(Teacher).filter(Teacher.assign_duties==True).all():
             working_time = 0
             events = self.session.query(Lesson).filter(Lesson.block != None).join(Subject) \
                 .join(teacher_subject).join(Teacher).filter(Teacher.id==teacher.id).all()
