@@ -1243,64 +1243,79 @@ class Data(QObject):
         # iterate by time
         for day in range(5):
             for start in range(12*8):
-                classrooms = [[cl, cl.capacity] for cl in available_classrooms]
+                classrooms = [[cl, cl.capacity, 0] for cl in available_classrooms]
                 blocks = self.session.query(LessonBlockDB).filter_by(day=day).filter_by(length=lesson_length).filter(Block.start==start).all()
                 if len(blocks) == 0:
                     continue
                 student_counts = []
+                students_on_PW = 0
                 for block in blocks:
+                    # total_sen_students = self.session.query(Student).filter_by(sen=True).count()
                     # find how much students need to be taken care of
+                    busy_students = 0
+                    busy_sen_students = 0
+                    total_students_in_class = len(block.parent().students)
                     lessons = []
                     for other_block in self.overlapping_blocks(block, other_classes=False):
                         lessons.extend([ev for ev in other_block.events if isinstance(ev, Lesson)])
-                    busy_students = 0
-                    busy_sen_students = 0
                     for lesson in lessons:
                         for student in lesson.students:
-                            # if student.sen:
-                                # busy_sen_students += 1
+                            if student.sen:
+                                busy_sen_students += 1
                             busy_students += 1
-
-                    s = total_students[block.class_] - busy_students
-                    ss = total_sen_students[block.class_] - busy_sen_students
-                    if s:
-                        student_counts.append((s, ss, block))
+                    student_counts.append((total_students_in_class-busy_students, block))
+                    students_on_PW += total_students_in_class-busy_students
+                    # total_sen_students -= busy_sen_students
+                        
 
                 # find the best classroom to put them
                 student_counts.sort(key=lambda x: x[0], reverse=True)
-                for s, ss, block in student_counts:
+                assignment = {}
+                for s, block in student_counts:
                     succes = False
                     block: LessonBlockDB
                     max_cap = -math.inf
                     max_cap_i = -1
                     for i, cl in enumerate(classrooms):
-                        classroom, capacity = cl
-                        if capacity>max_cap:
-                            max_cap = capacity
+                        classroom, capacity, students = cl
+                        if capacity-students>max_cap:
+                            max_cap = capacity-students
                             max_cap_i = i
                         if capacity >= s:
-                            required_teachers = max(round(s/10), 2) #+ ss
-                            classrooms[i][1]-=s
-                            # print(f'{block.print_full_time()}: {s} uczniów, w tym {ss} z orzeczeniem - {required_teachers} dyżurów w {classroom.name} ({capacity})')
+                            classrooms[i][2]+=s
                             succes = True
-                            for _ in range(required_teachers):
-                                duty = TeacherDuty(block=block, classroom=classroom)
-                                self.session.add(duty)
                             break
                     if not succes:
-                        classroom, capacity = classrooms[max_cap_i]
+                        classroom, capacity, _ = classrooms[max_cap_i]
                         classrooms[max_cap_i][1] -= s
                         print(f'{block.print_full_time()}: nie udało się umieścić dyżuru ({s}) - wepchnięto do {classroom.name} ({capacity})')
+
+                    duty = TeacherDuty(block=block, classroom=classroom) # put at least one teacher in every class
+                    self.session.add(duty)
+                    assignment[block] = classroom
+
+                required_teachers = max(round(total_students/10), 2) - len(student_counts) #+ ss
+                if required_teachers > 0:
+                    matrix = []
+                    for s_count, block in student_counts:
+                        for i in range(required_teachers):
+                            matrix.append((s_count/(i+1), block))
+                    matrix.sort(key = lambda x: x[0], reverse=True)
+                    for _ in range(required_teachers):
+                        _, block = matrix.pop(0)
+                        duty = TeacherDuty(block=block, classroom=assignment[block])
+                        self.session.add(duty)
                 # print()
         self.session.commit()
 
     def clear_duties(self):
         for duty in self.session.query(TeacherDuty).filter_by(classroom_pinned=False, teacher_pinned=False).all()[::-1]:
             self.session.delete(duty)
+        for duty in self.session.query(TeacherDuty).filter_by(teacher_pinned=False):
+            self.update_duty_teacher(duty, None)
                          
     def fill_duties(self):
-        for duty in self.session.query(TeacherDuty).filter_by(classroom_pinned=False, teacher_pinned=False).all()[::-1]:
-            self.session.delete(duty)
+        self.clear_duties()
         lesson_length = 6
         self.generate_duties()
         # calculate working time
@@ -1443,6 +1458,7 @@ class Data(QObject):
         if len(duties_to_fill):
             print(f'Nauczyciele nie mają okienek, pozostało {len(duties_to_fill)} dyżurów')  
 
+        teachers_with_empty_days = []
         while len(duties_to_fill):
             if not len(teachers_with_no_gaps):
                 break
@@ -1466,7 +1482,9 @@ class Data(QObject):
 
                 for duty in duties_after:
                     gap = duty.block.start - end.block.start - end.block.length
-                    if duty.classroom == end.classroom and gap <= 3:
+                    if gap > 3:
+                        break
+                    if duty.classroom == end.classroom:
                         found = duty
                         hours = (day, start, found)
                         break
@@ -1474,7 +1492,9 @@ class Data(QObject):
                 if found is None:
                     for duty in duties_before:
                         gap = start.block.start - duty.block.start - duty.block.length
-                        if duty.classroom == start.classroom and gap <= 3:
+                        if gap > 3:
+                            break
+                        if duty.classroom == start.classroom:
                             found = duty
                             hours = (day, found, end)
                             break
