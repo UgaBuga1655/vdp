@@ -8,7 +8,7 @@ from typing import List
 from functions import shorten_name
 from db_config import Base
 from models import *
-from itertools import combinations
+from itertools import combinations, pairwise
 
 
 class Data(QObject):
@@ -842,10 +842,10 @@ class Data(QObject):
                         and_(Block.start <= block.start, block.start <= Block.start+Block.length)
                     )).count()
         # print(duties_count)
-        if lesson_count:
-            print('l', lesson_count)
-        if duties_count:
-            print('d', duties_count)
+        # if lesson_count:
+            # print('l', lesson_count)
+        # if duties_count:
+            # print('d', duties_count)
         return lesson_count + duties_count
     
 
@@ -1229,10 +1229,7 @@ class Data(QObject):
         self.redraw_plan.emit()
             
 
-    def fill_duties(self, lesson_length=6):
-        for duty in self.session.query(TeacherDuty).filter_by(teacher=None, classroom_pinned=False, teacher_pinned=False).all()[::-1]:
-            # self.delete_duty(duty)
-            self.session.delete(duty)
+    def generate_duties(self, lesson_length=6):
         print('Uzupełniam dyżury')
         total_students = {}
         total_sen_students = {}
@@ -1242,20 +1239,16 @@ class Data(QObject):
             total_students[class_] = len(class_.students)
             total_sen_students[class_] = self.session.query(Student).filter_by(class_=class_, sen=True).count()
 
+        # iterate by time
         for day in range(5):
-            # print(day)
             for start in range(12*8):
-                # print(start)
                 classrooms = [[cl, cl.capacity] for cl in available_classrooms]
-                # print(classrooms)
-                blocks = self.session.query(LessonBlockDB).filter_by(day=day).filter_by(length=6).filter(Block.start==start).all()
+                blocks = self.session.query(LessonBlockDB).filter_by(day=day).filter_by(length=lesson_length).filter(Block.start==start).all()
                 if len(blocks) == 0:
-                    # print(f'no blocks at {day}, {start}')
                     continue
                 student_counts = []
                 for block in blocks:
-                    # ovelapping_blocks = self.overlapping_blocks(block, other_classes=False)
-                    # lessons = [ev for ev in block.events if isinstance(ev, Lesson)]a
+                    # find how much students need to be taken care of
                     lessons = []
                     for other_block in self.overlapping_blocks(block, other_classes=False):
                         lessons.extend([ev for ev in other_block.events if isinstance(ev, Lesson) and not ev.subject.is_a_project])
@@ -1266,18 +1259,15 @@ class Data(QObject):
                             if student.sen:
                                 busy_sen_students += 1
                             busy_students += 1
-                    # print(f'busy: {busy_students}, {busy_sen_students}')
 
                     s = total_students[block.class_] - busy_students
                     ss = total_sen_students[block.class_] - busy_sen_students
-                    # print(s, ss)
                     if s:
                         student_counts.append((s, ss, block))
 
+                # find the best classroom to put them
                 student_counts.sort(key=lambda x: x[0], reverse=True)
-                # print(student_counts)
                 for s, ss, block in student_counts:
-                    # print(s, ss, block.print_full_time())
                     succes = False
                     block: LessonBlockDB
                     max_cap = -math.inf
@@ -1287,7 +1277,6 @@ class Data(QObject):
                         if capacity>max_cap:
                             max_cap = capacity
                             max_cap_i = i
-                        # print(classroom.name, capacity)
                         if capacity >= s:
                             required_teachers = max(round(s/10), 2) + ss
                             classrooms[i][1]-=s
@@ -1303,12 +1292,148 @@ class Data(QObject):
                         print(f'{block.print_full_time()}: nie udało się umieścić dyżuru ({s}) - wepchnięto do {classroom.name} ({capacity})')
                 # print()
         self.session.commit()
+
+    def clear_duties(self):
+        for duty in self.session.query(TeacherDuty).filter_by(classroom_pinned=False, teacher_pinned=False).all()[::-1]:
+            self.session.delete(duty)
                          
+    def fill_duties(self):
+        for duty in self.session.query(TeacherDuty).filter_by(classroom_pinned=False, teacher_pinned=False).all()[::-1]:
+            self.session.delete(duty)
+        lesson_length = 6
+        self.generate_duties()
+        # calculate working time
+        teachers = []
+        for teacher in self.session.query(Teacher).all():
+            working_time = 0
+            events = self.session.query(Lesson).filter(Lesson.block != None).join(Subject) \
+                .join(teacher_subject).join(Teacher).filter(Teacher.id==teacher.id).all()
+            duties = self.session.query(TeacherDuty).filter(TeacherDuty.block != None).join(Teacher).filter(Teacher.id==teacher.id).all()
+            events.extend(duties)
+            events.sort(key=lambda ev: (ev.block.day, ev.block.start))
+            # find gaps and working time
+            gaps = []
+            for first, second in pairwise(events):
+                if first.block.day != second.block.day:
+                    continue
+                working_time += first.block.length
+                # krótka przerwa
+                gap = second.block.start - first.block.start - first.block.length
+                if gap == 1:
+                    working_time+=1
+                if gap >= lesson_length + 2:
+                    gaps.append((
+                        gap,
+                        first,
+                        second,
+                    ))
+                gaps.sort(key = lambda g: g[0])
+            if len(events):
+                working_time += events[-1].block.length
+            working_time *= 5
+            working_percentage = working_time / teacher.working_hours / 3 * 5
+            teachers.append((teacher, working_time, working_percentage, gaps))
+
+        teachers.sort(key = lambda t: t[2])
+        for teacher, working_time, working_percentage, _ in teachers:
+            print(f'{teacher.name} pracuje {working_time//60}:{working_time%60:02d}, czyli {round(working_percentage,1)}% ze swoich {teacher.working_hours} godzin.')
+
+        duties_to_fill = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None)).all()
+        teachers_with_no_gaps = []
+        while len(duties_to_fill):
+            # if no teacher has a gap break the loop and go to the next mode
+            if not len(teachers):
+                print('no teachers left')
+                print(len(teachers_with_no_gaps))
+                break
+            # take the least busy teacher
+            teacher, working_time, working_percentage, gaps = teachers.pop(0)
+            print(f'próbuję znaleźć dyżur dla: {teacher.name}')
+            if not len(gaps):
+                teachers_with_no_gaps.append((
+                    teacher,
+                    working_time,
+                    working_percentage,
+                    gaps
+                ))
+                continue
+            # iterate until found a duty or no more gaps that can be filled 
+            time_left = (teacher.working_hours * 60 - working_time)//5
+            while len(gaps):
+                duration, first, second = gaps.pop(0)
+                print(f'duration: {duration} {first.block.print_full_time()} {second.block.print_full_time()}')
+                empty_duties = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None))\
+                    .join(Block).filter_by(day=first.block.day).filter(Block.length <= duration)\
+                    .filter(Block.length<=time_left).filter(
+                    Block.start.between(first.block.start +first.block.length,second.block.start-lesson_length)
+                    ).order_by(Block.start).all()
                 
-            # blocks_ = {}
-            # for day in range(5):
-            #     blocks = self.session.query(LessonBlockDB) \
-            #         .filter_by(class_=class_, length=lesson_length, day=day) \
-            #         .order_by(LessonBlockDB.start).all()
-            #     for block in blocks:
+                empty_duties = list(filter(
+                    lambda x: self.is_teacher_available(teacher, x.block) and self.get_lesson_collisions_for_teacher_at_block(teacher, x.block)==0,
+                    empty_duties
+                    ))
+                
+                if not len(empty_duties):
+                    continue
+
+                found = None
+                # try to find one in a matching room
+                for duty in empty_duties:
+                    if duty.classroom == first.classroom or duty.classroom == second.classroom:
+                        found = duty
+                        break
+
+                # nie znaleziono nic w tym okienku
+                if not found:
+                    found = empty_duties[0]
+
+                
+                working_time += found.block.length * 5
+                first_gap = found.block.start - first.block.start - first.block.length
+                if first_gap == 1:
+                    working_time += 5
+                second_gap = second.block.start - found.block.start - found.block.length
+                if second_gap == 1:
+                    working_time += 5
+
+                if working_time >= teacher.working_hours*60:
+                    print(f'{teacher.name} nie może wziąć więcej godzin')
+                    break
+
+                self.update_duty_teacher(found, teacher)
+                if found in duties_to_fill:
+                    duties_to_fill.remove(found)
+                else:
+                    print(found.block.print_full_time())
+
+                if first_gap >= lesson_length:
+                    for i, gap in enumerate(gaps):
+                        if gap[0]>=first_gap:
+                            break
+                    gaps.insert(i, (first_gap, first, found))
+
+                if second_gap >= lesson_length:
+                    for i, gap in enumerate(gaps):
+                        if gap[0]>=second_gap:
+                            break
+                    gaps.insert(i, (second_gap, found, second))
+                
+                working_percentage = working_time / teacher.working_hours / 3 * 5
+
+                for i, t in enumerate(teachers):
+                    if t[2]>=working_percentage:
+                        break
+                print(f'inserting {teacher.name} ({working_percentage:.1f}%) at {i}')
+                teachers.insert(i, (
+                    teacher,
+                    working_time,
+                    working_percentage,
+                    gaps
+                ))
+                break
+
+        if len(duties_to_fill):
+            print(f'Nauczyciele nie mają okienek, pozostało {len(duties_to_fill)} dyżurów')        
+
+
 

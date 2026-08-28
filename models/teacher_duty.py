@@ -11,7 +11,7 @@ class TeacherDuty(Event):
     teacher_pinned = Column(Boolean, default=False)
     classroom_pinned = Column(Boolean, default=False)
 
-    def collision_text(self):
+    def collision_text(self, teacher_name):
         return f'{self.teacher.name if self.teacher else "---"} ma dyżur w {self.classroom.name if self.classroom else "---"} ({self.block.print_time()})'
     
     def get_name(self):

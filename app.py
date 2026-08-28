@@ -92,12 +92,15 @@ class MainWindow(QMainWindow):
         unlock_all_without_classroom.triggered.connect(self.unlock_all_lessons_without_classrooms)
         harden_blocks = QAction('Połącz &bloki', self)
         harden_blocks.triggered.connect(self.db.harden_blocks)
+        clear_duties = QAction('Wyczyść dyżury', self)
+        clear_duties.triggered.connect(self.db.clear_duties)
 
         plan_menu.addActions([
             lock_all_action,
             unlock_all_action,
             unlock_all_without_classroom,
-            harden_blocks
+            harden_blocks,
+            clear_duties
         ])
 
         coloring_menu = menu.addMenu('&Uzupełnianie')
