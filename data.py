@@ -1263,8 +1263,11 @@ class Data(QObject):
                             if student.sen:
                                 busy_sen_students += 1
                             busy_students += 1
-                    student_counts.append((total_students_in_class-busy_students, block))
-                    students_on_PW += total_students_in_class-busy_students
+                    students_on_PW_in_class = total_students_in_class - busy_students
+                    if students_on_PW_in_class <= 0:
+                        continue
+                    students_on_PW += students_on_PW_in_class
+                    student_counts.append((students_on_PW_in_class, block))
                     # total_sen_students -= busy_sen_students
                         
 
@@ -1289,13 +1292,12 @@ class Data(QObject):
                         classroom, capacity, _ = classrooms[max_cap_i]
                         classrooms[max_cap_i][1] -= s
                         print(f'{block.print_full_time()}: nie udało się umieścić dyżuru ({s}) - wepchnięto do {classroom.name} ({capacity})')
-
                     duty = TeacherDuty(block=block, classroom=classroom) # put at least one teacher in every class
                     self.session.add(duty)
                     assignment[block] = classroom
 
-                required_teachers = max(round(total_students/10), 2) - len(student_counts) #+ ss
-                if required_teachers > 0:
+                required_teachers = max(round(students_on_PW/10), 2) - len(student_counts) #+ ss
+                if required_teachers > 0 and len(student_counts) > 0:
                     matrix = []
                     for s_count, block in student_counts:
                         for i in range(required_teachers):
