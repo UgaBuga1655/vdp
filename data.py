@@ -1121,6 +1121,16 @@ class Data(QObject):
         self.session.add(duty)
         self.session.commit()
         return duty
+
+    def bundled_duties(self) -> List[TeacherDuty]:
+        bundle = []
+        for day in range(5):
+            bundle.append([])
+            for start in range(12*8):
+                bundle[day].append([])
+        for duty in self.session.query(TeacherDuty).all():
+            bundle[duty.block.day][duty.block.start].append(duty)
+        return bundle
     
     def update_duty_teacher(self, duty: TeacherDuty, teacher: Teacher):
         duty.teacher = teacher

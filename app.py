@@ -15,6 +15,7 @@ from functions import get_user_data_dir
 from settings_dialog import SettingsDialog
 from reports import RemainingLessonsWindow, TimeReport
 from datetime import datetime
+from duties_overview import DutiesOverview
 
 
 
@@ -92,29 +93,40 @@ class MainWindow(QMainWindow):
         unlock_all_without_classroom.triggered.connect(self.unlock_all_lessons_without_classrooms)
         harden_blocks = QAction('Połącz &bloki', self)
         harden_blocks.triggered.connect(self.db.harden_blocks)
-        clear_duties = QAction('Wyczyść dyżury', self)
-        clear_duties.triggered.connect(self.db.clear_duties)
 
         plan_menu.addActions([
             lock_all_action,
             unlock_all_action,
             unlock_all_without_classroom,
             harden_blocks,
+        ])
+
+        duties_menu = menu.addMenu('&Dyżury')
+
+
+        manage_duties = QAction('&Zarządzaj', self)
+        manage_duties.triggered.connect(self.manage_duties)
+        fill_duties = QAction('&Uzupełnij', self)
+        fill_duties.triggered.connect(self.db.fill_duties)
+        clear_duties = QAction('&Wyczyść dyżury', self)
+        clear_duties.triggered.connect(self.db.clear_duties)
+
+        duties_menu.addActions([
+            manage_duties,
+            fill_duties,
             clear_duties
         ])
+
 
         coloring_menu = menu.addMenu('&Uzupełnianie')
         color_lessons_action = QAction('&Uzupełnij plan', self)
         color_lessons_action.triggered.connect(self.color_lessons)
         settings_action = QAction('U&stawienia', self)
         settings_action.triggered.connect(self.coloring_settings)
-        duties = QAction('Uzupełnij &dyżury', self)
-        duties.triggered.connect(self.db.fill_duties)
 
         coloring_menu.addActions([
             color_lessons_action,
             settings_action,
-            duties
         ])
 
         reports_menu = menu.addMenu('&Raporty')
@@ -205,6 +217,12 @@ class MainWindow(QMainWindow):
             self.rem_les_win = RemainingLessonsWindow(self.db)
         self.rem_les_win.show()
         self.rem_les_win.load()
+
+    def manage_duties(self):
+        if not hasattr(self, 'man_duties_win') or self.man_duties_win is None:
+            self.man_duties_win = DutiesOverview(self)
+        self.man_duties_win.show()
+        self.man_duties_win.load()
 
     def time_report(self):
         if not hasattr(self, 'time_report_win') or self.time_report_win is None:
