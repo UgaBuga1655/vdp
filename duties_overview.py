@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QTreeWidget, QComboBox, QLabel, QHBoxLayout, QTreeWidgetItem, QGridLayout, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QTreeWidget, QComboBox, QLabel, QHBoxLayout, QTreeWidgetItem, QGridLayout, QVBoxLayout, QAbstractItemView
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from data import Data, LessonBlockDB, CustomBlock
@@ -51,6 +51,8 @@ class DutiesOverview(QWidget):
             column = QVBoxLayout()
             self.main_layout.addLayout(column)
             tree = QTreeWidget()
+            tree.setSelectionMode(QAbstractItemView.NoSelection)
+            tree.setFocusPolicy(Qt.NoFocus)
             tree.setHeaderLabel(day_name)
             column.addWidget(tree)
             for row in day:

@@ -1256,6 +1256,23 @@ class Data(QObject):
             total_students[class_] = len(class_.students)
             total_sen_students[class_] = self.session.query(Student).filter_by(class_=class_, sen=True).count()
 
+        time_at_school = {}
+        for student in self.session.query(Student).all():
+            times = [[12*8, 0] for day in range(5)]
+            for subject in student.subjects:
+                for lesson in subject.lessons:
+                    block = lesson.block
+                    if not block:
+                        continue
+                    if block.start < times[block.day][0]:
+                        times[block.day][0] = block.start
+                    if block.start + block.length > times[block.day][1]:
+                        times[block.day][1] = block.start + block.length
+            for time in times:
+                if time[0] == 12*8 and time[1] == 0:
+                    time[0], time[1] = time[1], time[0]
+            time_at_school[student] = times
+
         # iterate by time
         for day in range(5):
             for start in range(12*8):
@@ -1270,7 +1287,15 @@ class Data(QObject):
                     # find how much students need to be taken care of
                     busy_students = 0
                     busy_sen_students = 0
-                    total_students_in_class = len(block.parent().students)
+                    total_students_in_class = 0
+                    for student in block.parent().students:
+                        student_start, student_end = time_at_school[student][block.day]
+                        if lesson.block.start <= student_start:
+                            continue
+                        if lesson.block.start >=  student_end:
+                            continue
+                        total_students_in_class += 1
+
                     lessons = []
                     for other_block in self.overlapping_blocks(block, other_classes=False):
                         lessons.extend([ev for ev in other_block.events if isinstance(ev, Lesson)])
@@ -1365,7 +1390,7 @@ class Data(QObject):
             if len(events):
                 working_time += events[-1].block.length
             working_time *= 5
-            working_percentage = working_time / teacher.time_stats / 3 * 5
+            working_percentage = working_time / teacher.working_hours / 3 * 5
             teachers.append((teacher, working_time, working_percentage, gaps, events))
 
         teachers.sort(key = lambda t: t[2])

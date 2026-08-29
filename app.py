@@ -225,9 +225,11 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
 
     def manage_duties(self):
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         if not hasattr(self, 'man_duties_win') or self.man_duties_win is None:
             self.man_duties_win = DutiesOverview(self)
         self.man_duties_win.load()
+        QApplication.restoreOverrideCursor()
         self.man_duties_win.show()
 
     def time_report(self):
