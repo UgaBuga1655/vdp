@@ -14,8 +14,10 @@ class DutiesOverview(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.db: Data = parent.db
-        self.main_layout = QHBoxLayout()
-        self.setLayout(self.main_layout)
+        self.frame_layout = QHBoxLayout()
+        self.main_widget = QWidget()
+
+        self.setLayout(self.frame_layout)
 
     def update_duty_teacher(self, duty, combo: QComboBox):
         def func():
@@ -37,10 +39,11 @@ class DutiesOverview(QWidget):
         return class_name
 
     def load(self):
-        delete_layout(self.main_layout)
+        self.main_widget.deleteLater()
+        self.main_widget = QWidget()
+        self.frame_layout.addWidget(self.main_widget)
         self.main_layout = QHBoxLayout()
-        self.setLayout(self.main_layout)
-        
+        self.main_widget.setLayout(self.main_layout)
         bundle = self.db.bundled_duties()
         self.setWindowTitle('Zarządzanie dyżurami')
         total_sub_classes = len(self.db.all_subclasses())
@@ -78,7 +81,7 @@ class DutiesOverview(QWidget):
                         combobox = UnscrollabeComboBox()
                         combobox.addItem('---', None)
                         combobox.setFocusPolicy(Qt.NoFocus)
-                        collisions = self.db.potential_collisions_at_block(duty.block, exclude_self=True, get_teachers=True)
+                        collisions = self.db.potential_collisions_at_block(duty.block, exclude_self=False, get_teachers=True)
                         for it, teacher in enumerate(self.db.all_teachers()):
                             
                             combobox.addItem(teacher.name, teacher)

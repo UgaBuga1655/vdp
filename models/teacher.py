@@ -1,6 +1,7 @@
 from db_config import Base, teacher_subject
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship
+from itertools import pairwise
 
 class Teacher(Base):
     __tablename__ = 'teachers'
@@ -22,4 +23,25 @@ class Teacher(Base):
 
     def days_available(self):
         return sum([1 for av in [self.av1, self.av2, self.av3, self.av4, self.av5 ] if av])
+
+    def time_stats(self):
+        blocks = [d.block for d in self.duties]
+        duties_time = sum([b.length for b in blocks])
+        lesson_time = 0
+        for subject in self.subjects:
+            for lesson in subject.lessons:
+                if lesson.block is None:
+                    continue
+                blocks.append(lesson.block)
+                lesson_time += lesson.block.length
+        blocks.sort(key=lambda b: (b.day, b.start))
+        breaks = 0
+        for first, second in pairwise(blocks):
+            if first.day != second.day:
+                continue
+            if second.start - first.start - first.length == 1:
+                breaks += 1
+        total = lesson_time + duties_time + breaks
+        percetange = round(total / self.working_hours / 12 * 100, 1)
+        return total, lesson_time, duties_time, breaks, percetange
 

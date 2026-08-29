@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QGridLayout,\
 from PyQt5 import QtCore
 from data import Data, Teacher
 from sqlalchemy.exc import IntegrityError
+from functions import display_hour
 
 cell_style = 'border: 1px solid black;'
 
@@ -130,24 +131,26 @@ class TeachersWidget(QWidget):
         if not self.list.currentText():
             self.frame.hide()
 
-        right_column = QVBoxLayout()
-        container_layout.addLayout(right_column)
+        self.right_column = QVBoxLayout()
+        container_layout.addLayout(self.right_column)
 
         hours_row = QHBoxLayout()
         hours_row.addWidget(QLabel('Godziny pracy:'))
         self.hours_spin = QSpinBox()
-        self.hours_spin.valueChanged.connect(self.update_teacher_workong_hours)
+        self.hours_spin.valueChanged.connect(self.update_teacher_working_hours)
         hours_row.addWidget(self.hours_spin)
         hours_row.addStretch()
 
+        self.time_stats_widget = QWidget()
+        self.right_column.addWidget(self.time_stats_widget)
         # right_column.addWidget(QLabel('Przedmioty'))
 
         self.assign_duties = QCheckBox('Przydzielaj dyżury')
         self.assign_duties.toggled.connect(self.update_teacher_assign_duties)
-        right_column.addWidget(self.assign_duties)
+        self.right_column.addWidget(self.assign_duties)
 
-        right_column.addLayout(hours_row)
-        right_column.addStretch()
+        self.right_column.addLayout(hours_row)
+        self.right_column.addStretch()
 
         self.button_row = QDialogButtonBox()
         del_teacher_btn = self.button_row.addButton('Usuń nauczyciela', QDialogButtonBox.ButtonRole.ActionRole)
@@ -205,6 +208,7 @@ class TeachersWidget(QWidget):
         self.assign_duties.blockSignals(True)
         self.assign_duties.setChecked(teacher.assign_duties)
         self.assign_duties.blockSignals(False)
+        self.load_time_stats()
 
     def save_av(self):
         teacher = self.list.currentData()
@@ -217,11 +221,32 @@ class TeachersWidget(QWidget):
                 av[col] |= val << row
         self.db.update_teacher_av(teacher, av)
 
-    def update_teacher_workong_hours(self, hours):
+    def update_teacher_working_hours(self, hours):
         self.db.update_teacher_working_hours(self.list.currentData(), hours)
+        self.load_time_stats()
 
     def update_teacher_assign_duties(self, assign):
         self.db.update_teacher_assign_duties(self.list.currentData(), assign)
+
+    def load_time_stats(self):
+        teacher = self.list.currentData()
+        if not teacher:
+            return
+        self.time_stats_widget.deleteLater()
+        self.time_stats_widget = QWidget()
+        self.right_column.insertWidget(3, self.time_stats_widget)
+        grid = QGridLayout()
+        self.time_stats_widget.setLayout(grid)
+        total, les_t, dut_t, br_t, perc = teacher.time_stats()
+        grid.addWidget(QLabel('Łączny czas pracy:'), 0, 0)
+        grid.addWidget(QLabel(f'{display_hour(total, False)} ({perc}%)'), 0, 1)
+        grid.addWidget(QLabel('Lekcje:'), 1, 0)
+        grid.addWidget(QLabel(display_hour(les_t, False)), 1, 1)
+        grid.addWidget(QLabel('Dyżury'), 2, 0)
+        grid.addWidget(QLabel(display_hour(dut_t, False)), 2, 1)
+        grid.addWidget(QLabel('Przerwy'), 3, 0)
+        grid.addWidget(QLabel(display_hour(br_t, False)))
+
 
 
     def load_data(self, db):

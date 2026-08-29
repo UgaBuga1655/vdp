@@ -143,7 +143,8 @@ class BlockText(QGraphicsTextItem):
                     if duty.classroom:
                         rooms.add(duty.classroom.name)
                 rooms = list(rooms)
-                lines.append(f"{block.text} ({'/'.join(rooms)})")
+                main_teacher = duties[0].teacher.name if duties[0].teacher else '---'
+                lines.append(f"{main_teacher} ({'/'.join(rooms)})")
 
             self.setHtml('<br>'.join(lines))
             self.shrink()
@@ -153,10 +154,17 @@ class BlockText(QGraphicsTextItem):
             if block.text:
                 lines.append(block.text)
             lines.append(time)
-            classrooms = [l.classroom.name if l.classroom else '_'for l in block.events if isinstance(l, TeacherDuty)]
-            classrooms = '/'.join(list(set(classrooms)))
-            if classrooms:
-                lines.append(classrooms)
+            if len(duties):
+                rooms = set()
+                for duty in duties:
+                    if duty.classroom:
+                        rooms.add(duty.classroom.name)
+                rooms = list(rooms)
+                teachers = [d.teacher for d in duties if d.teacher]
+                main_teacher = teachers[0].name if len(teachers) else '---'
+                lines.append(f"{main_teacher} ({'/'.join(rooms)})")
+            # if classrooms:
+            #     lines.append(classrooms)
             self.setHtml('<br>'.join(lines))
             self.shrink()
         

@@ -1,6 +1,6 @@
 import sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QAction, QMenu
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QAction, QMenu, QMessageBox
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon
 
@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
         manage_duties = QAction('&Zarządzaj', self)
         manage_duties.triggered.connect(self.manage_duties)
         fill_duties = QAction('&Uzupełnij', self)
-        fill_duties.triggered.connect(self.db.fill_duties)
+        fill_duties.triggered.connect(self.fill_duties)
         clear_duties = QAction('&Wyczyść dyżury', self)
         clear_duties.triggered.connect(self.db.clear_duties)
 
@@ -218,11 +218,17 @@ class MainWindow(QMainWindow):
         self.rem_les_win.show()
         self.rem_les_win.load()
 
+    def fill_duties(self):
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        self.db.fill_duties()
+        QApplication.restoreOverrideCursor()
+        QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
+
     def manage_duties(self):
         if not hasattr(self, 'man_duties_win') or self.man_duties_win is None:
             self.man_duties_win = DutiesOverview(self)
-        self.man_duties_win.show()
         self.man_duties_win.load()
+        self.man_duties_win.show()
 
     def time_report(self):
         if not hasattr(self, 'time_report_win') or self.time_report_win is None:

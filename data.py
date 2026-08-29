@@ -1005,7 +1005,9 @@ class Data(QObject):
         if get_teachers:
             for teacher in self.all_teachers():
                 if not self.is_teacher_available(teacher, block):
-                    collisions[teacher].append(f'{teacher.name} nie jest dostępny w tych godzinach')
+                    collisions[teacher].append(f'{teacher.name} nie jest dostępny(a) w tych godzinach')
+                if (teacher.time_stats()[0] + block.length) / 12 / teacher.working_hours  > 1:
+                    collisions[teacher].append(f'{teacher.name} miał(a)by za dużo godzin pracy.')
 
         return collisions
         
@@ -1044,7 +1046,7 @@ class Data(QObject):
             for teacher in teachers:
                 if not self.is_teacher_available(teacher, block):
                     collisions[None].append((
-                        f'{event.get_name()}: {teacher.name} nie jest dostępny w tych godzinach',
+                        f'{event.get_name()}: {teacher.name} nie jest dostępny(a) w tych godzinach',
                         ''
                     ))
 
@@ -1363,7 +1365,7 @@ class Data(QObject):
             if len(events):
                 working_time += events[-1].block.length
             working_time *= 5
-            working_percentage = working_time / teacher.working_hours / 3 * 5
+            working_percentage = working_time / teacher.time_stats / 3 * 5
             teachers.append((teacher, working_time, working_percentage, gaps, events))
 
         teachers.sort(key = lambda t: t[2])
