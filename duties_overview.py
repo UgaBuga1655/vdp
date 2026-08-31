@@ -67,6 +67,7 @@ class DutiesOverview(QWidget):
                 lens = list(lens.items())
                 lens.sort()
                 for _, duties in lens:
+                    teachers = [t for t in self.db.all_teachers() if self.db.is_teacher_available(t, duties[0].block)]
                     start = duties[0].block.start
                     end = start + duties[0].block.length
                     time = f'{display_hour(start)} - {display_hour(end)}'
@@ -84,8 +85,7 @@ class DutiesOverview(QWidget):
                         combobox.addItem('---', None)
                         combobox.setFocusPolicy(Qt.NoFocus)
                         collisions = self.db.potential_collisions_at_block(duty.block, exclude_self=False, get_teachers=True)
-                        for it, teacher in enumerate(self.db.all_teachers()):
-                            
+                        for it, teacher in enumerate(teachers):
                             combobox.addItem(teacher.name, teacher)
                             collision = '\n'.join(collisions[teacher])
                             if not collision:

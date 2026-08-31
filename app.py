@@ -220,9 +220,9 @@ class MainWindow(QMainWindow):
 
     def fill_duties(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        self.db.fill_duties()
+        msg = self.db.fill_duties()
         QApplication.restoreOverrideCursor()
-        QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
+        QMessageBox.information(self, 'Gotowe', msg)
 
     def manage_duties(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)

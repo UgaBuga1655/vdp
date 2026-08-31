@@ -24,6 +24,13 @@ class Teacher(Base):
     def days_available(self):
         return sum([1 for av in [self.av1, self.av2, self.av3, self.av4, self.av5 ] if av])
 
+    @property
+    def lessons(self):
+        lessons = []
+        for subject in self.subjects:
+            lessons.extend(subject.lessons)
+        return lessons
+
     def time_stats(self):
         blocks = [d.block for d in self.duties]
         duties_time = sum([b.length for b in blocks])

@@ -1404,36 +1404,13 @@ class Data(QObject):
             if not len(teachers):
                 print('no teachers left')
                 print(len(teachers_with_no_gaps))
+                for teacher in teachers_with_no_gaps:
+                    print(f'{teacher[0].name}: {teacher[2]} {len(teacher[-1])}')
                 break
             # take the least busy teacher
             teacher, working_time, working_percentage, gaps, events = teachers.pop(0)
             print(f'próbuję znaleźć dyżur dla: {teacher.name} ({working_percentage:.01f}%)')
-            if not len(gaps):
-                events.sort(key = lambda e: (e.block.day, e.block.start))
-                start_end = [[None, None] for _ in range(5)]
-                first = events[0]
-                start_end[first.block.day][0] = first
-                for first, second in pairwise(events):
-                    if first.block.day != second.block.day:
-                        start_end[first.block.day][1] = first
-                        start_end[second.block.day][0] = second
-                last = events[-1]
-                start_end[last.block.day][1] = last
-                busy_hours = []
-                for day in range(5):
-                    start, end = start_end[day]
-                    if start is None:
-                        continue
-                    busy_hours.append((day, start, end))
-                busy_hours.sort(key = lambda x: x[2].block.start + x[2].block.start - x[1].block.start)
-                teachers_with_no_gaps.append((
-                    teacher,
-                    working_time,
-                    working_percentage,
-                    events,
-                    busy_hours
-                ))
-                continue
+            
             # iterate until found a duty or no more gaps that can be filled 
             time_left = (teacher.working_hours * 60 - working_time)//5
             while len(gaps):
@@ -1494,9 +1471,37 @@ class Data(QObject):
                 
                 working_percentage = working_time / teacher.working_hours / 3 * 5
 
-                teachers.append((teacher,working_time,working_percentage, gaps, events))
-                teachers.sort(key=lambda x: x[2])
+                if len(gaps):
+                    teachers.append((teacher,working_time,working_percentage, gaps, events))
+                    teachers.sort(key=lambda x: x[2])
                 break
+
+            if not len(gaps):
+                events.sort(key = lambda e: (e.block.day, e.block.start))
+                start_end = [[None, None] for _ in range(5)]
+                first = events[0]
+                start_end[first.block.day][0] = first
+                for first, second in pairwise(events):
+                    if first.block.day != second.block.day:
+                        start_end[first.block.day][1] = first
+                        start_end[second.block.day][0] = second
+                last = events[-1]
+                start_end[last.block.day][1] = last
+                busy_hours = []
+                for day in range(5):
+                    start, end = start_end[day]
+                    if start is None:
+                        continue
+                    busy_hours.append((day, start, end))
+                busy_hours.sort(key = lambda x: x[2].block.start + x[2].block.start - x[1].block.start)
+                teachers_with_no_gaps.append((
+                    teacher,
+                    working_time,
+                    working_percentage,
+                    events,
+                    busy_hours
+                ))
+                continue
 
         if len(duties_to_fill):
             print(f'Nauczyciele nie mają okienek, pozostało {len(duties_to_fill)} dyżurów')  
@@ -1519,6 +1524,28 @@ class Data(QObject):
                 duties_after = list(filter(lambda d: self.is_teacher_available(teacher, d.block), duties_after))
 
                 if not len(duties_before) + len(duties_after):
+                    # make a gap if working over 5 hours
+                    t = end.block.start + end.block.length - start.block.start
+                    print(f'{day}: {teacher.name} pracuje {display_hour(t, False)}')
+                    if t <= 12*5:
+                        continue
+                    min_dist = 12*8
+                    mid_day = (end.block.start+end.block.length+start.block.start)//2
+                    duty_to_remove = None
+                    day_real_working_time = sum([lesson.block.length for lesson in teacher.lessons if lesson.block and lesson.block.day == day])
+                    for duty in teacher.duties:
+                        if duty.block.day != day:
+                            continue
+                        dist = abs(duty.block.start-mid_day)
+                        day_real_working_time += duty.block.length
+                        if dist < min_dist:
+                            duty_to_remove = duty
+                            min_dist = dist
+                    if duty_to_remove and day_real_working_time > 12*4:
+                        print(f'zostawiam okienko dla {teacher.name} - {duty.block.print_full_time()} {day_real_working_time}')
+                        self.update_duty_teacher(duty, None)
+                        duties_to_fill.append(duty)
+                        working_time = teacher.time_stats()[0]
                     continue
 
                 found = None
@@ -1563,6 +1590,7 @@ class Data(QObject):
                 duties_to_fill.remove(found)
                 self.update_duty_teacher(found, teacher)
 
+
                 busy_hours.append(hours)
                 busy_hours.sort(key = lambda x: x[2].block.start + x[2].block.start - x[1].block.start)
                 teachers_with_no_gaps.append((teacher, working_time, working_percentage, events, busy_hours))
@@ -1572,3 +1600,4 @@ class Data(QObject):
         if len(duties_to_fill):
             d_count = self.session.query(TeacherDuty).count()
             print(f'Dyżury doklejone do dni pracy nauczycieli, pozostało {len(duties_to_fill)} z {d_count} dyżurów')  
+        return f'Pozostało do wypełnienia {len(duties_to_fill)} z {d_count} dyżurów.'
