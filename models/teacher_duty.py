@@ -10,6 +10,8 @@ class TeacherDuty(Event):
     id = Column(ForeignKey("events.id"), primary_key=True)
     teacher_pinned = Column(Boolean, default=False)
     classroom_pinned = Column(Boolean, default=False)
+    student_id = Column(Integer, ForeignKey('students.id'), default=None)
+    student = relationship('Student', back_populates='duties')
 
     def collision_text(self, teacher_name=None):
         if teacher_name is None:

@@ -13,8 +13,12 @@ class EditCustomBlockDialog(QDialog):
         self.db = db
         self.classrooms = self.db.all_classrooms()
         self.classroom_collisions = self.db.potential_collisions_at_block(custom_block, exclude_self=True, get_classrooms=True, get_teachers=True)
-      
- 
+
+        self.sen_students = []
+        for subclass in self.custom_block.subclasses:
+            self.sen_students.extend([s for s in subclass.students if s.sen])
+        self.sen_students.sort(key=lambda s: (s.class_.order, s.subclass.full_name(), s.name))
+
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
         
@@ -109,13 +113,25 @@ class EditCustomBlockDialog(QDialog):
         if duty.classroom:
             classroom_select.setCurrentText(duty.classroom.name)
 
+        student_select = QComboBox()
+        student_select.addItem('---', None)
+        for student in self.sen_students:
+            student_select.addItem(f'({student.subclass.full_name()}) {student.name}', student)
+        self.duties.addWidget(student_select, row, 4)
+        if duty.student:
+            student_select.setCurrentText(student.name)
+        student_select.currentIndexChanged.connect(
+            self.update_duty_student(duty, student_select)
+        )
+
+
         
         classroom_pinned = QPushButton('📌')
         classroom_pinned.setFixedSize(20,20)
         classroom_pinned.setCheckable(True)
         classroom_pinned.setChecked(duty.classroom_pinned)
         classroom_pinned.toggled.connect(self.update_duty_classroom_pinned(duty))
-        self.duties.addWidget(classroom_pinned, row, 4)
+        self.duties.addWidget(classroom_pinned, row, 5)
 
         del_btn.clicked.connect(self.delete_duty(duty,
         [teacher_select, classroom_select, del_btn, teacher_pinned, classroom_pinned]))
@@ -145,6 +161,11 @@ class EditCustomBlockDialog(QDialog):
         return func
 
  
+    def update_duty_student(self, duty, select):
+        def func():
+            self.db.update_duty_student(duty, select.currentData())
+        return func
+
     
     def update_text(self, text):
         self.db.update_custom_block_text(self.custom_block, text)

@@ -16,6 +16,7 @@ class Student(Base):
     subjects = relationship("Subject", secondary=student_subject, back_populates="students")
     class_ = relationship('Class', back_populates='students')
     subclass = relationship('Subclass', back_populates='students')
+    duties = relationship("TeacherDuty", back_populates="student")
     sen = Column(Boolean, default=False)
 
     def target_5_min_slots_in_school(self):

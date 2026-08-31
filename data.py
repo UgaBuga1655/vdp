@@ -1143,6 +1143,11 @@ class Data(QObject):
         self.session.commit()
         self.update_block.emit(duty.block)
 
+    def update_duty_student(self, duty: TeacherDuty, student: Student):
+        duty.student = student
+        self.session.commit()
+        self.update_block.emit(duty.block)
+
     def update_duty_teacher_pinned(self, duty: TeacherDuty, pinned: bool):
         duty.teacher_pinned = pinned
         self.session.commit()

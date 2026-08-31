@@ -57,9 +57,13 @@ class EditLessonBlockDialog(QDialog):
 
         buttonBox.setStandardButtons(QDialogButtonBox.Ok)
         buttonBox.accepted.connect(self.accept)
+
+        self.sen_students = [s for s in self.block.parent().students if s.sen]
+        self.sen_students.sort(key=lambda s: s.name)
         self.load_lessons()
         # buttonBox.rejected.connect(self.reject)
         self.move(QCursor.pos() + QPoint(10,10))
+
     
     def update_lesson_classroom(self, lesson):
         def func():
@@ -209,13 +213,24 @@ class EditLessonBlockDialog(QDialog):
         if duty.classroom:
             classroom_select.setCurrentText(duty.classroom.name)
 
+        student_select = QComboBox()
+        student_select.addItem('---', None)
+        for student in self.sen_students:
+            student_select.addItem(student.name, student)
+        self.duties.addWidget(student_select, row, 4)
+        if duty.student:
+            student_select.setCurrentText(student.name)
+        student_select.currentIndexChanged.connect(
+            self.update_duty_student(duty, student_select)
+        )
+
         
         classroom_pinned = QPushButton('📌')
         classroom_pinned.setFixedSize(20,20)
         classroom_pinned.setCheckable(True)
         classroom_pinned.setChecked(duty.classroom_pinned)
         classroom_pinned.toggled.connect(self.update_duty_classroom_pinned(duty))
-        self.duties.addWidget(classroom_pinned, row, 4)
+        self.duties.addWidget(classroom_pinned, row, 5)
 
         del_btn.clicked.connect(self.delete_duty(duty,
         [teacher_select, classroom_select, del_btn, teacher_pinned, classroom_pinned]))
@@ -240,6 +255,11 @@ class EditLessonBlockDialog(QDialog):
     def update_duty_classroom_pinned(self, duty):
         def func(checked):
             self.db.update_duty_classroom_pinned(duty, checked)
+        return func
+
+    def update_duty_student(self, duty, select):
+        def func():
+            self.db.update_duty_student(duty, select.currentData())
         return func
 
     def add_duty(self):
