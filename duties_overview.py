@@ -39,6 +39,30 @@ class DutiesOverview(QWidget):
         names.sort()
         return '/'.join(names)
 
+    def load_combobox(self, comboboxes:UnscrollabeComboBox, duties, teachers):
+        def func():
+            for combobox, duty in zip(comboboxes, duties):
+                combobox.blockSignals(True)
+                combobox.clear()
+                combobox.addItem('---', None)
+                combobox.setFocusPolicy(Qt.NoFocus)
+                collisions = self.db.potential_collisions_at_block(duty.block, exclude_self=False, get_teachers=True)
+                for it, teacher in enumerate(teachers):
+                    combobox.addItem(teacher.name, teacher)
+                    collision = '\n'.join(collisions[teacher])
+                    if not collision:
+                        continue
+                    combobox.setItemData(it+1, collision, Qt.ToolTipRole)
+                    if not self.db.settings().allow_conflicts:
+                        combobox.setItemData(it+1, 0, Qt.UserRole - 1)
+                    else:
+                        combobox.setItemData(it+1, QColor('red'), Qt.BackgroundRole)
+
+                if duty.teacher:
+                    combobox.setCurrentText(duty.teacher.name)
+                combobox.blockSignals(False)
+        return func
+
 
     def load(self):
         self.main_widget.deleteLater()
@@ -80,29 +104,19 @@ class DutiesOverview(QWidget):
                     grid = QGridLayout()
                     widget.setLayout(grid)
                     grid.addWidget(QLabel(f'<b>{time}</b>'), 0, 0, 1, 2)
+                    comboboxes = []
                     for i, duty in enumerate(duties):
                         class_name = self.classes_name(duty, total_sub_classes)
 
                         grid.addWidget(QLabel(f'{duty.classroom.name}, {class_name}: '), i+1, 0)
                         combobox = UnscrollabeComboBox()
-                        combobox.addItem('---', None)
-                        combobox.setFocusPolicy(Qt.NoFocus)
-                        collisions = self.db.potential_collisions_at_block(duty.block, exclude_self=False, get_teachers=True)
-                        for it, teacher in enumerate(teachers):
-                            combobox.addItem(teacher.name, teacher)
-                            collision = '\n'.join(collisions[teacher])
-                            if not collision:
-                                continue
-                            combobox.setItemData(it+1, collision, Qt.ToolTipRole)
-                            if not self.db.settings().allow_conflicts:
-                                combobox.setItemData(it+1, 0, Qt.UserRole - 1)
-                            else:
-                                combobox.setItemData(it+1, QColor('red'), Qt.BackgroundRole)
-
-                        if duty.teacher:
-                            combobox.setCurrentText(duty.teacher.name)
+                        comboboxes.append(combobox)
                         combobox.currentIndexChanged.connect(self.update_duty_teacher(duty, combobox))
                         grid.addWidget(combobox, i+1, 2)
+                    load_func = self.load_combobox(comboboxes, duties, teachers)
+                    load_func()
+                    for combobox in comboboxes:
+                        combobox.currentIndexChanged.connect(load_func)
                     
                     tree.setItemWidget(row_item, 0, widget)
 

@@ -28,7 +28,10 @@ class SubjectLabel(VerticalLabel):
         name = subject.get_name(1,0,0) if subject else ''
         super().__init__(name)
         if len(subject.teachers):
-            self.setToolTip('\n'.join([t.name for t in subject.teachers]))
+            teachers = [t.name for t in subject.teachers]
+            teachers.append(f'({len(subject.students)})')
+
+            self.setToolTip('\n'.join(teachers))
         self.subject = subject
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenuEvent)
