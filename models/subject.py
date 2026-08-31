@@ -22,6 +22,7 @@ class Subject(Base):
     target_block_length = Column(Integer, default=1)
     students = relationship("Student", secondary=student_subject, back_populates="subjects")
     lessons = relationship("Lesson", back_populates="subject")
+    private = Column(Boolean, default=False)
 
     for1 = Column(Integer, default=0)
     for2 = Column(Integer, default=0)

@@ -104,8 +104,14 @@ class SubjectsWindow(QWidget):
         self.display_r_checkbox = QCheckBox('R')
         self.display_r_checkbox.clicked.connect(self.update_subject_is_basic)
         display_options_row.addWidget(self.display_r_checkbox)
-        display_options_row.addStretch()
 
+
+        # private
+        self.private = QCheckBox('Prywatna')
+        self.private.setToolTip('Przy eksporcie będzie widoczny tylko w osobistym planie ucznia.')
+        self.private.toggled.connect(self.set_is_private)
+        display_options_row.addWidget(self.private)
+        display_options_row.addStretch()
 
 
         # subject info row
@@ -227,6 +233,10 @@ class SubjectsWindow(QWidget):
         self.display_r_checkbox.setChecked(not subject.basic)
         self.display_r_checkbox.setCheckable(subject.class_ is not None)
         self.display_r_checkbox.blockSignals(False)
+
+        self.private.blockSignals(True)
+        self.private.setChecked(subject.private)
+        self.private.blockSignals(False)
         
         # lessons
         for n in range(self.lessons.count()):
@@ -318,5 +328,8 @@ class SubjectsWindow(QWidget):
 
     def set_is_a_project(self, project: bool):
         self.db.update_subject_is_project(self.subject, project)
+
+    def set_is_private(self, private: bool):
+        self.db.update_subject_is_private(self.subject, private)
 
 

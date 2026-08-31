@@ -406,6 +406,10 @@ class Data(QObject):
                 self.update_block.emit(lesson.block)
         self.session.commit()
 
+    def update_subject_is_private(self, subject: Subject, private: bool) -> None:
+        subject.private = private
+        self.session.commit()
+
     def update_subject_is_project(self, subject: Subject, project: bool) -> None:
         subject.is_a_project = project
         self.session.commit()
@@ -1367,8 +1371,8 @@ class Data(QObject):
             pw_blocks = list(set(pw_blocks))
             # find blocks where the most duties are available
             pw_blocks.sort(key=lambda x: len([d for d in x.duties if d.student is None]), reverse=True)
-            if len(pw_blocks) > 8:
-                pw_blocks = pw_blocks[:8]
+            if len(pw_blocks) > 16:
+                pw_blocks = pw_blocks[:16]
             for block in pw_blocks:
                 for duty in block.duties:
                     if duty.student:

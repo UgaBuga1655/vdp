@@ -160,7 +160,7 @@ class PlanWidget(QWidget):
             os.makedirs(f'{parent_folder}/{subclass.full_name()}', exist_ok=True)
             def filter_func(l):
                 return not hasattr(l, 'subject') \
-                    or l.subject.parent() in [subclass, subclass.class_]
+                    or (l.subject.parent() in [subclass, subclass.class_] and not l.subject.private)
             self.hidden_view.filter_func = filter_func
             self.hidden_view.set_classes([subclass])
             self.hidden_view.draw()
