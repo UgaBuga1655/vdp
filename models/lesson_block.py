@@ -21,3 +21,7 @@ class LessonBlockDB(Block):
         
     def print_full_time(self):
         return self.parent().full_name() + ' ' + super().print_full_time()
+
+    @property
+    def sen_students(self):
+        return [s for s in self.parent().students if s.sen]

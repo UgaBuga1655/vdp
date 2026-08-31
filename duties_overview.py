@@ -26,17 +26,19 @@ class DutiesOverview(QWidget):
         return func
 
     def classes_name(self, duty, total_sub_classes):
-        if isinstance(duty.block, LessonBlockDB):
-            class_name = duty.block.parent().full_name()
-        else:
-            if len(duty.block.subclasses) == total_sub_classes:
-                class_name = 'Wszyscy'
-            else:
-                names = [cl.full_name() for cl in duty.block.subclasses]
-                names.sort()
-                class_name = '/'.join(names)
+        if duty.student:
+            return f'{duty.student.name} ({duty.student.subclass.full_name()})'
 
-        return class_name
+        if isinstance(duty.block, LessonBlockDB):
+            return duty.block.parent().full_name()
+        
+        if len(duty.block.subclasses) == total_sub_classes:
+            return 'Wszyscy'
+        
+        names = [cl.full_name() for cl in duty.block.subclasses]
+        names.sort()
+        return '/'.join(names)
+
 
     def load(self):
         self.main_widget.deleteLater()
@@ -80,6 +82,7 @@ class DutiesOverview(QWidget):
                     grid.addWidget(QLabel(f'<b>{time}</b>'), 0, 0, 1, 2)
                     for i, duty in enumerate(duties):
                         class_name = self.classes_name(duty, total_sub_classes)
+
                         grid.addWidget(QLabel(f'{duty.classroom.name}, {class_name}: '), i+1, 0)
                         combobox = UnscrollabeComboBox()
                         combobox.addItem('---', None)

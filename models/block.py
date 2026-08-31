@@ -28,5 +28,8 @@ class Block(Base):
     
     def print_full_time(self):
         return f'{days[self.day]} {self.print_time()}'
-    
+
+    @property
+    def duties(self):
+        return [ev for ev in self.events if ev.type == 'teacher_duty']
    

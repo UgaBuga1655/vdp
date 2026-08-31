@@ -1278,6 +1278,8 @@ class Data(QObject):
                     time[0], time[1] = time[1], time[0]
             time_at_school[student] = times
 
+        sen_students_PW_blocks = {s: [] for s in self.session.query(Student).filter_by(sen=True)}
+
         # iterate by time
         for day in range(5):
             for start in range(12*8):
@@ -1287,6 +1289,7 @@ class Data(QObject):
                     continue
                 student_counts = []
                 students_on_PW = 0
+                n_of_av_teachers = len([t for t in self.session.query(Teacher) if self.is_teacher_available(t, blocks[0])])
                 for block in blocks:
                     # total_sen_students = self.session.query(Student).filter_by(sen=True).count()
                     # find how much students need to be taken care of
@@ -1302,18 +1305,24 @@ class Data(QObject):
                         total_students_in_class += 1
 
                     lessons = []
+                    sen_students = block.sen_students
                     for other_block in self.overlapping_blocks(block, other_classes=False):
                         lessons.extend([ev for ev in other_block.events if isinstance(ev, Lesson)])
                     for lesson in lessons:
                         for student in lesson.students:
                             if student.sen:
                                 busy_sen_students += 1
+                                if student in sen_students:
+                                    sen_students.remove(student)
                             busy_students += 1
                     students_on_PW_in_class = total_students_in_class - busy_students
                     if students_on_PW_in_class <= 0:
                         continue
                     students_on_PW += students_on_PW_in_class
-                    student_counts.append((students_on_PW_in_class, block))
+                    if students_on_PW_in_class:
+                        student_counts.append((students_on_PW_in_class, block))
+                    for sen_student in sen_students:
+                        sen_students_PW_blocks[sen_student].append(block)
                     # total_sen_students -= busy_sen_students
                         
 
@@ -1353,6 +1362,19 @@ class Data(QObject):
                         _, block = matrix.pop(0)
                         duty = TeacherDuty(block=block, classroom=assignment[block])
                         self.session.add(duty)
+
+        for student, pw_blocks in sen_students_PW_blocks.items():
+            pw_blocks = list(set(pw_blocks))
+            # find blocks where the most duties are available
+            pw_blocks.sort(key=lambda x: len([d for d in x.duties if d.student is None]), reverse=True)
+            if len(pw_blocks) > 8:
+                pw_blocks = pw_blocks[:8]
+            for block in pw_blocks:
+                for duty in block.duties:
+                    if duty.student:
+                        continue
+                    duty.student = student
+                    break
                 # print()
         self.session.commit()
 
@@ -1361,6 +1383,7 @@ class Data(QObject):
             self.session.delete(duty)
         for duty in self.session.query(TeacherDuty).filter_by(teacher_pinned=False):
             self.update_duty_teacher(duty, None)
+            self.update_duty_student(duty, None)
                          
     def fill_duties(self):
         self.clear_duties()
