@@ -1287,14 +1287,14 @@ class Data(QObject):
                     # find how much students need to be taken care of
                     busy_students = 0
                     busy_sen_students = 0
-                    total_students_in_class = len(block.parent().students)
-                    # for student in block.parent().students:
-                    #     student_start, student_end = time_at_school[student][block.day]
-                    #     if lesson.block.start <= student_start:
-                    #         continue
-                    #     if lesson.block.start >=  student_end:
-                    #         continue
-                    #     total_students_in_class += 1
+                    total_students_in_class = 0 #len(block.parent().students)
+                    for student in block.parent().students:
+                        student_start, student_end = time_at_school[student][block.day]
+                        # if lesson.block.start <= student_start:
+                        #     continue
+                        if lesson.block.start >=  student_end:
+                            continue
+                        total_students_in_class += 1
 
                     lessons = []
                     for other_block in self.overlapping_blocks(block, other_classes=False):
