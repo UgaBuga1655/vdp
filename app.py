@@ -13,7 +13,7 @@ from data import Data
 from tabs import Tabs
 from functions import get_user_data_dir
 from settings_dialog import SettingsDialog
-from reports import RemainingLessonsWindow, TimeReport
+from reports import RemainingLessonsWindow, TimeReport, TeacherReport
 from datetime import datetime
 from duties_overview import DutiesOverview
 
@@ -136,11 +136,14 @@ class MainWindow(QMainWindow):
         time_rep_action.triggered.connect(self.time_report)
         params_plot_action = QAction('&Parametry uzupełniania', self)
         params_plot_action.triggered.connect(self.tabs.plan.show_params_plot)
+        teach_rep_action = QAction('&Nauczyciele', self)
+        teach_rep_action.triggered.connect(self.teacher_report)
 
         reports_menu.addActions([
             remaining_action,
             time_rep_action,
-            params_plot_action
+            params_plot_action,
+            teach_rep_action
         ])
 
         self.setCentralWidget(self.tabs)
@@ -217,6 +220,12 @@ class MainWindow(QMainWindow):
             self.rem_les_win = RemainingLessonsWindow(self.db)
         self.rem_les_win.show()
         self.rem_les_win.load()
+
+    def teacher_report(self):
+        if not hasattr(self, 'teach_rep') or self.teach_rep is None:
+            self.teach_rep = TeacherReport(self.db)
+        self.teach_rep.show()
+        self.teach_rep.load()
 
     def fill_duties(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)

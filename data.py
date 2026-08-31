@@ -1365,17 +1365,15 @@ class Data(QObject):
         teachers = []
         for teacher in self.session.query(Teacher).filter(Teacher.assign_duties==True).all():
             working_time = 0
-            events = self.session.query(Lesson).filter(Lesson.block != None).join(Subject) \
-                .join(teacher_subject).join(Teacher).filter(Teacher.id==teacher.id).all()
-            duties = self.session.query(TeacherDuty).filter(TeacherDuty.block != None).join(Teacher).filter(Teacher.id==teacher.id).all()
-            events.extend(duties)
+            events = teacher.lessons
+            events.extend(teacher.duties)
             events.sort(key=lambda ev: (ev.block.day, ev.block.start))
             # find gaps and working time
             gaps = []
             for first, second in pairwise(events):
+                working_time += first.block.length
                 if first.block.day != second.block.day:
                     continue
-                working_time += first.block.length
                 # krótka przerwa
                 gap = second.block.start - first.block.start - first.block.length
                 if gap == 1:
@@ -1389,13 +1387,12 @@ class Data(QObject):
                 gaps.sort(key = lambda g: g[0])
             if len(events):
                 working_time += events[-1].block.length
-            working_time *= 5
-            working_percentage = working_time / teacher.working_hours / 3 * 5
+            working_percentage = working_time / teacher.working_hours / 12 * 100
             teachers.append((teacher, working_time, working_percentage, gaps, events))
 
         teachers.sort(key = lambda t: t[2])
         for teacher, working_time, working_percentage, _, _ in teachers:
-            print(f'{teacher.name} pracuje {working_time//60}:{working_time%60:02d}, czyli {round(working_percentage,1)}% ze swoich {teacher.working_hours} godzin.')
+            print(f'{teacher.name} pracuje {display_hour(working_time, as_absolute=False)}, czyli {round(working_percentage,1)}% ze swoich {teacher.working_hours} godzin.')
 
         duties_to_fill = self.session.query(TeacherDuty).filter(TeacherDuty.teacher_id.is_(None)).all()
         teachers_with_no_gaps = []
@@ -1412,7 +1409,7 @@ class Data(QObject):
             print(f'próbuję znaleźć dyżur dla: {teacher.name} ({working_percentage:.01f}%)')
             
             # iterate until found a duty or no more gaps that can be filled 
-            time_left = (teacher.working_hours * 60 - working_time)//5
+            time_left = (teacher.working_hours * 60 - working_time*5)//5
             while len(gaps):
                 duration, first, second = gaps.pop(0)
                 # print(f'duration: {duration} {first.block.print_full_time()} {second.block.print_full_time()}')
@@ -1442,15 +1439,15 @@ class Data(QObject):
                     found = duties_before[0]
 
                 
-                working_time += found.block.length * 5
+                working_time += found.block.length
                 first_gap = found.block.start - first.block.start - first.block.length
                 if first_gap == 1:
-                    working_time += 5
+                    working_time += 1
                 second_gap = second.block.start - found.block.start - found.block.length
                 if second_gap == 1:
-                    working_time += 5
+                    working_time += 1
 
-                if working_time >= teacher.working_hours*60:
+                if working_time * 5 >= teacher.working_hours*60:
                     print(f'{teacher.name} nie może wziąć więcej godzin')
                     break
 
@@ -1469,7 +1466,7 @@ class Data(QObject):
 
                 gaps.sort(key=lambda g: g[0])
                 
-                working_percentage = working_time / teacher.working_hours / 3 * 5
+                working_percentage = working_time / teacher.working_hours / 12 * 100
 
                 if len(gaps):
                     teachers.append((teacher,working_time,working_percentage, gaps, events))
@@ -1494,13 +1491,15 @@ class Data(QObject):
                         continue
                     busy_hours.append((day, start, end))
                 busy_hours.sort(key = lambda x: x[2].block.start + x[2].block.start - x[1].block.start)
-                teachers_with_no_gaps.append((
-                    teacher,
-                    working_time,
-                    working_percentage,
-                    events,
-                    busy_hours
-                ))
+                working_time, lesson_time, duties_time, breaks, working_percentage = teacher.time_stats()
+                if working_percentage < 100:
+                    teachers_with_no_gaps.append((
+                        teacher,
+                        working_time,
+                        working_percentage,
+                        events,
+                        busy_hours
+                    ))
                 continue
 
         if len(duties_to_fill):
@@ -1581,9 +1580,9 @@ class Data(QObject):
                         gap = start.block.start - found.block.start - found.block.length
 
                 if gap == 1:
-                    working_time += 5
-                working_time += found.block.length * 5
-                working_percentage = working_time / teacher.working_hours / 3 * 5
+                    working_time += 1
+                working_time += found.block.length
+                working_percentage = working_time / teacher.working_hours / 12 * 100
                 if working_percentage > 100:
                     break
                 # print(found)
