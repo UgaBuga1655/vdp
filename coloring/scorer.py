@@ -36,7 +36,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
         teachers.append(t)
     
     students = {}
-    time_in_school = {}
+    target_time_in_school = {}
+    total_targets = []
     for student in session.query(Student):
         s = []
         for subject in student.subjects:
@@ -46,7 +47,16 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
                 s.append(lesson.id)
         students[student.id] = s
         # print(f'{student.name}: {t//60}:{t%60:02d}')
-        time_in_school[student.id] = student.target_5_min_slots_in_school()
+        target = student.target_5_min_slots_in_school()
+        total_targets.append(target)
+        target_time_in_school[student.id] = target
+    minimum = min(total_targets)
+    maximum = max(total_targets)
+    time_weights = {}
+    for student_id, time in target_time_in_school.items():
+        w =  2 - (time - minimum) / (maximum - minimum) # least time = 2, max time = 1
+        print(w)
+        time_weights[student_id] = w
 
     blocks = {bl.id: (bl.day, bl.start, bl.length) for bl in session.query(Block)}
     pinned_lessons = {l.id: (l.block_id, l.classroom_id) for l in session.query(Lesson) if l.block and l.block_locked}
@@ -202,7 +212,7 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
                 
                 start, length, clrm = day[0]
                 end = day[-1][0] + day[-1][1]
-                student_time_in_school += (end - start)
+                student_time_in_school += end
                 student_PW += start
                 n_of_PW += 1
                 # for five_min_block in range(length):
@@ -225,8 +235,8 @@ def scorer_factory(db: Data, session: Session, bl_g: Graph, les_g: Graph, inconv
                 students_running_around += student_running/runs
             if n_of_PW:
                 avg_PW_time += student_PW/n_of_PW
-            if student_time_in_school > time_in_school[student_id]:
-                surplus_time += (student_time_in_school - time_in_school[student_id])
+            if student_time_in_school > target_time_in_school[student_id]:
+                surplus_time += time_weights[student_id] * (student_time_in_school - target_time_in_school[student_id])
         
         student_distribution = 0
         STUDENTS_BUSY_TARGET = len(students)//2

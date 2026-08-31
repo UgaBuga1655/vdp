@@ -445,15 +445,15 @@ class MyView(QGraphicsView):
         height = self.five_min_h * block.length
 
         if isinstance(block, LessonBlockDB):
-            block = LessonBlock(x, y, width, height, self.scene(), self.db, self.classes)
-            block.signal.block_moved.connect(block.move_and_check_collisions)
+            g_block = LessonBlock(x, y, width, height, self.scene(), self.db, self.classes)
+            g_block.signal.block_moved.connect(g_block.move_and_check_collisions)
         else:
             # if not settings.draw_custom_blocks:
             #     return
-            block = CustomBlock(x, y, width, height, self.scene(), self.db, self.classes)
-        block.signal.block_moved.connect(self.move_block)
-        block.signal.block_updated.connect(self.redraw_block)
-        return block
+            g_block = CustomBlock(x, y, width, height, self.scene(), self.db, self.classes)
+        g_block.signal.block_moved.connect(self.move_block)
+        g_block.signal.block_updated.connect(self.redraw_block)
+        return g_block
                 
 
     def draw_blocks(self, blocks):
@@ -471,10 +471,13 @@ class MyView(QGraphicsView):
             return
         new_block.block = block
         new_block.start = block.start
-        if isinstance(new_block, LessonBlock): 
-            new_block.setZValue(z+5000)
+        if len(block.events):
+            if isinstance(new_block, LessonBlock): 
+                new_block.setZValue(z+5000)
+            else:
+                new_block.setZValue(z+2000)
         else:
-            new_block.setZValue(z+2000)
+            new_block.setZValue(z-100)
         new_block.set_filter(self.filter_func)
         new_block.draw_contents()
         new_block.set_movable(self.mode=='move', self.five_min_h, self.top_bar_h)
@@ -510,11 +513,12 @@ class MyView(QGraphicsView):
             num_of_colors = max(list(colored.values()))+1
 
             for block in blocks:
-                if not len(block.overlapping_lesson_blocks()):
+                ov_blocks = block.overlapping_lesson_blocks()
+                if not len(ov_blocks):
                     continue
                 color = colored[block.block.id]
                 
-                dx = (color+day)*self.day_w+self.left_bar_w
+                dx = (self.left_bar_w + day*self.day_w)*(num_of_colors-1) + color*self.day_w
                 transform = QTransform()
                 transform.scale(1/num_of_colors, 1)
                 transform.translate(dx, 0)
