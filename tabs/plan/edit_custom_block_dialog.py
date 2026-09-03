@@ -12,7 +12,7 @@ class EditCustomBlockDialog(QDialog):
         self.custom_block = custom_block
         self.db = db
         self.classrooms = self.db.all_classrooms()
-        self.classroom_collisions = self.db.potential_collisions_at_block(custom_block, exclude_self=True, get_classrooms=True, get_teachers=True, get_students=True)
+        self.collisions = self.db.potential_collisions_at_block(custom_block, exclude_self=True, get_classrooms=True, get_teachers=True, get_students=True)
 
         self.sen_students = []
         for subclass in self.custom_block.subclasses:
@@ -69,7 +69,7 @@ class EditCustomBlockDialog(QDialog):
         teacher_select.addItem('---', None)
         for i, teacher in enumerate(self.db.all_teachers()):
             teacher_select.addItem(teacher.name, teacher)
-            collision = '\n'.join(self.classroom_collisions[teacher])
+            collision = '\n'.join(self.collisions[teacher])
             if not collision:
                 continue
             teacher_select.setItemData(i+1, collision, Qt.ToolTipRole)
@@ -98,7 +98,7 @@ class EditCustomBlockDialog(QDialog):
         for i, classroom in enumerate(self.db.all_classrooms()):
             classroom_select.addItem(classroom.name, classroom)
 
-            collision = '\n'.join(self.classroom_collisions[classroom])
+            collision = '\n'.join(self.collisions[classroom])
             if not collision:
                 continue
             classroom_select.setItemData(i+1, collision, Qt.ToolTipRole)

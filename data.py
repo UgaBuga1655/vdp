@@ -917,7 +917,7 @@ class Data(QObject):
         # get all subjects
         items = []
 
-        if get_subjects or get_students:
+        if get_subjects or (get_students and isinstance(block, LessonBlockDB)):
             if block.subclass:
                 subjects = [s for s in block.subclass.subjects]
             else:
