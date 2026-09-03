@@ -93,7 +93,8 @@ class DutiesOverview(QWidget):
                 lens = list(lens.items())
                 lens.sort()
                 for _, duties in lens:
-                    teachers = [t for t in self.db.all_teachers() if self.db.is_teacher_available(t, duties[0].block)]
+                    teachers = self.db.all_teachers()
+                    # teachers = [t for t in self.db.all_teachers() if self.db.is_teacher_available(t, duties[0].block)]
                     start = duties[0].block.start
                     end = start + duties[0].block.length
                     time = f'{display_hour(start)} - {display_hour(end)}'
