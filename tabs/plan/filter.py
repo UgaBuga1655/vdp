@@ -107,9 +107,11 @@ class FilterWidget(QWidget):
         if not student:
             return None, None
         def filter(l):
-            return not hasattr(l, 'subject') \
-                or l.subject in student.subjects \
-                or isinstance(l, TeacherDuty)
+            return hasattr(l, 'subject') and l.subject in student.subjects \
+                or (
+                    l.type == 'teacher_duty' \
+                        and l.block not in student.non_mandatory_blocks
+                )
         return [student.subclass], filter
     
     def update_teacher_filter(self):

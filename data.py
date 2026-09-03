@@ -302,6 +302,13 @@ class Data(QObject):
             self.update_block.emit(lesson.block)
         self.session.commit()
 
+    def exempt_student_from_block(self, student: Student, block: Block, exempt: bool):
+        if exempt:
+            student.non_mandatory_blocks.append(block)
+        elif block in student.non_mandatory_blocks:
+            student.non_mandatory_blocks.remove(block)
+        self.session.commit()
+
     def student_exists(self, name):
         student = self.session.query(Student).filter_by(name=name).first()
         return student.subclass.full_name() if student else None

@@ -477,7 +477,7 @@ class MyView(QGraphicsView):
             else:
                 new_block.setZValue(z+2000)
         else:
-            new_block.setZValue(z-100)
+            new_block.setZValue(z+100)
         new_block.set_filter(self.filter_func)
         new_block.draw_contents()
         new_block.set_movable(self.mode=='move', self.five_min_h, self.top_bar_h)

@@ -7,6 +7,7 @@ from PyQt5.QtGui import QColor, QCursor
 from data import Data, Block
 from models.lesson import Lesson
 from .add_lesson_dialog import AddLessonToBlockDialog
+from .exempt_students import ExemptStudents
 
 
 class EditLessonBlockDialog(QDialog):
@@ -51,6 +52,11 @@ class EditLessonBlockDialog(QDialog):
         new_button = QPushButton('+')
         new_button.clicked.connect(self.add_duty)
         self.main_layout.addWidget(new_button)
+
+        self.students = self.block.parent().students
+        exempt_button = QPushButton('Zwolnieni uczniowie')
+        exempt_button.clicked.connect(ExemptStudents(self, self.students, self.block).exec)
+        self.main_layout.addWidget(exempt_button)
 
         buttonBox = QDialogButtonBox()
         self.main_layout.addWidget(buttonBox)
