@@ -172,8 +172,10 @@ class PlanWidget(QWidget):
             for student in subclass.students:
                 filename = f'{parent_folder}/{subclass.full_name()}/{student.name}'
                 def filter_func(l):
-                    return not hasattr(l, 'subject')\
-                        or student in l.subject.students
+                    if l.type == 'lesson':
+                        return student in l.subject.students
+                    else:
+                        return l.block not in student.non_mandatory_blocks
                 self.hidden_view.filter_func = filter_func
                 self.hidden_view.set_classes([subclass])
                 self.hidden_view.draw()
