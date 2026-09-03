@@ -49,6 +49,11 @@ class Student(Base):
                 for n in range(lesson.length//5):
                     matrix[lesson.block.day, lesson.block.start+n] = 1
 
+        for custom_block in self.subclass.custom_blocks:
+            if custom_block.mandatory:
+                for n in range(custom_block.length):
+                    matrix[custom_block.day, custom_block.start+n] = 1
+
         for day in days:
             start_time = None
             end_time = None

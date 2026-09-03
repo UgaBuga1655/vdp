@@ -690,6 +690,10 @@ class Data(QObject):
         if block:
             self.update_block.emit(block)
 
+    def update_custom_block_mandatory(self, block: CustomBlock, mandatory: bool) -> None:
+        block.mandatory = mandatory
+        self.session.commit()
+
     def delete_unplaceable_custom_blocks(self):
         for custom_block in self.all_custom_blocks():
             orders = [scl.class_.order for scl in custom_block.subclasses]
@@ -916,7 +920,7 @@ class Data(QObject):
             raise ValueError('Custom block do not have subjects')
         # get all subjects
         items = []
-
+        subjects = []
         if get_subjects or (get_students and isinstance(block, LessonBlockDB)):
             if block.subclass:
                 subjects = [s for s in block.subclass.subjects]
@@ -982,7 +986,7 @@ class Data(QObject):
                     collisions[teacher].append(event.collision_text(teacher.name))
 
             # find busy students
-            if (get_subjects or get_students) and not isinstance(event, TeacherDuty):
+            if len(subjects) and not isinstance(event, TeacherDuty):
                 for subject in subjects:
                     for student in subject.students:
                         if student not in event.subject.students:
@@ -1125,6 +1129,8 @@ class Data(QObject):
                             if is_lesson_block else \
                             f'{duty.get_name()}: {event.collision_text()}',
                         ))
+                    if duty.type == 'teacher_duty' and event.type == 'teacher_duty':
+                        continue
                     if is_lesson_block and event.classroom and duty.classroom == event.classroom:
                         collisions[col_bl].append((
                             f'{event.get_name()}: W {event.classroom.name} trwa dyżur {duty.teacher.name if duty.teacher else "---"}',

@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox, QPushButton, QDialogButtonBox,\
-    QLineEdit, QColorDialog
+    QLineEdit, QColorDialog, QCheckBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from data import Data, CustomBlock
@@ -33,6 +33,11 @@ class EditCustomBlockDialog(QDialog):
         text_edit = QLineEdit(custom_block.text)
         self.name_row.addWidget(text_edit)
         text_edit.textChanged.connect(self.update_text)
+
+        mandatory = QCheckBox('Obowiązkowy')
+        self.name_row.addWidget(mandatory)
+        mandatory.setChecked(custom_block.mandatory)
+        mandatory.toggled.connect(self.set_mandatory)
 
         self.duties = QGridLayout()
         self.main_layout.addLayout(self.duties)
@@ -187,6 +192,9 @@ class EditCustomBlockDialog(QDialog):
             # self.setBrush(color)
             self.db.update_custom_block_color(self.custom_block, color.name())
             self.color_btn.setStyleSheet(f'background-color: {color.name()}')
+
+    def set_mandatory(self, mandatory):
+        self.db.update_custom_block_mandatory(self.custom_block, mandatory)
 
 
     def delete_duty(self, duty, widgets):
