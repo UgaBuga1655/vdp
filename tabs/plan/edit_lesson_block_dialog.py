@@ -17,7 +17,7 @@ class EditLessonBlockDialog(QDialog):
         self.block: Block = parent_block.block
         self.setWindowTitle(self.block.print_full_time())
         self.lessons = self.block.events
-        self.collisions = self.db.potential_collisions_at_block(self.block, exclude_self=True, get_classrooms=True, get_teachers=True)
+        self.collisions = self.db.potential_collisions_at_block(self.block, exclude_self=True, get_classrooms=True, get_teachers=True, get_students=True)
 
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -215,8 +215,18 @@ class EditLessonBlockDialog(QDialog):
 
         student_select = QComboBox()
         student_select.addItem('---', None)
-        for student in self.sen_students:
+        for i, student in enumerate(self.sen_students):
             student_select.addItem(student.name, student)
+            collision = '\n'.join(list(set(self.collisions[student])))
+            if not collision:
+                continue
+            student_select.setItemData(i+1, collision, Qt.ToolTipRole)
+            if self.db.settings().allow_conflicts:
+                student_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
+            else:
+                student_select.setItemData(i+1, 0, Qt.UserRole - 1)
+
+
         self.duties.addWidget(student_select, row, 4)
         if duty.student:
             student_select.setCurrentText(student.name)

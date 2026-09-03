@@ -12,7 +12,7 @@ class EditCustomBlockDialog(QDialog):
         self.custom_block = custom_block
         self.db = db
         self.classrooms = self.db.all_classrooms()
-        self.classroom_collisions = self.db.potential_collisions_at_block(custom_block, exclude_self=True, get_classrooms=True, get_teachers=True)
+        self.classroom_collisions = self.db.potential_collisions_at_block(custom_block, exclude_self=True, get_classrooms=True, get_teachers=True, get_students=True)
 
         self.sen_students = []
         for subclass in self.custom_block.subclasses:
@@ -115,8 +115,19 @@ class EditCustomBlockDialog(QDialog):
 
         student_select = QComboBox()
         student_select.addItem('---', None)
-        for student in self.sen_students:
+        for i, student in enumerate(self.sen_students):
             student_select.addItem(f'({student.subclass.full_name()}) {student.name}', student)
+            collision = '\n'.join(list(set(self.collisions[student])))
+            if not collision:
+                continue
+            student_select.setItemData(i+1, collision, Qt.ToolTipRole)
+            if self.db.settings().allow_conflicts:
+                student_select.setItemData(i+1, QColor('red'), Qt.BackgroundRole)
+            else:
+                student_select.setItemData(i+1, 0, Qt.UserRole - 1)
+
+
+
         self.duties.addWidget(student_select, row, 4)
         if duty.student:
             student_select.setCurrentText(student.name)

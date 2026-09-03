@@ -911,13 +911,13 @@ class Data(QObject):
 
     #     return self.potential_clasroom_collisions(events)
     
-    def potential_collisions_at_block(self, block: Block|CustomBlock, exclude_self = False, get_subjects = False, get_classrooms = False, get_teachers = False):
+    def potential_collisions_at_block(self, block: Block|CustomBlock, exclude_self = False, get_subjects = False, get_classrooms = False, get_teachers = False, get_students = False):
         if isinstance(block, CustomBlock) and get_subjects:
             raise ValueError('Custom block do not have subjects')
         # get all subjects
         items = []
 
-        if get_subjects:
+        if get_subjects or get_students:
             if block.subclass:
                 subjects = [s for s in block.subclass.subjects]
             else:
@@ -931,6 +931,17 @@ class Data(QObject):
 
         if get_teachers:
             items.extend(self.all_teachers())
+        
+
+        if get_students:
+            
+            if isinstance(block, LessonBlockDB):
+                students = block.sen_students
+            else:
+                students = []
+                for subclass in block.subclasses:
+                    students.extend([s for s in subclass.students if s.sen])
+            items.extend(students)
 
         collisions = {item: [] for item in items}
 
@@ -949,7 +960,16 @@ class Data(QObject):
         
         events.extend(self.overlapping_duties(block, exclude_self=exclude_self))
         events.extend(self.overlapping_lessons(block, exclude_self=exclude_self))
-        
+
+        if exclude_self and get_students:
+            for lesson in block.events:
+                if lesson.type != 'lesson':
+                    continue
+                for student in students:
+                    if student in lesson.students:
+                        collisions[student].append(f'{student.name} ma {lesson.name_and_time()}')
+
+
 
         event: TeacherDuty | Lesson
         for event in events:
@@ -962,10 +982,15 @@ class Data(QObject):
                     collisions[teacher].append(event.collision_text(teacher.name))
 
             # find busy students
-            if get_subjects and not isinstance(event, TeacherDuty):
+            if (get_subjects or get_students) and not isinstance(event, TeacherDuty):
                 for subject in subjects:
-                    if len(set(subject.students).intersection(event.subject.students)):
+                    for student in subject.students:
+                        if student not in event.subject.students:
+                            continue
                         collisions[subject].append(f'Niektórzy uczniowie mają {event.name_and_time()}')
+                        if get_students and student.sen:
+                            collisions[student].append(f'{student.name} ma {event.name_and_time()}')
+                    # if len(set(subject.students).intersection(event.subject.students)):
 
             
             # find occupied classrooms

@@ -100,7 +100,7 @@ class DutiesOverview(QWidget):
                     time = f'{display_hour(start)} - {display_hour(end)}'
                     row_item = QTreeWidgetItem([])
                     tree.addTopLevelItem(row_item)
-                    duties.sort(key=lambda d: (d.classroom.name, self.classes_name(d, total_sub_classes)))
+                    duties.sort(key=lambda d: (d.classroom.name if d.classroom else '---', self.classes_name(d, total_sub_classes)))
                     widget = QWidget()
                     grid = QGridLayout()
                     widget.setLayout(grid)
@@ -109,7 +109,7 @@ class DutiesOverview(QWidget):
                     for i, duty in enumerate(duties):
                         class_name = self.classes_name(duty, total_sub_classes)
 
-                        grid.addWidget(QLabel(f'{duty.classroom.name}, {class_name}: '), i+1, 0)
+                        grid.addWidget(QLabel(f'{duty.classroom.name if duty.classroom else "---"}, {class_name}: '), i+1, 0)
                         combobox = UnscrollabeComboBox()
                         comboboxes.append(combobox)
                         combobox.currentIndexChanged.connect(self.update_duty_teacher(duty, combobox))
