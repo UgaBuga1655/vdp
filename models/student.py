@@ -1,4 +1,4 @@
-from db_config import Base, student_subject
+from db_config import Base, student_subject, student_block
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from numpy import zeros
@@ -17,6 +17,7 @@ class Student(Base):
     class_ = relationship('Class', back_populates='students')
     subclass = relationship('Subclass', back_populates='students')
     duties = relationship("TeacherDuty", back_populates="student")
+    non_mandatory_blocks = relationship('Block', secondary=student_block, back_populates='exempt_students')
     sen = Column(Boolean, default=False)
 
     def target_5_min_slots_in_school(self):

@@ -27,6 +27,14 @@ teacher_subject = Table(
     Column('subject_id', Integer, ForeignKey('subjects.id'), primary_key=True)
 )
 
+student_block = Table(
+    'student_duty',
+    Base.metadata,
+    Column("student_id", Integer, ForeignKey("students.id"), primary_key=True),
+    Column('block_id', Integer, ForeignKey('blocks.id'), primary_key=True)
+
+)
+
 class Settings():
     def __init__(self):
         # self.allow_creating_conflicts = False

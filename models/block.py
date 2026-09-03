@@ -1,4 +1,4 @@
-from db_config import Base, days
+from db_config import Base, days, student_block
 from sqlalchemy import Column, Integer, ForeignKey, String
 from sqlalchemy.orm import relationship
 from functions import display_hour
@@ -13,6 +13,7 @@ class Block(Base):
     color = Column(String, default='#c0c0c0')
     text = Column(String)
     events = relationship('Event', back_populates='block')
+    exempt_students = relationship('Student', secondary=student_block, back_populates='non_mandatory_blocks')
 
     __mapper_args__ = {
         "polymorphic_on": type,

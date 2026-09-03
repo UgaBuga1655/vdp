@@ -1,4 +1,3 @@
-from db_config import Base
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from .event import Event

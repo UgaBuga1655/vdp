@@ -1,6 +1,6 @@
 from db_config import Base, days, subclass_customblock
 from .block import Block
-from sqlalchemy import Column, Integer, ForeignKey, String
+from sqlalchemy import Column, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from functions import display_hour
 
@@ -10,3 +10,4 @@ class CustomBlock(Block):
 
     id = Column(ForeignKey("blocks.id"), primary_key=True)
     subclasses = relationship("Subclass", secondary=subclass_customblock, back_populates="custom_blocks")
+    mandatory = Column(Boolean, default=False)
