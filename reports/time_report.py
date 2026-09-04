@@ -2,7 +2,8 @@ from ast import main
 from re import sub
 from sqlite3 import DatabaseError
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeWidget, QPushButton, QTableWidget ,QHBoxLayout, QComboBox, QTableWidgetItem, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTreeWidget, QPushButton, QTableWidget ,\
+    QHBoxLayout, QComboBox, QTableWidgetItem, QLabel, QHeaderView
 from PyQt5.QtCore import QSize, Qt, QPoint
 from PyQt5.QtGui import QCursor
 from data import Data
@@ -31,8 +32,10 @@ class TimeReport(QWidget):
         # scroll_area.setWidget(self.tree)
         # self.layout().addWidget(scroll_area)
         self.table = QTableWidget()
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
         main_layout.addWidget(self.table)
-        self.table.setRowCount(5)
+        self.table.setRowCount(6)
         self.table.setColumnCount(7)
         self.table.setItem(0,1,QTableWidgetItem('Poniedziałek'))
         self.table.setItem(0,2,QTableWidgetItem('Wtorek'))
@@ -41,10 +44,11 @@ class TimeReport(QWidget):
         self.table.setItem(0,5,QTableWidgetItem('Piątek'))
         self.table.setItem(0,6,QTableWidgetItem('W Sumie'))
 
-        self.table.setItem(1, 0, QTableWidgetItem('Od początku do końca lekcji'))
-        self.table.setItem(2, 0, QTableWidgetItem('Lekcje'))
-        self.table.setItem(3, 0, QTableWidgetItem('Praca własna'))
-        self.table.setItem(4, 0, QTableWidgetItem('Praca własna między lekcjami'))
+        self.table.setItem(1, 0, QTableWidgetItem('Od początku do końca'))
+        self.table.setItem(2, 0, QTableWidgetItem('Same lekcje (z przerwami)'))
+        self.table.setItem(3, 0, QTableWidgetItem('Lekcje (bez przerw)'))
+        self.table.setItem(4, 0, QTableWidgetItem('Praca własna'))
+        self.table.setItem(5, 0, QTableWidgetItem('Praca własna między lekcjami'))
 
         refresh_btn = QPushButton('Odśwież')
         refresh_btn.clicked.connect(self.load)
@@ -60,10 +64,11 @@ class TimeReport(QWidget):
     def populate_table(self, stats):
         stat: DayStat
         for day, stat in enumerate(stats):
-            self.table.setItem(1,day+1, QTableWidgetItem(display_hour(stat.time_in_school, as_absolute=False)))
-            self.table.setItem(2,day+1, QTableWidgetItem(display_hour(stat.time_in_lessons, as_absolute=False)))
-            self.table.setItem(3,day+1, QTableWidgetItem(display_hour(stat.free_work_time, as_absolute=False)))
-            self.table.setItem(4,day+1, QTableWidgetItem(display_hour(stat.free_work_time_between_lessons, as_absolute=False)))
+            self.table.setItem(1,day+1, QTableWidgetItem(display_hour(stat.total_time_in_school, as_absolute=False)))
+            self.table.setItem(2,day+1, QTableWidgetItem(display_hour(stat.time_in_school, as_absolute=False)))
+            self.table.setItem(3,day+1, QTableWidgetItem(display_hour(stat.time_in_lessons, as_absolute=False)))
+            self.table.setItem(4,day+1, QTableWidgetItem(display_hour(stat.free_work_time, as_absolute=False)))
+            self.table.setItem(5,day+1, QTableWidgetItem(display_hour(stat.free_work_time_between_lessons, as_absolute=False)))
 
 
     def load(self):

@@ -36,31 +36,54 @@ class Student(Base):
 
     def time_stats(self, only_day=None):
         days = [only_day] if only_day else range(5)
-        matrix = zeros([5, 12*8])
+        matrix_with_lessons = zeros([5, 12*8])
+        total_matrix = zeros([5, 12*8])
         stats = [DayStat() for _ in range(6)]
 
         for subject in self.subjects:
             for lesson in subject.lessons:
                 if not lesson.block or (only_day and lesson.block!=only_day):
                     continue
-                day = lesson.block.day
+                day: int = lesson.block.day
                 stats[day].time_in_lessons += lesson.length//5
                 stats[-1].time_in_lessons += lesson.length//5
                 for n in range(lesson.length//5):
-                    matrix[lesson.block.day, lesson.block.start+n] = 1
+                    matrix_with_lessons[lesson.block.day, lesson.block.start+n] = 1
 
         for custom_block in self.subclass.custom_blocks:
             if custom_block.mandatory:
                 for n in range(custom_block.length):
-                    matrix[custom_block.day, custom_block.start+n] = 1
+                    total_matrix[custom_block.day, custom_block.start+n] = 1
+
+        for block in self.class_.blocks:
+            if block in self.non_mandatory_blocks or block.length!=6:
+                continue
+            for n in range(block.length):
+                total_matrix[block.day, block.start+n] = 1
+        # print(self.name, total_matrix)
 
         for day in days:
             start_time = None
             end_time = None
+            total_start_time = None
+            total_end_time = None
             curr_break_time = 0
             free_work_time = 0
             time_before_lessons = 0
-            for time, busy in enumerate(matrix[day,]):
+
+            for time, busy in enumerate(total_matrix[day,]):
+                if busy:
+                    total_end_time = time
+                    if total_start_time is None:
+                        total_start_time = time
+            
+            if total_start_time is None:
+                stats[day].total_time_in_school = 0
+            else:
+                stats[day].total_time_in_school = total_end_time - total_start_time + 1
+                stats[-1].total_time_in_school += total_end_time - total_start_time + 1
+            
+            for time, busy in enumerate(matrix_with_lessons[day,]):
                 if busy:
                     end_time = time
                     if start_time is None:
@@ -70,7 +93,10 @@ class Student(Base):
                         free_work_time += curr_break_time
                     curr_break_time = 0
                 else:
-                    curr_break_time += 1
+                    curr_break_time += 1 
+
+
+            
             free_work_between_lessons = free_work_time - time_before_lessons
             free_work_time+=curr_break_time
             if start_time is None:
