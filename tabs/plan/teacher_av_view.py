@@ -92,6 +92,8 @@ class TeacherView(QGraphicsView):
     def draw_rects(self):
         x = self.left_bar_w
         y = self.top_bar_h + self.name_bar_h
+        font = QFont()
+        font.setBold(True)
         for day in self.DAYS:
             for teacher, events in day:
                 for event in events:
@@ -104,7 +106,18 @@ class TeacherView(QGraphicsView):
                     if event.type=='lesson':
                         continue
                     text = self.scene().addSimpleText(event.classroom.name)
-                    text_x = x + (self.col_width-text.boundingRect().width())/2
-                    text_y = top + (h-text.boundingRect().height())/2
+                    text.setBrush(QBrush(QColor("white")))  # text fill
+                    text.setFont(font)
+                    # white_pen = QPen(QColor('white'))
+                    # white_pen.setWidth(2)
+                    # text.setPen(white_pen)      # text outline
+
+                    if text.boundingRect().width() > self.col_width:
+                        text_x =  x + (self.col_width + text.boundingRect().height())/2
+                        text_y = top + (h - text.boundingRect().width())/2
+                        text.setRotation(90)
+                    else:
+                        text_x = x + (self.col_width-text.boundingRect().width())/2
+                        text_y = top + (h-text.boundingRect().height())/2
                     text.setPos(text_x, text_y)
                 x += self.col_width
