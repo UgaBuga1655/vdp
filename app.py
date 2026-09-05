@@ -54,6 +54,9 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(QSize(800, 800))
         self.tabs = Tabs(self)
 
+        menu = self.menuBar()
+        file_menu = menu.addMenu('&Plik')
+
         new_action = QAction('Nowy', self)
         new_action.triggered.connect(self.new_data)
 
@@ -63,18 +66,25 @@ class MainWindow(QMainWindow):
         backup_action = QAction('Stwórz kopię zapasową', self)
         backup_action.triggered.connect(self.backup_data)
 
-        export_action = QAction('&Eksportuj', self)
-        export_action.triggered.connect(self.tabs.plan.export)
-        
-
-        menu = self.menuBar()
-        file_menu = menu.addMenu('&Plik')
         file_menu.addActions([
             new_action,
             load_action,
-            backup_action,
-            export_action
+            backup_action
         ])
+        export_menu = file_menu.addMenu('&Eksportuj')
+
+        export_action = QAction('&Wszystko', self)
+        export_action.triggered.connect(self.tabs.plan.export)
+
+        teacher_export = QAction('Tabela &Nauczycieli', self)
+        teacher_export.triggered.connect(self.tabs.plan.export_teacher_view)
+
+        export_menu.addActions([
+            export_action,
+            teacher_export
+        ])
+        
+
 
         plan_menu = menu.addMenu('&Lekcje')
         clear_menu = plan_menu.addMenu('&Wyczyść')

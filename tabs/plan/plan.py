@@ -15,6 +15,7 @@ from PyQt5.QtPrintSupport import QPrinter
 from progress_dialog import ProgressDialog
 from .params_plot import ParamReport
 from .pop_dialog import PopDialog
+from .teacher_av_view import TeacherView
 # import networkx as nx
         
 
@@ -29,6 +30,7 @@ class PlanWidget(QWidget):
         self.setLayout(layout)
         self.all_params = None
         self.best_params = None
+
 
 
 
@@ -96,12 +98,14 @@ class PlanWidget(QWidget):
 
         self.view = MyView(self)
         self.hidden_view = MyView(self, (2970, 2100))
+        self.teacher_view = TeacherView(self)
         self.class_filter = FilterWidget(self)
         
         self.container = QWidget()
         self.container.setAttribute(Qt.WA_DontShowOnScreen, True)
         conlayout = QVBoxLayout(self.container)
         conlayout.addWidget(self.hidden_view)
+        conlayout.addWidget(self.teacher_view)
 
         # self.container.show()
         # self.hidden_view.resize(2970, 2100)
@@ -131,6 +135,18 @@ class PlanWidget(QWidget):
             self.need_redrawing = False
             QApplication.restoreOverrideCursor()
 
+    def export_teacher_view(self):
+        self.teacher_view.load()
+        filename, _ = QFileDialog.getSaveFileName(self, 'Eksportuj', 'nauczyciele.pdf')
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setPaperSize(QPrinter.A3)
+        printer.setOrientation(QPrinter.Landscape)
+        printer.setOutputFileName(filename)
+        painter_pdf = QPainter(printer)
+        self.teacher_view.scene().render(painter_pdf)
+        painter_pdf.end()
+
     def export(self):
         self.db.update_settings(
             alpha = 255,
@@ -143,7 +159,7 @@ class PlanWidget(QWidget):
 
         self.hidden_view.set_ready()
         scene = self.hidden_view.scene()
-        parent_folder = QFileDialog.getExistingDirectory(self, 'Wybierz folder', str(Path.home()))
+        parent_folder = QFileDialog.getExistingDirectory(self, 'Wybierz folder', str(Path.home() / 'Documents'))
         if not parent_folder:
             return
         QApplication.setOverrideCursor(Qt.WaitCursor)
