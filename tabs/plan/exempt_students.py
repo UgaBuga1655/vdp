@@ -22,8 +22,11 @@ class ExemptStudents(QDialog):
         scroll_area.setWidgetResizable(True)
 
         students.sort(key= lambda s: locale.strxfrm(s.name))
+        busy_students = self.db.get_busy_students(block)
         for student in students:
             check_box = QCheckBox(student.name)
+            if student in busy_students:
+                check_box.setEnabled(False)
             check_box.setChecked(block in student.non_mandatory_blocks)
             check_box.toggled.connect(self.exempt_student(student))
             student_layout.addWidget(check_box)

@@ -1312,7 +1312,15 @@ class Data(QObject):
             ).count():
                 self.create_block(l_block.day, l_block.start, l_block.length*2+1, l_block.parent())
         self.redraw_plan.emit()
-            
+
+
+    def get_busy_students(self, block: LessonBlockDB):
+        lessons = self.overlapping_lessons(block)
+        busy_students = set()
+        for lesson in lessons:
+            busy_students = busy_students.union(lesson.students)
+        busy_students = busy_students.intersection(block.students)
+        return busy_students
 
     def generate_duties(self, lesson_length=6):
         print('Uzupełniam dyżury')
