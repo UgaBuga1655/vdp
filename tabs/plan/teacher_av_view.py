@@ -110,7 +110,7 @@ class TeacherView(QGraphicsView):
                     brush = QBrush(QColor(color))
                     rect = self.scene().addRect(x, top, self.col_width, h, QPen(), brush)
                     rect.setZValue(-1)
-                    text = event.classroom.name
+                    text = event.classroom.name if event.classroom else '-'
                     if event.type=='lesson':
                         if not event.subject.is_a_project:
                             continue
