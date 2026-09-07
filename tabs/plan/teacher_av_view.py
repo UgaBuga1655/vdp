@@ -100,19 +100,29 @@ class TeacherView(QGraphicsView):
                     block = event.block
                     top = y + block.start*self.small_y
                     h = block.length*self.small_y
-                    brush = QBrush(QColor('yellow' if event.type=='lesson' else 'green'))
+                    if event.type != 'lesson':
+                        color = "green"
+                    else:
+                        if event.subject.is_a_project:
+                            color = "#049C04"
+                        else:
+                            color = 'yellow'
+                    brush = QBrush(QColor(color))
                     rect = self.scene().addRect(x, top, self.col_width, h, QPen(), brush)
                     rect.setZValue(-1)
+                    text = event.classroom.name
                     if event.type=='lesson':
-                        continue
-                    text = self.scene().addSimpleText(event.classroom.name)
+                        if not event.subject.is_a_project:
+                            continue
+                        text += '/H2'
+                    text = self.scene().addSimpleText(text)
                     text.setBrush(QBrush(QColor("white")))  # text fill
                     text.setFont(font)
                     # white_pen = QPen(QColor('white'))
                     # white_pen.setWidth(2)
                     # text.setPen(white_pen)      # text outline
 
-                    if text.boundingRect().width() > self.col_width:
+                    if text.boundingRect().width()+5 > self.col_width:
                         text_x =  x + (self.col_width + text.boundingRect().height())/2
                         text_y = top + (h - text.boundingRect().width())/2
                         text.setRotation(90)
