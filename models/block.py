@@ -33,4 +33,3 @@ class Block(Base):
     @property
     def duties(self):
         return [ev for ev in self.events if ev.type == 'teacher_duty']
-   

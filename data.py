@@ -1064,14 +1064,27 @@ class Data(QObject):
         collisions = {bl: [] for bl in colliding_blocks + colliding_custom_blocks}
         collisions[None] = []
         colliding_lessons = []
+        busy_students = set()
+        project_students = set()
         for bl in colliding_blocks:
             colliding_lessons.extend(bl.events)
+            for event in bl.events:
+                if event.type != 'lesson':
+                    continue
+                if event.subject.is_a_project:
+                    project_students = project_students.union(event.students)
+                else:
+                    busy_students = busy_students.union(event.students)
 
         events = block.events
         for event in events:
             teachers = set(event.teachers)  
             students = set(event.students)
             if isinstance(event, Lesson):
+                if event.subject.is_a_project:
+                    project_students = project_students.union(event.students)
+                else:
+                    busy_students = busy_students.union(event.students)
                 required_classroom = event.subject.required_classroom
                 if required_classroom and event.classroom and event.classroom != required_classroom:
                     collisions[None].append(([
@@ -1089,7 +1102,6 @@ class Data(QObject):
                         f'{event.get_name()}: {teacher.name} nie jest dostępny(a) w tych godzinach',
                         ''
                     ))
-
             col_les: Event
             for col_les in colliding_lessons:
                 if col_les == event:
@@ -1145,9 +1157,18 @@ class Data(QObject):
                             if is_lesson_block else \
                             f'{duty.get_name()}: {event.collision_text()}',
                         ))
+        text = ''
+        if block.type == 'lesson_block':
+            pw_students = set(block.students)
+            project_students = project_students.intersection(block.students)
+            busy_students = busy_students.intersection(block.students)
+            project_students = project_students.difference(busy_students)
+            pw_students = pw_students.difference(busy_students)
+            pw_students = pw_students.difference(project_students)
+            pw_students = pw_students.difference(block.exempt_students)
+            text = f'L: {len(busy_students)}, Proj: {len(project_students)}, PW: {len(pw_students)}'
 
-        
-        return collisions
+        return collisions, text
 
         
     def classroom_fit_collisions(self, classroom, subject):

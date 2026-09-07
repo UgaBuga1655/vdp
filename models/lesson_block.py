@@ -25,3 +25,10 @@ class LessonBlockDB(Block):
     @property
     def sen_students(self):
         return [s for s in self.parent().students if s.sen]
+
+
+
+    @property
+    def students(self):
+        return self.parent().students
+   

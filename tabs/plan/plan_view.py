@@ -568,9 +568,12 @@ class MyView(QGraphicsView):
     def update_collisions_around(self, block):
         if not self.blocks[block]:
             return
-        collisions = self.db.block_collisions(block)
+        collisions, text = self.db.block_collisions(block)
+        if text:
+            self.blocks[block].set_student_stats(text)
         for bl, cols in collisions.items():
-            my_tooltip = '\n'.join([c[0] for c in cols])
+            my_tooltip = [c[0] for c in cols]
+            my_tooltip = '\n'.join(my_tooltip)
             self.blocks[block].add_collision(bl, my_tooltip)
             self.blocks[block].draw_contents()
             if bl and self.blocks[bl]:
