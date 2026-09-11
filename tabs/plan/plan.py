@@ -118,7 +118,7 @@ class PlanWidget(QWidget):
         self.class_filter.updated.connect(self.view.update_filters)
         self.class_filter.set_mode_normal.connect(self.uncheck_all_modes)
         self.view.load_data(self.db)
-        self.view.set_classes(self.db.all_subclasses())
+        self.view.set_subclasses(self.db.all_subclasses())
         self.db.update_block.connect(self.view.redraw_block)
         # self.db.update_custom_block.connect(self.view.redraw_block)
         self.db.redraw_plan.connect(self.stage_redraw)
@@ -156,7 +156,7 @@ class PlanWidget(QWidget):
             italicize_unlocked_lessons = False,
             export_mode = True
         )
-
+        self.hidden_view.resize(8410, 5940)
         self.hidden_view.set_ready()
         scene = self.hidden_view.scene()
         parent_folder = QFileDialog.getExistingDirectory(self, 'Wybierz folder', str(Path.home() / 'Documents'))
@@ -167,18 +167,29 @@ class PlanWidget(QWidget):
 
         printer = QPrinter(QPrinter.HighResolution)
         printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setPaperSize(QPrinter.A4)
+        printer.setPaperSize(QPrinter.A1)
         printer.setOrientation(QPrinter.Landscape)
 
-
         pix = QPixmap(rect.size().toSize())
+        filename = f'{parent_folder}/wspolny'
+        # self.db.update_settings(
+        #     draw_blocks_full_width = True
+        # )
+        self.hidden_view.set_classes(self.db.all_classes())
+        self.hidden_view.draw_all()
+        self.render(filename, pix, printer, scene)
+        # self.db.update_settings(
+        #     draw_blocks_full_width = True
+        # )
+        self.hidden_view.resize(2970, 2100)
+        printer.setPaperSize(QPrinter.A4)
         for subclass in self.db.all_subclasses():
             os.makedirs(f'{parent_folder}/{subclass.full_name()}', exist_ok=True)
             def filter_func(l):
                 return not hasattr(l, 'subject') \
                     or (l.subject.parent() in [subclass, subclass.class_] and not l.subject.private)
             self.hidden_view.filter_func = filter_func
-            self.hidden_view.set_classes([subclass])
+            self.hidden_view.set_subclasses([subclass])
             self.hidden_view.draw()
             self.hidden_view.narrow_overlapping_blocks()
 
@@ -193,7 +204,7 @@ class PlanWidget(QWidget):
                     else:
                         return l.block not in student.non_mandatory_blocks
                 self.hidden_view.filter_func = filter_func
-                self.hidden_view.set_classes([subclass])
+                self.hidden_view.set_subclasses([subclass])
                 self.hidden_view.draw()
                 self.render(filename, pix, printer, scene)
 
@@ -209,7 +220,7 @@ class PlanWidget(QWidget):
             def filter_func(l):
                 return teacher in l.teachers
             self.hidden_view.filter_func = filter_func
-            self.hidden_view.set_classes(self.db.all_subclasses())
+            self.hidden_view.set_subclasses(self.db.all_subclasses())
             self.hidden_view.draw()
             self.render(filename, pix, printer, scene)
 
@@ -219,7 +230,7 @@ class PlanWidget(QWidget):
             def filter_func(l):
                 return l.classroom == classroom
             self.hidden_view.filter_func = filter_func
-            self.hidden_view.set_classes(self.db.all_subclasses())
+            self.hidden_view.set_subclasses(self.db.all_subclasses())
             self.hidden_view.draw()
             self.render(filename, pix, printer, scene)
 
@@ -238,11 +249,11 @@ class PlanWidget(QWidget):
         QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
 
     def render(self, filename, pix, printer, scene):
-        pix.fill(Qt.white)
-        painter = QPainter(pix)
-        scene.render(painter)
-        pix.save(filename + '.png', 'PNG', 100)
-        painter.end()
+        # pix.fill(Qt.white)
+        # # painter = QPainter(pix)
+        # scene.render(painter)
+        # pix.save(filename + '.png', 'PNG', 100)
+        # painter.end()
 
         printer.setOutputFileName(filename + '.pdf')
         painter_pdf = QPainter(printer)

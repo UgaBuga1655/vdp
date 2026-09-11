@@ -48,7 +48,7 @@ class MyView(QGraphicsView):
         self.set_mode('normal')
     
 
-    def set_classes(self, classes):
+    def set_subclasses(self, classes):
         self.widths = [0]
         self.classes = classes
         if not len(classes):
@@ -62,6 +62,17 @@ class MyView(QGraphicsView):
                 last_cls = cls.get_class()
             self.widths[-1]+=1
         self.class_names = [c.full_name() for c in classes]
+        self.update_column_sizes()
+
+    def set_classes(self, classes):
+        self.widths = [0]
+        self.classes = classes
+        if not len(classes):
+            self.class_names = []
+            self.update_column_sizes()
+            return
+        self.widths = [1 for _ in classes]
+        self.class_names = [cl.name for cl in classes]
         self.update_column_sizes()
             
 
@@ -407,6 +418,8 @@ class MyView(QGraphicsView):
             if block.subclass in self.classes:
                 n = self.classes.index(block.subclass)
             # find first subclass
+            elif block.class_ in self.classes:
+                n = self.classes.index(block.class_)
             elif block.class_:
                 n = -1
                 for subclass in block.class_.subclasses:
@@ -434,9 +447,16 @@ class MyView(QGraphicsView):
                 if subclass in self.classes:
                     ns.append(self.classes.index(subclass))
                     width_multiplier += 1
+                if subclass.class_ in self.classes:
+                    index = self.classes.index(subclass.class_)
+                    if index in ns:
+                        continue
+                    ns.append(self.classes.index(subclass.class_))
+            
             if len(ns) == 0:
                 return
-            
+            if width_multiplier == 0:
+                width_multiplier = len(ns)
             n = min(ns)
 
         x = self.left_bar_w + self.day_w*block.day + n*self.block_w
@@ -501,34 +521,87 @@ class MyView(QGraphicsView):
             # generate graph
             graph = Graph()
             for block in blocks:
-                graph.add_node(block.block.id)
+                graph.add_node(block.block.id, weight = block.block.length)
             for block in blocks:
                 for col_block in block.overlapping_lesson_blocks():
+                    if col_block.block.id not in graph:
+                        continue
                     if graph.has_edge(block.block.id, col_block.block.id):
                         continue
                     graph.add_edge(block.block.id, col_block.block.id)
 
             # color graph
+            # k = gcol.chromatic_number(graph)
+            # print(k)
+            # colored = gcol.equitable_node_k_coloring(graph, k, weight='weight')
             colored = gcol.node_coloring(graph)
             num_of_colors = max(list(colored.values()))+1
+            shuffle = []
+            row = list(range(num_of_colors))
+            for n in range(num_of_colors):
+                index = (n+1)//2
+                if n%2:
+                    index *= -1
+                shuffle.append(row[index])
+            for block, color in colored.items():
+                colored[block] = shuffle[color]
 
             for block in blocks:
-                ov_blocks = block.overlapping_lesson_blocks()
-                if not len(ov_blocks):
-                    continue
+                ov_blocks = graph[block.block.id]
+                # if not len(ov_blocks):
+                    # continue
                 color = colored[block.block.id]
-                
-                dx = (self.left_bar_w + day*self.day_w)*(num_of_colors-1) + color*self.day_w
+                num_of_colors = 0
+                ov_colors = set()
+                ov_2_colors = set()
+                ov_colors.add(color)
+                ov_2_colors.add(color)
+                for ov_block in ov_blocks:
+                    ov_color = colored[ov_block]
+                    ov_colors.add(ov_color)
+                    ov_2_colors.add(ov_color)
+                    for ov_2_block in graph[ov_block]:
+                        ov_2_color = colored[ov_2_block]
+                        ov_2_colors.add(ov_2_color)
+                ov_2_colors = list(ov_2_colors)
+                ov_2_colors.sort()
+                num_of_colors = len(ov_2_colors)
+                width_multiplier = 1
+                move_left = 0
+                index = ov_2_colors.index(color)-1
+                while index>=0:
+                    new_color = ov_2_colors[index]
+                    if new_color in ov_colors:
+                        break
+                    move_left += 1
+                    width_multiplier += 1
+                    index -= 1
+                index = ov_2_colors.index(color)+1
+                while index<num_of_colors:
+                    new_color = ov_2_colors[index]
+                    if new_color in ov_colors:
+                        break
+                    width_multiplier += 1
+                    index += 1
+
+                # num_of_colors = max([max([colored[bl.block.id] for bl in ov_blocks]), color])+1
+                shift = ov_2_colors.index(color)-move_left
+                D = block.rect().left()
+                width = block.rect().width()
+                scale = width_multiplier/num_of_colors
+                dx = (num_of_colors*D + shift*width)/width_multiplier - D
                 transform = QTransform()
-                transform.scale(1/num_of_colors, 1)
+                transform.scale(scale, 1)
                 transform.translate(dx, 0)
                 block.setTransform(transform, combine=True)
                 block.write()
 
+            
+
 
 
     def update_filters(self, classes, filter):
-        self.set_classes(classes)
+        self.set_subclasses(classes)
         self.filter_func = filter
         self.draw()
 
@@ -597,6 +670,21 @@ class MyView(QGraphicsView):
             # self.draw_blocks(self.db.all_lesson_blocks())
             # self.draw_blocks(self.db.all_custom_blocks())
         QApplication.restoreOverrideCursor()
+
+
+    def draw_all(self):
+        scene = self.scene()
+        scene.clear()
+        scene.setSceneRect(0,0, self.scene_width, self.scene_height)
+        def func(l):
+            return True
+        self.filter_func = func
+        self.draw_frame()
+        for class_ in self.classes:
+            # self.draw_blocks(subclass.blocks)
+            self.draw_blocks(class_.blocks)
+        self.draw_blocks(self.db.all_custom_blocks())
+        self.narrow_overlapping_blocks()
 
     def load_data(self, db):
         self.db = db

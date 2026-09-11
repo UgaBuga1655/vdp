@@ -18,6 +18,7 @@ class LessonBlock(BasicBlock):
         super().__init__(x, y, w, h, parent, db, visible_classes)
         self.text_items = {}
         self.signal = BlockSignaler()
+        self.show_subclass_name = False
         # self.signal.block_moved.connect(self.move_and_check_collsions)
 
     def mousePressEvent(self, event):
@@ -136,7 +137,7 @@ class LessonBlock(BasicBlock):
         events = list(filter(self.filter, self.block.events))
         if self.db.settings().hide_empty_blocks and not len(events):
             self.hide()
-        show_full_subject_names = False
+        self.show_subclass_name = False
         rect = self.rect().adjusted(0.5,0,-0.5,0)
         # split the rect
         duties = []
@@ -154,12 +155,24 @@ class LessonBlock(BasicBlock):
             split_the_rect = False
         if split_the_rect:
             rects = []
-            buckets = {sub_class:[] for sub_class in self.block.class_.subclasses if sub_class in self.visible_classes}
+            if self.block.class_ in self.visible_classes:
+                buckets = {sub_class:[] for sub_class in self.block.class_.subclasses}
+                self.show_subclass_name = True
+            else:
+                buckets = {sub_class:[] for sub_class in self.block.class_.subclasses if sub_class in self.visible_classes}
             for lesson in lessons:
                 buckets[lesson.subject.parent()].append(lesson)
+
+            empty_buckets = []
+            for key, events in buckets.items():
+                if len(events):
+                    continue
+                empty_buckets.append(key)
+
+            for key in empty_buckets:
+                buckets.pop(key)
+
             n_of_buckets = len(buckets)
-            # if not n_of_buckets:
-            #     return (None, None, None)
             
             width = rect.width()/n_of_buckets
             height = rect.height() 
@@ -175,8 +188,9 @@ class LessonBlock(BasicBlock):
         else:
             rects = [rect]
             buckets = {self.block.subclass: lessons}
-            show_full_subject_names = True
         final_colors = []
+
+
         for rect, subclass, lessons in zip(rects, buckets.keys(), buckets.values()):
             if self.db.settings().hide_empty_blocks and not len(lessons + duties):
                 final_colors.append(None)
@@ -240,7 +254,7 @@ class LessonBlock(BasicBlock):
             # write on screen
             if self.db.settings().draw_blocks_full_width:
                 specify_class = True
-            specify_subclass = len([l for l in lessons if not l.subject.basic]) or specify_class
+            specify_subclass = len([l for l in lessons if not l.subject.basic]) or specify_class or self.show_subclass_name
             text_item.write_lessons(lessons, duties, self.block, specify_class, specify_subclass)
             # recenter
             text_item.setZValue(self.zValue()+0.2)

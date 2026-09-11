@@ -22,3 +22,6 @@ class Class(Base):
             writer = csv.writer(csvfile, delimiter=',', quotechar='|')
             for student in self.students:
                 writer.writerow([student.name] + [subject.get_name(show_subclass_name=True) for subject in student.subjects])
+
+    def get_class(self):
+        return self
