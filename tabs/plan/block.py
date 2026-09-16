@@ -167,9 +167,13 @@ class BasicBlock(QGraphicsRectItem):
     def add_collision(self, block, collision):
         # print(collision)
         self.collisions[block] = collision
-        self.update_tooltip()
+        # self.update_tooltip()
 
         # self.setToolTip('\n'.join([self.time()] + [col[1] for col in self.collisions]))
+
+    def set_collisions(self, collisions):
+        self.collisions = collisions
+        self.update_tooltip()
 
     def set_student_stats(self, text):
         self.student_stats = text

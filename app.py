@@ -259,7 +259,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    now = datetime.now().strftime('%y%m%d-%H%M%S')
+    now = datetime.now()
     # sys.stdout = open(f'{user_data_dir}/logs/{now}', 'w')
     app = QApplication(sys.argv)
     window = MainWindow()

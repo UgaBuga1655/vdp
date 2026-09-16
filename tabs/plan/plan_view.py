@@ -15,6 +15,7 @@ from data import Data, Class, LessonBlockDB, Block
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import to_hex
 from numpy import linspace
+from datetime import datetime
 
 class MyView(QGraphicsView):
 
@@ -481,8 +482,9 @@ class MyView(QGraphicsView):
             self.draw_block(block, z)
         if self.db.settings().export_mode:
             return
-        for block in blocks:
-            self.update_collisions_around(block)
+        # for block in blocks:
+            # self.update_collisions_around(block)
+
 
     def draw_block(self, block, z=0):
         new_block = self.place_block(block)
@@ -648,15 +650,20 @@ class MyView(QGraphicsView):
             my_tooltip = [c[0] for c in cols]
             my_tooltip = '\n'.join(my_tooltip)
             self.blocks[block].add_collision(bl, my_tooltip)
-            self.blocks[block].draw_contents()
             if bl and self.blocks[bl]:
                 their_tooltip = '\n'.join([c[1] for c in cols])
                 self.blocks[bl].add_collision(block, their_tooltip)
+                self.blocks[bl].update_tooltip()
+        self.blocks[block].draw_contents()
 
+    def load_collisions(self):
+        pass
 
     def draw(self):
         if not self.ready:
             return
+        # print('drawing')
+        now = datetime.now()
         QApplication.setOverrideCursor(Qt.WaitCursor)
         scene = self.scene()
         scene.clear()
@@ -669,7 +676,15 @@ class MyView(QGraphicsView):
 
             # self.draw_blocks(self.db.all_lesson_blocks())
             # self.draw_blocks(self.db.all_custom_blocks())
+            all_colls = self.db.all_collisions()
+            for block, collisions in all_colls.items():
+                if not self.blocks[block]:
+                    continue
+                self.blocks[block].set_collisions(collisions)
         QApplication.restoreOverrideCursor()
+        elapsed = datetime.now()-now
+        print(f'{elapsed.total_seconds():02f}s')
+
 
 
     def draw_all(self):

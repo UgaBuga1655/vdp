@@ -16,11 +16,13 @@ from progress_dialog import ProgressDialog
 from .params_plot import ParamReport
 from .pop_dialog import PopDialog
 from .teacher_av_view import TeacherView
+from datetime import datetime
 # import networkx as nx
         
 
 class PlanWidget(QWidget):
     def __init__(self, parent):
+        now = datetime.now()
         super().__init__(parent)
         self.db: Data = parent.db
         self.rem_les_win = None
@@ -394,7 +396,7 @@ class PlanWidget(QWidget):
     def load_data(self, db):
         self.db = db
         self.class_filter.load_data(db)
-        self.view.load_data(db)
+        # self.view.load_data(db)
         self.class_filter.update_filter()
         # self.view.draw()
         # self.hidden_view.load
