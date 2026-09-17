@@ -1053,82 +1053,96 @@ class Data(QObject):
 
 
     def collisions_between_events(self, ev1: Event, ev2: Event):
-        cols1 = []
-        cols2 = []
+        cols1 = [[], set(), set()]
+        cols2 = [[], set(), set()]
         block1 = ev1.block
         block2 = ev2.block
         duties = 0
         if ev1.type == 'teacher_duty':
             duties += 1
+
         if ev2.type == 'teacher_duty':
             duties += 1
+        if not duties and ev1.subject.absolute_class() == ev2.subject.absolute_class():
+            cols2[2 if ev1.subject.is_a_project else 1] = cols2[2 if ev1.subject.is_a_project else 1].union(ev1.students)
+            cols1[2 if ev2.subject.is_a_project else 1] = cols1[2 if ev2.subject.is_a_project else 1].union(ev2.students)
         if duties and (block1.start == block2.start + block2.length or block2.start == block1.start + block1.length):
-            return '', ''
+            return cols1, cols2
+        # if both are lessons and in the same class add students
         for teacher1 in ev1.teachers:
             for teacher2 in ev2.teachers:
                 if teacher1==teacher2:
                     if duties==2 and block1.start == block2.start and ev1.classroom == ev2.classroom:
                         continue
-                    cols1.append(f'{ev1.get_name()}: {teacher1.name} prowadzi {ev2.name_and_time()}')
-                    cols2.append(f'{ev2.get_name()}: {teacher1.name} prowadzi {ev1.name_and_time()}')
+                    cols1[0].append(f'{ev1.get_name()}: {teacher1.name} prowadzi {ev2.name_and_time()}')
+                    cols2[0].append(f'{ev2.get_name()}: {teacher1.name} prowadzi {ev1.name_and_time()}')
         # two duties can be in the same classroom
         if duties == 2:
-            return '', ''
+            return cols1, cols2
         if ev1.classroom == ev2.classroom and ev1.classroom is not None:
-            cols1.append(f'{ev1.get_name()}: {ev1.classroom.name} jest zajęte przez {ev2.name_and_time()}')
-            cols2.append(f'{ev2.get_name()}: {ev2.classroom.name} jest zajęte przez {ev1.name_and_time()}')
+            cols1[0].append(f'{ev1.get_name()}: {ev1.classroom.name} jest zajęte przez {ev2.name_and_time()}')
+            cols2[0].append(f'{ev2.get_name()}: {ev2.classroom.name} jest zajęte przez {ev1.name_and_time()}')
         # check students only of both are lessons
         if duties:
-            return '', ''
+            return cols1, cols2
         # if ev1.subject.absolute_class() != ev2.subject.absolute_class():
             # continue
         if len(set(ev1.students).intersection(ev2.students)):
-            cols1.append(f'{ev1.get_name()}: Niektórzy uczniowie mają {ev2.name_and_time()}')
-            cols2.append(f'{ev2.get_name()}: Niektórzy uczniowie mają {ev1.name_and_time()}')
+            cols1[0].append(f'{ev1.get_name()}: Niektórzy uczniowie mają {ev2.name_and_time()}')
+            cols2[0].append(f'{ev2.get_name()}: Niektórzy uczniowie mają {ev1.name_and_time()}')
+        # cols1[0] = '\n'.join(cols1[0])
+        # cols2[0] = '\n'.join(cols2[0])
         return cols1, cols2
              
     def collisions_between(self, block1: Block, block2: Block):
 
+        cols1 = [[], set(), set()]
+        cols2 = [[], set(), set()]
         # sanity checks
         if block1.day != block2.day:
-            return None, None
+            return cols1, cols2
         if block1.start > block2.start + block2.length:
-            return None, None
+            return cols1, cols2
         if block2.start > block1.start + block1.length:
-            return None, None
+            return cols1, cols2
         
-        cols1 = []
-        cols2 = []
         for ev1, ev2 in product(block1.events, block2.events):
             c1, c2 = self.collisions_between_events(ev1, ev2)
-            cols1.extend(c1)
-            cols2.extend(c2)
+            cols1[0].extend(c1[0])
+            cols1[1] = cols1[1].union(c1[1])
+            cols1[2] = cols1[2].union(c1[2])
+            cols2[0].extend(c2[0])
+            cols2[1] = cols2[1].union(c2[1])
+            cols2[2] = cols2[2].union(c2[2])
+
                     
-        return '\n'.join(cols1), '\n'.join(cols2)
+        return cols1, cols2
 
 
     def internal_collisions(self, block: Block):
-        cols = []
+        cols = [[], set(), set()]
         for event in block.events:
             for teacher in event.teachers:
                 if not self.is_teacher_available(teacher, block):
-                        cols.append(f'{event.get_name()}: {teacher.name} nie jest dostępny(a) w tych godzinach')
+                        cols[0].append(f'{event.get_name()}: {teacher.name} nie jest dostępny(a) w tych godzinach')
             if event.type == 'teacher_duty':
                 continue
+            cols[2 if event.subject.is_a_project else 1] = cols[2 if event.subject.is_a_project else 1].union(event.students)
             if self.is_subject_forbidden(event.subject, block):
-                cols.append(f'{event.get_name()} nie może odbywać się w tym czasie')
+                cols[0].append(f'{event.get_name()} nie może odbywać się w tym czasie')
             classroom = event.classroom
             if not classroom:
                 continue
             if event.subject.required_classroom and classroom != event.subject.required_classroom:
-                cols.append(f'{event.get_name()} musi odbywać się w {event.subject.required_classroom.name}')
+                cols[0].append(f'{event.get_name()} musi odbywać się w {event.subject.required_classroom.name}')
             if len(event.students) > classroom.capacity:
-                cols.append(f'{event.get_name()}: {classroom.name} jest za mała.')
+                cols[0].append(f'{event.get_name()}: {classroom.name} jest za mała.')
         for ev1, ev2 in combinations(block.events, 2):
             c1, c2 = self.collisions_between_events(ev1, ev2)
-            cols.extend(c1)
-            cols.extend(c2)
-        return '\n'.join(cols)
+            cols[0].extend(c1[0])
+            cols[0].extend(c2[0])
+        # cols[0] = '\n'.join(cols[0])
+        return cols
             
             
 

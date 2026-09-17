@@ -638,8 +638,8 @@ class MyView(QGraphicsView):
         # update collisions
         for bl in no_longer_overlapping:
             other_block = self.blocks[bl]
-            self.all_colls[bl][block] = ''
-            self.all_colls[block][bl] = ''
+            self.all_colls[bl][block] = ['', set(), set()]
+            self.all_colls[block][bl] = ['', set(), set()]
             if other_block:
                 # other_block.remove_collisions_with(block)
                 other_block.set_collisions(self.all_colls[bl])
@@ -665,6 +665,8 @@ class MyView(QGraphicsView):
         for bl, cols in collisions.items():
             # print(cols)
             self.all_colls[bl][block] = cols[block]
+            if not self.blocks[bl]:
+                continue
             self.blocks[bl].set_collisions(self.all_colls[bl])
             self.blocks[bl].update_tooltip()
             self.blocks[bl].update()

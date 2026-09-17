@@ -172,7 +172,7 @@ class BasicBlock(QGraphicsRectItem):
         # self.setToolTip('\n'.join([self.time()] + [col[1] for col in self.collisions]))
 
     def set_collisions(self, collisions):
-        self.collisions ={key:val for key, val in collisions.items() if val} 
+        self.collisions = {key: val for key, val in collisions.items() if len(val[0]) or len(val[1]) or len([val[2]])}
         self.update_tooltip()
 
     def set_student_stats(self, text):
@@ -181,7 +181,19 @@ class BasicBlock(QGraphicsRectItem):
 
     def update_tooltip(self):
         text = self.time()
-        cols = '\n'.join([c for c in self.collisions.values() if c])
+        cols = []
+        busy_students = set()
+        project_students = set()
+        for c, bs, ps in self.collisions.values():
+            if c:
+                cols.append('\n'.join(c))
+            if self.block.type == 'custom_block':
+                continue
+            if len(bs):
+                busy_students = busy_students.union(bs)
+            if len(ps):
+                project_students = project_students.union(ps)
+        cols = '\n'.join(cols)
         if cols:
             pen = QPen(QBrush(Qt.red),4)
             pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
@@ -190,8 +202,15 @@ class BasicBlock(QGraphicsRectItem):
         else:
             pen = QPen()
             self.setPen(QPen(Qt.NoPen))
-        if self.student_stats:
-            text += '\n' + self.student_stats
+        if self.block.type == 'lesson_block':
+            pw_students = set(self.block.students)
+
+            project_students = project_students.difference(busy_students)
+            pw_students = pw_students.difference(busy_students)
+            pw_students = pw_students.difference(project_students)
+            pw_students = pw_students.difference(self.block.exempt_students)
+            student_stats = f'L: {len(busy_students)}, Proj: {len(project_students)}, PW: {len(pw_students)}, Z: {len(self.block.exempt_students)}'
+            text += '\n' + student_stats
         self.setToolTip(text)
 
     def time(self):
