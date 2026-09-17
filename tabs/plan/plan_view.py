@@ -606,6 +606,15 @@ class MyView(QGraphicsView):
         self.set_subclasses(classes)
         self.filter_func = filter
         self.draw()
+        # for block in self.blocks.values():
+        #     if not block:
+        #         continue
+        #     block.filter = filter
+        #     if block.block.type == 'lesson_block':
+        #         block.get_rects()
+        #     block.draw_contents()
+            # self.redraw_block(block)
+        # self.draw()
 
     def redraw_block(self, block: Block):
         if block not in self.blocks:
@@ -629,9 +638,14 @@ class MyView(QGraphicsView):
         # update collisions
         for bl in no_longer_overlapping:
             other_block = self.blocks[bl]
+            self.all_colls[bl][block] = ''
+            self.all_colls[block][bl] = ''
             if other_block:
-                other_block.remove_collisions_with(block)
-            self.blocks[block].remove_collisions_with(bl)
+                # other_block.remove_collisions_with(block)
+                other_block.set_collisions(self.all_colls[bl])
+            # self.all_colls[block][other_block] = ''
+
+            # self.blocks[block].remove_collisions_with(bl)
         self.update_collisions_around(block)
         # add lessons back to stats
         if hasattr(block, 'lessons'):
@@ -643,21 +657,29 @@ class MyView(QGraphicsView):
     def update_collisions_around(self, block):
         if not self.blocks[block]:
             return
-        collisions, text = self.db.block_collisions(block)
-        if text:
-            self.blocks[block].set_student_stats(text)
+        collisions = self.db.block_collisions(block)
+        # if text:
+            # self.blocks[block].set_student_stats(text)
+        self.all_colls[block] = collisions.pop(block)
+        self.blocks[block].set_collisions(self.all_colls[block])
         for bl, cols in collisions.items():
-            my_tooltip = [c[0] for c in cols]
-            my_tooltip = '\n'.join(my_tooltip)
-            self.blocks[block].add_collision(bl, my_tooltip)
-            if bl and self.blocks[bl]:
-                their_tooltip = '\n'.join([c[1] for c in cols])
-                self.blocks[bl].add_collision(block, their_tooltip)
-                self.blocks[bl].update_tooltip()
+            # print(cols)
+            self.all_colls[bl][block] = cols[block]
+            self.blocks[bl].set_collisions(self.all_colls[bl])
+            self.blocks[bl].update_tooltip()
+            self.blocks[bl].update()
+            # my_tooltip = [c[0] for c in cols]
+            # my_tooltip = '\n'.join(my_tooltip)
+            # self.blocks[block].add_collision(bl, my_tooltip)
+            # self.all_colls[block][bl] = '\n'.join([c[1] for c in cols])
+            # if bl and self.blocks[bl]:
+            #     their_tooltip = '\n'.join([c[1] for c in cols])
+            #     self.blocks[bl].add_collision(block, their_tooltip)
+            #     self.blocks[bl].update_tooltip()
         self.blocks[block].draw_contents()
+        self.blocks[block].update_tooltip()
 
-    def load_collisions(self):
-        pass
+ 
 
     def draw(self):
         if not self.ready:
@@ -676,11 +698,12 @@ class MyView(QGraphicsView):
 
             # self.draw_blocks(self.db.all_lesson_blocks())
             # self.draw_blocks(self.db.all_custom_blocks())
-            all_colls = self.db.all_collisions()
-            for block, collisions in all_colls.items():
-                if not self.blocks[block]:
-                    continue
-                self.blocks[block].set_collisions(collisions)
+        for block, collisions in self.all_colls.items():
+            if block not in self.blocks:
+                continue
+            if not self.blocks[block]:
+                continue
+            self.blocks[block].set_collisions(collisions)
         QApplication.restoreOverrideCursor()
         elapsed = datetime.now()-now
         print(f'{elapsed.total_seconds():02f}s')
@@ -703,5 +726,7 @@ class MyView(QGraphicsView):
 
     def load_data(self, db):
         self.db = db
+        self.all_colls = self.db.all_collisions()
         self.draw()
+        
 

@@ -172,7 +172,7 @@ class BasicBlock(QGraphicsRectItem):
         # self.setToolTip('\n'.join([self.time()] + [col[1] for col in self.collisions]))
 
     def set_collisions(self, collisions):
-        self.collisions = collisions
+        self.collisions ={key:val for key, val in collisions.items() if val} 
         self.update_tooltip()
 
     def set_student_stats(self, text):
@@ -180,10 +180,7 @@ class BasicBlock(QGraphicsRectItem):
         self.update_tooltip()
 
     def update_tooltip(self):
-        # print(self)
-        # return
         text = self.time()
-        # print(self.collisions)
         cols = '\n'.join([c for c in self.collisions.values() if c])
         if cols:
             pen = QPen(QBrush(Qt.red),4)
@@ -192,7 +189,6 @@ class BasicBlock(QGraphicsRectItem):
             text += '\n' + cols
         else:
             pen = QPen()
-            # pen.setBrush(QBrush(Qt.GlobalColor.green))
             self.setPen(QPen(Qt.NoPen))
         if self.student_stats:
             text += '\n' + self.student_stats

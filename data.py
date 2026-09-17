@@ -1051,55 +1051,63 @@ class Data(QObject):
 
         return collisions
 
-    def collisions_between(self, block1: Block, block2: Block):
+
+    def collisions_between_events(self, ev1: Event, ev2: Event):
         cols1 = []
         cols2 = []
+        block1 = ev1.block
+        block2 = ev2.block
+        duties = 0
+        if ev1.type == 'teacher_duty':
+            duties += 1
+        if ev2.type == 'teacher_duty':
+            duties += 1
+        if duties and (block1.start == block2.start + block2.length or block2.start == block1.start + block1.length):
+            return '', ''
+        for teacher1 in ev1.teachers:
+            for teacher2 in ev2.teachers:
+                if teacher1==teacher2:
+                    if duties==2 and block1.start == block2.start and ev1.classroom == ev2.classroom:
+                        continue
+                    cols1.append(f'{ev1.get_name()}: {teacher1.name} prowadzi {ev2.name_and_time()}')
+                    cols2.append(f'{ev2.get_name()}: {teacher1.name} prowadzi {ev1.name_and_time()}')
+        # two duties can be in the same classroom
+        if duties == 2:
+            return '', ''
+        if ev1.classroom == ev2.classroom and ev1.classroom is not None:
+            cols1.append(f'{ev1.get_name()}: {ev1.classroom.name} jest zajęte przez {ev2.name_and_time()}')
+            cols2.append(f'{ev2.get_name()}: {ev2.classroom.name} jest zajęte przez {ev1.name_and_time()}')
+        # check students only of both are lessons
+        if duties:
+            return '', ''
+        # if ev1.subject.absolute_class() != ev2.subject.absolute_class():
+            # continue
+        if len(set(ev1.students).intersection(ev2.students)):
+            cols1.append(f'{ev1.get_name()}: Niektórzy uczniowie mają {ev2.name_and_time()}')
+            cols2.append(f'{ev2.get_name()}: Niektórzy uczniowie mają {ev1.name_and_time()}')
+        return cols1, cols2
+             
+    def collisions_between(self, block1: Block, block2: Block):
 
         # sanity checks
         if block1.day != block2.day:
-            return '', ''
+            return None, None
         if block1.start > block2.start + block2.length:
-            return '', ''
+            return None, None
         if block2.start > block1.start + block1.length:
-            return '', ''
+            return None, None
         
+        cols1 = []
+        cols2 = []
         for ev1, ev2 in product(block1.events, block2.events):
-            # if block1.parent() != block2.parent():
-                # print('different parent')
-            duties = 0
-            if ev1.type == 'teacher_duty':
-                duties += 1
-            if ev2.type == 'teacher_duty':
-                duties += 1
-            if duties and (block1.start == block2.start + block2.length or block2.start == block1.start + block1.length):
-                continue
-            for teacher1 in ev1.teachers:
-                for teacher2 in ev2.teachers:
-                    if teacher1==teacher2:
-                        if duties==2 and block1.start == block2.start and ev1.classroom == ev2.classroom:
-                            continue
-                        cols1.append(f'{ev1.get_name()}: {teacher1.name} prowadzi {ev2.name_and_time()}')
-                        cols2.append(f'{ev2.get_name()}: {teacher1.name} prowadzi {ev1.name_and_time()}')
-            # two duties can be in the same classroom
-            if duties == 2:
-                continue
-            if ev1.classroom == ev2.classroom and ev1.classroom is not None:
-                cols1.append(f'{ev1.get_name()}: {ev1.classroom.name} jest zajęte przez {ev2.name_and_time()}')
-                cols2.append(f'{ev2.get_name()}: {ev2.classroom.name} jest zajęte przez {ev1.name_and_time()}')
-            # check students only of both are lessons
-            if duties:
-                continue
-            # if ev1.subject.absolute_class() != ev2.subject.absolute_class():
-                # continue
-            if len(set(ev1.students).intersection(ev2.students)):
-                cols1.append(f'{ev1.get_name()}: Niektórzy uczniowie mają {ev2.name_and_time()}')
-                cols2.append(f'{ev2.get_name()}: Niektórzy uczniowie mają {ev1.name_and_time()}')
-                      
+            c1, c2 = self.collisions_between_events(ev1, ev2)
+            cols1.extend(c1)
+            cols2.extend(c2)
                     
         return '\n'.join(cols1), '\n'.join(cols2)
 
 
-    def static_collisions(self, block: Block):
+    def internal_collisions(self, block: Block):
         cols = []
         for event in block.events:
             for teacher in event.teachers:
@@ -1116,23 +1124,37 @@ class Data(QObject):
                 cols.append(f'{event.get_name()} musi odbywać się w {event.subject.required_classroom.name}')
             if len(event.students) > classroom.capacity:
                 cols.append(f'{event.get_name()}: {classroom.name} jest za mała.')
+        for ev1, ev2 in combinations(block.events, 2):
+            c1, c2 = self.collisions_between_events(ev1, ev2)
+            cols.extend(c1)
+            cols.extend(c2)
         return '\n'.join(cols)
             
             
 
-    def all_collisions(self):
-        blocks = self.session.query(Block).all()
+    def all_collisions(self, blocks=None):
+        if blocks is None:
+            blocks = self.session.query(Block).all()
         all_colls = {bl: dict() for bl in blocks}
         # for day, day_blocks in groupby(blocks, key = lambda b: b.day):
         for bl1, bl2 in combinations(blocks, 2):
             all_colls[bl1][bl2], all_colls[bl2][bl1] = self.collisions_between(bl1, bl2)
         for bl in blocks:
-            all_colls[bl][None] = self.static_collisions(bl)
+            all_colls[bl][None] = self.internal_collisions(bl)
         return all_colls
 
 
-    
     def block_collisions(self, block: Block):
+        colliding_blocks = self.overlapping_blocks(block) + self.overlapping_custom_blocks(block)
+        all_colls = {bl: dict() for bl in colliding_blocks}
+        colliding_blocks.remove(block)
+        for bl in colliding_blocks:
+            all_colls[block][bl], all_colls[bl][block] = self.collisions_between(block, bl)
+        all_colls[block][None] = self.internal_collisions(block)
+        return all_colls
+
+    
+    def old_block_collisions(self, block: Block):
         # if not isinstance(block, LessonBlockDB):
             # return {}
         is_lesson_block = isinstance(block, LessonBlockDB)
