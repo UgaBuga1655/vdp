@@ -10,7 +10,7 @@ from .custom_block import CustomBlock
 from .block import BasicBlock
 from .stats import Statistic, StudentDensityStat
 from functions import snap_position, display_hour
-from data import Data, Class, LessonBlockDB, Block
+from data import Data, Class, LessonBlockDB, Block, Event
 # from db_config import settings
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import to_hex
@@ -716,8 +716,8 @@ class MyView(QGraphicsView):
         scene = self.scene()
         scene.clear()
         scene.setSceneRect(0,0, self.scene_width, self.scene_height)
-        def func(l):
-            return True
+        def func(l: Event):
+            return not (l.type == 'lesson' and l.subject.private)
         self.filter_func = func
         self.draw_frame()
         for class_ in self.classes:
