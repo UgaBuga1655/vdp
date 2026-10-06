@@ -17,14 +17,15 @@ class CustomBlock(BasicBlock):
         self.signal = BlockSignaler()
 
     def paint(self, painter, option, widget = ...):
-        painter.fillRect(self.rect().adjusted(0.5,0,-0.5,0), self.brush())
-        super().paint(painter, option)
         if not hasattr(self, 'block'):
             return
         duties = list(filter(self.filter, self.block.events))
-        if not (len(duties) or self.db.settings().draw_custom_blocks):
-            self.text_item0.hide()
+        if not self.db.settings().draw_custom_blocks and len(duties)==0:
             self.hide()
+            self.text_item0.hide()
+            return
+        painter.fillRect(self.rect().adjusted(0.5,0,-0.5,0), self.brush())
+        super().paint(painter, option)
 
     def contextMenuEvent(self, event):
         super().contextMenuEvent(event)

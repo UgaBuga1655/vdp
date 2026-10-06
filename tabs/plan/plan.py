@@ -160,6 +160,7 @@ class PlanWidget(QWidget):
         )
         self.hidden_view.resize(8410, 5940)
         self.hidden_view.set_ready()
+        self.hidden_view.load_data(self.db)
         scene = self.hidden_view.scene()
         parent_folder = QFileDialog.getExistingDirectory(self, 'Wybierz folder', str(Path.home() / 'Documents'))
         if not parent_folder:
