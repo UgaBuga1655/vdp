@@ -149,7 +149,7 @@ class MyView(QGraphicsView):
                     return 
                 self.block_start = self.how_many_5_min_blocks(event)
                 self.new_block_top = snap_position(self.mapToScene(event.pos()).y(), self.five_min_h, self.top_bar_h)
-                self.new_block_left = snap_position(self.mapToScene(event.pos()).x(), self.block_w, self.left_bar_w)
+                self.new_block_left = snap_position(self.mapToScene(event.pos()).x()+2, self.block_w, self.left_bar_w)
                 # don't draw anything on stats column
                 i = ((self.new_block_left-self.left_bar_w + self.block_w/2)//self.block_w)%self.l
                 if i >= l:
@@ -282,12 +282,12 @@ class MyView(QGraphicsView):
 
         if self.mode == 'new':
             # get the bottom boundry
-            x1 = (self.new_block_left - self.left_bar_w)%self.day_w + 2
+            x1 = (self.new_block.boundingRect().left() - self.left_bar_w)%self.day_w
             for boundry in self.boundries:
                 if x1>=boundry:
                     bottom = boundry
             
-            day_start = snap_position(self.new_block_left, self.day_w, self.left_bar_w)
+            day_start = snap_position(self.new_block_left + 10, self.day_w, self.left_bar_w)
             x = bottom+day_start
             top = self.boundries[self.boundries.index(bottom)+1]
             w = top-bottom
