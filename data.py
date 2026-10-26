@@ -1105,6 +1105,16 @@ class Data(QObject):
             return cols1, cols2
         if block2.start > block1.start + block1.length:
             return cols1, cols2
+
+
+        if block1.type == 'lesson_block' and block2.type == 'lesson_block' and block1.parent() == block2.parent():
+            if len(block1.lessons) == 0:
+                for ev2 in block2.lessons:
+                    cols1[2 if ev2.subject.is_a_project else 1] = cols1[2 if ev2.subject.is_a_project else 1].union(ev2.students)   
+            if len(block2.lessons) == 0:
+                for ev1 in block1.lessons:
+                    cols2[2 if ev1.subject.is_a_project else 1] = cols2[2 if ev1.subject.is_a_project else 1].union(ev1.students)
+
         
         for ev1, ev2 in product(block1.events, block2.events):
             c1, c2 = self.collisions_between_events(ev1, ev2)
