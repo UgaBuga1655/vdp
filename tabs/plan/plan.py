@@ -119,7 +119,7 @@ class PlanWidget(QWidget):
         self.load_data(self.db)
         self.class_filter.updated.connect(self.view.update_filters)
         self.class_filter.set_mode_normal.connect(self.uncheck_all_modes)
-        self.view.load_data(self.db)
+        # self.view.load_data(self.db)
         self.view.set_subclasses(self.db.all_subclasses())
         self.db.update_block.connect(self.view.redraw_block)
         # self.db.update_custom_block.connect(self.view.redraw_block)
@@ -397,7 +397,7 @@ class PlanWidget(QWidget):
     def load_data(self, db):
         self.db = db
         self.class_filter.load_data(db)
-        # self.view.load_data(db)
+        self.view.load_data(db)
         self.class_filter.update_filter()
         # self.view.draw()
         # self.hidden_view.load
