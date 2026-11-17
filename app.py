@@ -260,7 +260,7 @@ class MainWindow(QMainWindow):
 
 def main():
     now = datetime.now()
-    sys.stdout = open(f'{user_data_dir}/logs/{now}', 'w')
+    # sys.stdout = open(f'{user_data_dir}/logs/{now}', 'w')
     app = QApplication(sys.argv)
     window = MainWindow()
     window.showMaximized()
