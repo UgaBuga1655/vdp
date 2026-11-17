@@ -111,6 +111,7 @@ class ClassesWidget(QWidget):
                 self.list.setItemText(index, name)
             except IntegrityError:
                 QMessageBox.warning(self, 'Uwaga', 'Taka klasa już istnieje')
+                self.db.session.rollback()
     
     def reorder_classes(self):
         btn = QMessageBox.question(self, 'Uwaga', 'Jesteś pewien? To może spowodować usunięcie części własnych bloków.')
