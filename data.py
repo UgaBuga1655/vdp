@@ -207,6 +207,7 @@ class Data(QObject):
     def update_class_name(self, class_: Class, name: str) -> None:
         class_.name = name
         self.session.commit()
+        self.redraw_plan()
     
     def delete_class(self, class_: Class) -> None:
         for subclass in class_.subclasses:
