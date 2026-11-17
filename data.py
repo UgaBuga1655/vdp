@@ -1581,6 +1581,7 @@ class Data(QObject):
         for duty in self.session.query(TeacherDuty).filter_by(teacher_pinned=False):
             self.update_duty_teacher(duty, None)
             self.update_duty_student(duty, None)
+        self.redraw_plan()
                          
     def fill_duties(self):
         self.clear_duties()
