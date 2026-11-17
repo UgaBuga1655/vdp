@@ -247,9 +247,16 @@ class PlanWidget(QWidget):
         printer.setPaperSize(QPrinter.A4)
         for subclass in self.db.all_subclasses():
             os.makedirs(f'{parent_folder}/{subclass.full_name()}', exist_ok=True)
+            empty_subjects = set()
+            students = set(subclass.students)
+            for subject in subclass.class_.subjects:
+                if not len(students.intersection(subject.students)):
+                    empty_subjects.add(subject)
             def filter_func(l):
                 return not hasattr(l, 'subject') \
-                    or (l.subject.parent() in [subclass, subclass.class_] and not l.subject.private)
+                    or (l.subject.parent() in [subclass, subclass.class_] and not l.subject.private and l.subject not in empty_subjects)
+                    
+                    
             self.hidden_view.filter_func = filter_func
             self.hidden_view.set_subclasses([subclass])
             self.hidden_view.draw()
