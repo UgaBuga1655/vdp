@@ -211,6 +211,15 @@ class BasicBlock(QGraphicsRectItem):
             pw_students = pw_students.difference(self.block.exempt_students)
             student_stats = f'L: {len(busy_students)}, Proj: {len(project_students)}, PW: {len(pw_students)}, Z: {len(self.block.exempt_students)}'
             text += '\n' + student_stats
+        if len(self.block.duties):
+            text += '\nDyżury:'
+        for duty in self.block.duties:
+            if not duty.teacher:
+                continue
+            teacher_name = duty.teacher.name
+            if duty.classroom:
+                teacher_name += f' ({duty.classroom.name})'
+            text += f'\n{teacher_name}'
         self.setToolTip(text)
 
     def time(self):
