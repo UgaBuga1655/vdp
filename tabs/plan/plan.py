@@ -17,6 +17,7 @@ from .params_plot import ParamReport
 from .pop_dialog import PopDialog
 from .teacher_av_view import TeacherView
 from datetime import datetime
+from models import *
 # import networkx as nx
         
 
@@ -149,6 +150,64 @@ class PlanWidget(QWidget):
         self.teacher_view.scene().render(painter_pdf)
         painter_pdf.end()
 
+
+    def export_student(self, student: Student, parent_folder, pix, printer, scene):
+        filename = f'{parent_folder}/{student.subclass.full_name()}/{student.name}'
+        def filter_func(l):
+            if l.type == 'lesson':
+                return student in l.subject.students
+            else:
+                return l.block not in student.non_mandatory_blocks
+        self.hidden_view.filter_func = filter_func
+        self.hidden_view.set_subclasses([student.subclass])
+        self.hidden_view.draw()
+        self.render(filename, pix, printer, scene)
+
+    def export_current(self):
+        self.db.update_settings(
+            alpha = 255,
+            hide_empty_blocks = True,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = False,
+            export_mode = True
+        ) 
+        scene = self.hidden_view.scene()
+        parent_folder = QFileDialog.getExistingDirectory(self, 'Wybierz folder', str(Path.home() / 'Documents'))
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setPaperSize(QPrinter.A4)
+        printer.setOrientation(QPrinter.Landscape)
+
+        if not parent_folder:
+            return
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        rect = scene.sceneRect()
+        pix = QPixmap(rect.size().toSize())
+        
+        match self.class_filter.filter_selection.currentText():
+            case 'Klasy':
+                pass
+            case 'Nauczyciele':
+                pass
+            case 'Uczniowie':
+                student = self.class_filter.student_list.currentData()
+                self.export_student(student, parent_folder, pix, printer, scene)
+            case 'Klasy':
+                pass
+
+
+        self.db.update_settings(
+            hide_empty_blocks = False,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = True,
+            export_mode = False
+        )
+        self.update_alpha(self.alpha_slider.value())
+     
+
+
     def export(self):
         self.db.update_settings(
             alpha = 255,
@@ -200,16 +259,8 @@ class PlanWidget(QWidget):
             self.render(filename, pix, printer, scene)
 
             for student in subclass.students:
-                filename = f'{parent_folder}/{subclass.full_name()}/{student.name}'
-                def filter_func(l):
-                    if l.type == 'lesson':
-                        return student in l.subject.students
-                    else:
-                        return l.block not in student.non_mandatory_blocks
-                self.hidden_view.filter_func = filter_func
-                self.hidden_view.set_subclasses([subclass])
-                self.hidden_view.draw()
-                self.render(filename, pix, printer, scene)
+                self.export_student(student, parent_folder, pix, printer, scene)
+                
 
         self.db.update_settings(
             draw_custom_blocks = False,

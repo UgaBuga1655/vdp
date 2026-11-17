@@ -177,9 +177,12 @@ class MyView(QGraphicsView):
         super().mousePressEvent(event)
 
     def contextMenuEvent(self, event):
-        item = self.itemAt(event.pos())
-        if isinstance(item, (QGraphicsTextItem, LessonBlock, CustomBlock)):
-            item.contextMenuEvent(event)
+        items = self.items(event.pos())
+        for item in items:
+            if isinstance(item, (LessonBlock, CustomBlock)):
+                item.contextMenuEvent(event)
+                break
+
 
 
     def mouseReleaseEvent(self, event):
