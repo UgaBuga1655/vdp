@@ -195,9 +195,10 @@ class BasicBlock(QGraphicsRectItem):
                 project_students = project_students.union(ps)
         cols = '\n'.join(cols)
         if cols:
-            pen = QPen(QBrush(Qt.red),4)
-            pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
-            self.setPen(pen)
+            if not self.db.settings().export_mode:
+                pen = QPen(QBrush(Qt.red),4)
+                pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
+                self.setPen(pen)
             text += '\n' + cols
         else:
             pen = QPen()

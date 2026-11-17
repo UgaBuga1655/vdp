@@ -309,12 +309,12 @@ class PlanWidget(QWidget):
         QApplication.restoreOverrideCursor()
         QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
 
-    def render(self, filename, pix, printer, scene):
-        # pix.fill(Qt.white)
-        # # painter = QPainter(pix)
-        # scene.render(painter)
-        # pix.save(filename + '.png', 'PNG', 100)
-        # painter.end()
+    def render(self, filename, pix: QPixmap, printer, scene):
+        pix.fill(Qt.white)
+        painter = QPainter(pix)
+        scene.render(painter)
+        pix.save(filename + '.png', 'PNG', quality=5)
+        painter.end()
 
         printer.setOutputFileName(filename + '.pdf')
         painter_pdf = QPainter(printer)
