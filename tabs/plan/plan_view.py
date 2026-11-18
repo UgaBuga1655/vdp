@@ -1,7 +1,7 @@
 from typing import Dict
 
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QToolTip, QGraphicsTextItem, QApplication
-from PyQt5.QtGui import QPen, QColor, QTransform
+from PyQt5.QtGui import QPen, QColor, QTransform, QFont
 from PyQt5.QtCore import QPoint, Qt, QRectF
 from networkx import Graph
 import gcol
@@ -9,7 +9,7 @@ from .lesson_block import LessonBlock
 from .custom_block import CustomBlock
 from .block import BasicBlock
 from .stats import Statistic, StudentDensityStat
-from functions import snap_position, display_hour
+from functions import snap_position, display_hour, contrast_ratio
 from data import Data, Class, LessonBlockDB, Block, Event
 # from db_config import settings
 from matplotlib.pyplot import get_cmap
@@ -375,12 +375,25 @@ class MyView(QGraphicsView):
             rect = scene.addRect(left+0.5, top, self.block_w-1, h)
             i = 255-int(last/student_count*255)
             # print(i)
-            rect.setBrush(QColor(hex_colors[i]))
+            color = QColor(hex_colors[i])
+            rect.setBrush(color)
             rect.setPen(QPen(Qt.NoPen))
             rect.setToolTip(str(last))
-            # if last:
-            #     text = scene.addSimpleText(str(last))
-            #     text.setPos(rect.boundingRect().center())
+            # text = QGraphicsTextItem()
+            if last:
+                text = scene.addText(f'L: {last}, PW: {student_count-last}')
+                if contrast_ratio(color, QColor('black')) < 4.5:
+                    text.setDefaultTextColor(QColor('white'))
+                font = QFont()
+                text.setFont(font)
+                while text.boundingRect().width() > rect.boundingRect().width():
+                    if font.pointSizeF() < 2:
+                        break
+                    font.setPointSizeF(font.pointSizeF()-0.5)
+                    text.setFont(font)
+                text_x = rect.boundingRect().center().x() - text.boundingRect().width()/2
+                text_y = rect.boundingRect().center().y() - text.boundingRect().height()/2
+                text.setPos(text_x, text_y)
 
         student_count = self.db.student_count()
         stats = self.stat.get_stats(only_day)
