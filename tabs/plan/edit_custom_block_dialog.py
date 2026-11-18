@@ -135,7 +135,7 @@ class EditCustomBlockDialog(QDialog):
 
         self.duties.addWidget(student_select, row, 4)
         if duty.student:
-            student_select.setCurrentText(student.name)
+            student_select.setCurrentText(duty.student.name)
         student_select.currentIndexChanged.connect(
             self.update_duty_student(duty, student_select)
         )

@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QComboBox, QDialogButtonBox, Q
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QCursor
 from data import Data, Block
-from models.lesson import Lesson
+from models import Lesson, TeacherDuty
 from .add_lesson_dialog import AddLessonToBlockDialog
 from .exempt_students import ExemptStudents
 
@@ -164,7 +164,7 @@ class EditLessonBlockDialog(QDialog):
 
 
 
-    def place_duty(self, duty):
+    def place_duty(self, duty: TeacherDuty):
         row = self.duties.rowCount()
 
         del_btn = QPushButton('X')
@@ -235,7 +235,7 @@ class EditLessonBlockDialog(QDialog):
 
         self.duties.addWidget(student_select, row, 4)
         if duty.student:
-            student_select.setCurrentText(student.name)
+            student_select.setCurrentText(duty.student.name)
         student_select.currentIndexChanged.connect(
             self.update_duty_student(duty, student_select)
         )
