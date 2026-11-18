@@ -207,9 +207,49 @@ class PlanWidget(QWidget):
         self.render(filename, pix, printer, scene)
 
 
+    def export_main_view(self):
+        self.db.update_settings(
+            alpha = 255,
+            hide_empty_blocks = True,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = False,
+            export_mode = True
+        )
+        scene = self.hidden_view.scene()
+        parent_folder = QFileDialog.getExistingDirectory(self, 'Wybierz folder', str(Path.home() / 'Documents'))
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setPaperSize(QPrinter.A2)
+        printer.setOrientation(QPrinter.Landscape)
 
+        if not parent_folder:
+            return
 
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        rect = scene.sceneRect()
+        pix = QPixmap(rect.size().toSize())
+        
+        filename = f'{parent_folder}/wspolny'
+        # self.db.update_settings(
+        #     draw_blocks_full_width = True
+        # )
+        self.hidden_view.set_classes(self.db.all_classes())
+        self.hidden_view.draw_all()
+        self.render(filename, pix, printer, scene)
+        
+        self.db.update_settings(
+            hide_empty_blocks = False,
+            draw_blocks_full_width = False,
+            draw_custom_blocks = True,
+            italicize_unlocked_lessons = True,
+            export_mode = False
+        )
+        self.update_alpha(self.alpha_slider.value())
+        QApplication.restoreOverrideCursor()
+        QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
 
+    
     def export_current(self):
         self.db.update_settings(
             alpha = 255,
