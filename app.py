@@ -11,7 +11,7 @@ import multiprocess as mp
 
 from data import Data
 from tabs import Tabs
-from functions import get_user_data_dir
+from functions import get_user_data_dir, get_the_right_case
 from settings_dialog import SettingsDialog
 from reports import RemainingLessonsWindow, TimeReport, TeacherReport
 from datetime import datetime
@@ -119,7 +119,7 @@ class MainWindow(QMainWindow):
         fill_duties = QAction('&Uzupełnij', self)
         fill_duties.triggered.connect(self.fill_duties)
         clear_duties = QAction('&Wyczyść dyżury', self)
-        clear_duties.triggered.connect(self.db.clear_duties)
+        clear_duties.triggered.connect(self.clear_duties)
 
         duties_menu.addActions([
             manage_duties,
@@ -196,10 +196,16 @@ class MainWindow(QMainWindow):
 
     
     def clear_unl_lessons(self):
+        if QMessageBox.question(self, 'Uwaga', 
+          'Czy na pewno chcesz usunąć nieprzypięte lekcje?') != QMessageBox.StandardButton.Yes:
+            return False
         self.db.clear_all_lesson_blocks(leave_locked=True)
         self.tabs.refresh()
 
     def clear_all_lessons(self):
+        if QMessageBox.question(self, 'Uwaga', 
+          'Czy na pewno chcesz usunąć wszystkie lekcje?') != QMessageBox.StandardButton.Yes:
+            return False
         self.db.clear_all_lesson_blocks()
         self.tabs.refresh()
 
@@ -250,6 +256,15 @@ class MainWindow(QMainWindow):
         self.man_duties_win.load()
         QApplication.restoreOverrideCursor()
         self.man_duties_win.show()
+
+    def clear_duties(self):
+        n_of_duties = self.db.get_unpinned_duties_count()
+        duties = get_the_right_case(n_of_duties, 'dyżur', 'dyżury', 'dyżurów')
+        if n_of_duties and QMessageBox.question(
+          self, 'Uwaga', f'Czy na pewno chcesz usunąć {duties}?'
+          ) != QMessageBox.StandardButton.Yes:
+            return False
+        self.db.clear_duties()
 
     def time_report(self):
         if not hasattr(self, 'time_report_win') or self.time_report_win is None:

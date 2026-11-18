@@ -29,6 +29,13 @@ def shorten_name(name: str):
         short.append(short_word)
     return ' '.join(short)
 
+def get_the_right_case(n:int, singular: str, plural: str, genitive: str) -> str:
+    if n == 1:
+        return f'{n} {singular}'
+    if n%10 in [2,3,4] and n not in [11,12,13]:
+        return f'{n} {plural}' 
+    return f'{n} {genitive}'
+
 def luminance(color: QColor):
     def to_linear(c):
         c = c / 255

@@ -83,6 +83,8 @@ class TimeReport(QWidget):
             n_of_students = len(subclass.students)
             total_students += n_of_students
             subclass_stats =  [DayStat() for _ in range(6)]
+            if not n_of_students:
+                continue
             self.stats[subclass] = subclass_stats
             for student in subclass.students:
                 stat = student.time_stats()
@@ -92,8 +94,9 @@ class TimeReport(QWidget):
                     subclass_stats[n]+=stat[n]
             for stat in subclass_stats:
                 stat/=n_of_students
-        for stat in self.stats['total']:
-            stat/=total_students
+        if total_students:
+            for stat in self.stats['total']:
+                stat/=total_students
         self.group_select.blockSignals(False)
         self.load_students()
 

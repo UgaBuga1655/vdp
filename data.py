@@ -207,7 +207,7 @@ class Data(QObject):
     def update_class_name(self, class_: Class, name: str) -> None:
         class_.name = name
         self.session.commit()
-        self.redraw_plan()
+        self.redraw_plan.emit()
     
     def delete_class(self, class_: Class) -> None:
         for subclass in class_.subclasses:
@@ -1326,6 +1326,9 @@ class Data(QObject):
         for duty in self.session.query(TeacherDuty).all():
             bundle[duty.block.day][duty.block.start].append(duty)
         return bundle
+
+    def get_unpinned_duties_count(self) -> int:
+        return self.session.query(TeacherDuty).filter_by(classroom_pinned=False).count()
     
     def update_duty_teacher(self, duty: TeacherDuty, teacher: Teacher):
         duty.teacher = teacher
@@ -1581,7 +1584,7 @@ class Data(QObject):
         for duty in self.session.query(TeacherDuty).filter_by(teacher_pinned=False):
             self.update_duty_teacher(duty, None)
             self.update_duty_student(duty, None)
-        self.redraw_plan()
+        self.redraw_plan.emit()
                          
     def fill_duties(self):
         self.clear_duties()

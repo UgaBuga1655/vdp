@@ -13,6 +13,7 @@ import chardet
 import locale
 
 from vertical_label import VerticalLabel
+from functions import get_the_right_case
 from .reorder_classes_dialog import ReorderClassesDialog
 from .subject_label import SubjectLabel
 from .new_subject_label import NewSubjectLabel
@@ -25,8 +26,6 @@ from .class_import import *
 locale.setlocale(locale.LC_ALL, 'pl_PL.UTF-8')
 
 class ClassesWidget(QWidget):
-    # collator = Collator.createInstance(Locale("pl_PL"))
-
     def __init__(self,parent):
         super().__init__(parent=parent)
         self.db: Data = parent.db
@@ -50,9 +49,9 @@ class ClassesWidget(QWidget):
         layout.addStretch()
 
 
-        export_class_btn = QPushButton('Eksport do csv')
-        export_class_btn.clicked.connect(self.export_class)
-        layout.addWidget(export_class_btn)
+        self.export_class_btn = QPushButton('Eksport do csv')
+        self.export_class_btn.clicked.connect(self.export_class)
+        layout.addWidget(self.export_class_btn)
         
         import_class_btn = QPushButton('Import z csv')
         import_class_btn.clicked.connect(self.import_class)
@@ -129,15 +128,12 @@ class ClassesWidget(QWidget):
 
         self.db.reorder_classes(new_order)
         
-        # for i in range(dialog.class_list.count()):
-        #     class_ = dialog.class_list.item(i).data(Qt.UserRole)
-        #     self.db.update_class_order(class_, i)
 
         self.db.delete_unplaceable_custom_blocks()
         
         self.load_data(self.db)
 
-    def remove_subclass(self, subclass):
+    def remove_subclass(self, subclass: Subclass):
         def func():
             my_class: Class = self.list.currentData()
             if not my_class:
@@ -145,7 +141,9 @@ class ClassesWidget(QWidget):
             if len(my_class.subclasses) == 1:
                 QMessageBox.information(self, 'Uwaga', 'Nie możesz usunąć jedynej podklasy')
                 return False
-            if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chcesz usunąć: {subclass.name.upper()}') != QMessageBox.StandardButton.Yes:
+            n = len(subclass.students)
+            students = get_the_right_case(n, 'uczeń', 'uczniów', 'uczniów')
+            if n and QMessageBox.question(self, 'Uwaga', f'Czy na pewno chcesz usunąć {subclass.name.upper()}, w której jest {students}?') != QMessageBox.StandardButton.Yes:
                 return False
             
             self.db.delete_subclass(subclass)
@@ -164,6 +162,7 @@ class ClassesWidget(QWidget):
             self.delete_class_btn.hide()
             self.rename_btn.hide()
             self.reorder_btn.hide()
+            self.export_class_btn.hide()
         try:
             self.list.setCurrentText(opened_class)
         except:
@@ -177,6 +176,7 @@ class ClassesWidget(QWidget):
         self.delete_class_btn.show()
         self.rename_btn.show()
         self.reorder_btn.show()
+        self.export_class_btn.show()
 
         frame = QWidget() 
         frame_layout = QVBoxLayout()
@@ -365,7 +365,10 @@ class ClassesWidget(QWidget):
         self.load_class()
 
     def delete_subject(self, subject):
-        if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chesz usunąć: {subject.get_name(0,0,0)}') != QMessageBox.StandardButton.Yes:
+        students = get_the_right_case(len(subject.students), 'uczeń', 'uczniowie', 'uczniów')
+        if QMessageBox.question(self, 'Uwaga', 
+          f'Czy na pewno chesz usunąć: {subject.get_name(0,0,0)} ({students})'
+          ) != QMessageBox.StandardButton.Yes:
             return False
         self.db.delete_subject(subject)
         self.load_class()

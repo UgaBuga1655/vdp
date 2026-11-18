@@ -440,8 +440,8 @@ class PlanWidget(QWidget):
             # plt.show()
     
     def show_params_plot(self):
-        if not len(self.db.last_params()[0]):
-            QMessageBox.info(self, 'Brak danych', 'Brak parametrów do pokazania.')
+        if self.db.last_params()[0] is None or not len(self.db.last_params()[0]):
+            QMessageBox.information(self, 'Brak danych', 'Brak parametrów do pokazania.')
             return
         self.param_plot = ParamReport(self)
         self.param_plot.show()
