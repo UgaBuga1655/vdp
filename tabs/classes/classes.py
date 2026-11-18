@@ -58,17 +58,17 @@ class ClassesWidget(QWidget):
         import_class_btn.clicked.connect(self.import_class)
         layout.addWidget(import_class_btn)
         
-        delete_class_btn = QPushButton('Usuń klasę')
-        delete_class_btn.clicked.connect(self.delete_class)
-        layout.addWidget(delete_class_btn)
+        self.delete_class_btn = QPushButton('Usuń klasę')
+        self.delete_class_btn.clicked.connect(self.delete_class)
+        layout.addWidget(self.delete_class_btn)
 
-        rename_btn = QPushButton('Zmień nazwę')
-        rename_btn.clicked.connect(self.rename_class)
-        layout.addWidget(rename_btn)
+        self.rename_btn = QPushButton('Zmień nazwę')
+        self.rename_btn.clicked.connect(self.rename_class)
+        layout.addWidget(self.rename_btn)
 
-        reorder_btn = QPushButton('Zmień kolejność')
-        reorder_btn.clicked.connect(self.reorder_classes)
-        layout.addWidget(reorder_btn)
+        self.reorder_btn = QPushButton('Zmień kolejność')
+        self.reorder_btn.clicked.connect(self.reorder_classes)
+        layout.addWidget(self.reorder_btn)
 
         main_layout.addLayout(layout)
 
@@ -157,8 +157,13 @@ class ClassesWidget(QWidget):
         opened_class = self.list.currentText()
         self.db = db
         self.list.clear()
-        for cl in self.db.all_classes():    
+        classes = self.db.all_classes()
+        for cl in classes:    
             self.list.addItem(cl.name, cl)
+        if not len(classes):
+            self.delete_class_btn.hide()
+            self.rename_btn.hide()
+            self.reorder_btn.hide()
         try:
             self.list.setCurrentText(opened_class)
         except:
@@ -169,6 +174,9 @@ class ClassesWidget(QWidget):
         #clear widget
         for i in range(self.container_layout.count()):
             self.container_layout.itemAt(i).widget().deleteLater()
+        self.delete_class_btn.show()
+        self.rename_btn.show()
+        self.reorder_btn.show()
 
         frame = QWidget() 
         frame_layout = QVBoxLayout()
@@ -406,6 +414,8 @@ class ClassesWidget(QWidget):
 
     def delete_class(self):
         my_class: Class = self.list.currentData()
+        if my_class is None:
+            return
         if QMessageBox.question(self, 'Uwaga', f'Czy na pewno chcesz usunąć klasę: {my_class.name}') == QMessageBox.StandardButton.Yes:
             self.db.delete_class(my_class)
         self.load_data(self.db)
