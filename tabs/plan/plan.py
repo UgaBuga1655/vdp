@@ -69,19 +69,19 @@ class PlanWidget(QWidget):
 
         # alpha
         toolbar.layout().addWidget(QLabel('Przezroczystość:'))
-        self.alpha_slider = QSlider(Qt.Horizontal, self)
-        self.alpha_slider.setMaximumWidth(80)
-        self.alpha_slider.setMinimumWidth(40)
-        self.alpha_slider.setMinimum(0)
-        self.alpha_slider.setMaximum(5)
-        # self.alpha_slider.setSingleStep(5)
-        self.alpha_slider.setPageStep(1)
-        self.alpha_slider.setTickPosition(QSlider.TicksAbove | QSlider.TicksBelow)
-        self.alpha_slider.setTickInterval(1)
-        self.alpha_slider.valueChanged.connect(self.update_alpha)
-        toolbar.layout().addWidget(self.alpha_slider)
-        self.alpha_label = QLabel('0%')
-        toolbar.layout().addWidget(self.alpha_label)
+        self.alpha_selection = QComboBox()
+        self.alpha_selection.addItem('0%', 255)
+        self.alpha_selection.addItem('25%', 191)
+        self.alpha_selection.addItem('50%', 127)
+        self.alpha_selection.addItem('75%', 63)
+
+        self.alpha_selection.setMaximumWidth(80)
+        self.alpha_selection.setMinimumWidth(40)
+        
+
+        self.alpha_selection.currentIndexChanged.connect(self.update_alpha)
+        toolbar.layout().addWidget(self.alpha_selection)
+
 
         allow_conflicts = QCheckBox(toolbar)
         allow_conflicts.clicked.connect(self.toggle_allow_conflicts)
@@ -245,7 +245,7 @@ class PlanWidget(QWidget):
             italicize_unlocked_lessons = True,
             export_mode = False
         )
-        self.update_alpha(self.alpha_slider.value())
+        self.update_alpha(self.alpha_selection.value())
         QApplication.restoreOverrideCursor()
         QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
 
@@ -300,7 +300,7 @@ class PlanWidget(QWidget):
             italicize_unlocked_lessons = True,
             export_mode = False
         )
-        self.update_alpha(self.alpha_slider.value())
+        self.update_alpha(self.alpha_selection.value())
         QApplication.restoreOverrideCursor()
         QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
      
@@ -368,7 +368,7 @@ class PlanWidget(QWidget):
             italicize_unlocked_lessons = True,
             export_mode = False
         )
-        self.update_alpha(self.alpha_slider.value())
+        self.update_alpha(self.alpha_selection.value())
      
         QApplication.restoreOverrideCursor()
         QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
@@ -441,10 +441,10 @@ class PlanWidget(QWidget):
         self.view.set_mode('normal')
     
     def update_alpha(self, value):
-        alpha = 255 - value*25
-        percent = int(value*10)
-        self.db.update_settings(alpha=alpha)
-        self.alpha_label.setText(f'{percent}%')
+        # alpha = 255 - value*25
+        # percent = int(value*10)
+        self.db.update_settings(alpha=self.alpha_selection.currentData())
+        # self.alpha_label.setText(f'{percent}%')
         self.view.draw()
 
     def toggle_allow_conflicts(self):

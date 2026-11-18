@@ -224,8 +224,12 @@ class FilterWidget(QWidget):
             button.setCheckable(True)
             button.setChecked(True)
             button.class_ = class_
-            button.clicked.connect(self.filter_btn_clicked)
+            # button.clicked.connect(self.filter_btn_clicked)
             self.class_filter.layout().insertWidget(index, button)
+        ok_btn = QPushButton('Ok')
+        ok_btn.clicked.connect(self.filter_btn_clicked)
+        ok_btn.setFixedWidth(40)
+        self.class_filter.layout().addWidget(ok_btn)
 
         self.load_teachers()
         self.load_classrooms()
