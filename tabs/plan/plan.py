@@ -9,6 +9,7 @@ from .filter import FilterWidget
 from .stats import Statistic, StudentDensityStat
 from coloring import ColoringThread
 import os
+from typing import List
 from pathlib import Path
 from matplotlib import pyplot as plt
 from PyQt5.QtPrintSupport import QPrinter
@@ -152,7 +153,9 @@ class PlanWidget(QWidget):
 
 
     def export_student(self, student: Student, parent_folder, pix, printer, scene):
-        filename = f'{parent_folder}/{student.subclass.full_name()}/{student.name}'
+        subclass_name = student.subclass.full_name()
+        filename = f'{parent_folder}/{subclass_name}/{student.name}'
+        os.makedirs(f'{parent_folder}/{subclass_name}', exist_ok=True)
         def filter_func(l):
             if l.type == 'lesson':
                 return student in l.subject.students
@@ -162,6 +165,50 @@ class PlanWidget(QWidget):
         self.hidden_view.set_subclasses([student.subclass])
         self.hidden_view.draw()
         self.render(filename, pix, printer, scene)
+
+    def export_teacher(self, teacher: Teacher, parent_folder, pix, printer, scene):
+        os.makedirs(f'{parent_folder}/nauczyciele', exist_ok=True)
+        filename = f'{parent_folder}/nauczyciele/{teacher.name}'
+        def filter_func(l):
+            return teacher in l.teachers
+        self.hidden_view.filter_func = filter_func
+        self.hidden_view.set_subclasses(self.db.all_subclasses())
+        self.hidden_view.draw()
+        self.render(filename, pix, printer, scene)
+
+    def export_classroom(self, classroom: Classroom, parent_folder, pix, printer, scene): 
+        os.makedirs(f'{parent_folder}/sale', exist_ok=True)
+        filename = f'{parent_folder}/sale/{classroom.name}'
+        def filter_func(l):
+            return l.classroom == classroom
+        self.hidden_view.filter_func = filter_func
+        self.hidden_view.set_subclasses(self.db.all_subclasses())
+        self.hidden_view.draw()
+        self.render(filename, pix, printer, scene)
+
+    def export_subclass(self, subclass: Subclass, parent_folder, pix, printer, scene):
+        os.makedirs(f'{parent_folder}/{subclass.full_name()}', exist_ok=True)
+        empty_subjects = set()
+        students = set(subclass.students)
+        for subject in subclass.class_.subjects:
+            if not len(students.intersection(subject.students)):
+                empty_subjects.add(subject)
+        def filter_func(l):
+            return not hasattr(l, 'subject') \
+                or (l.subject.parent() in [subclass, subclass.class_] and not l.subject.private and l.subject not in empty_subjects)
+                
+                
+        self.hidden_view.filter_func = filter_func
+        self.hidden_view.set_subclasses([subclass])
+        self.hidden_view.draw()
+        self.hidden_view.narrow_overlapping_blocks()
+
+        filename = f'{parent_folder}/{subclass.full_name()}/{subclass.full_name()}'
+        self.render(filename, pix, printer, scene)
+
+
+
+
 
     def export_current(self):
         self.db.update_settings(
@@ -187,14 +234,23 @@ class PlanWidget(QWidget):
         
         match self.class_filter.filter_selection.currentText():
             case 'Klasy':
-                pass
+                for subclass in self.class_filter.get_checked_classes():
+                    self.export_subclass(subclass, parent_folder, pix, printer, scene)
             case 'Nauczyciele':
-                pass
+                self.db.update_settings(
+                    draw_custom_blocks = False,
+                    draw_blocks_full_width = True
+                )
+                teacher = self.class_filter.teacher_list.currentData()
+                self.export_teacher(teacher, parent_folder, pix, printer, scene)
             case 'Uczniowie':
                 student = self.class_filter.student_list.currentData()
                 self.export_student(student, parent_folder, pix, printer, scene)
-            case 'Klasy':
-                pass
+            case 'Sale':
+                self.db.update_settings(
+                    draw_custom_blocks = False,
+                    draw_blocks_full_width = True
+                )
 
 
         self.db.update_settings(
@@ -205,6 +261,8 @@ class PlanWidget(QWidget):
             export_mode = False
         )
         self.update_alpha(self.alpha_slider.value())
+        QApplication.restoreOverrideCursor()
+        QMessageBox.information(self, 'Gotowe', 'Eksport zakończony')
      
 
 
@@ -246,25 +304,7 @@ class PlanWidget(QWidget):
         self.hidden_view.resize(2970, 2100)
         printer.setPaperSize(QPrinter.A4)
         for subclass in self.db.all_subclasses():
-            os.makedirs(f'{parent_folder}/{subclass.full_name()}', exist_ok=True)
-            empty_subjects = set()
-            students = set(subclass.students)
-            for subject in subclass.class_.subjects:
-                if not len(students.intersection(subject.students)):
-                    empty_subjects.add(subject)
-            def filter_func(l):
-                return not hasattr(l, 'subject') \
-                    or (l.subject.parent() in [subclass, subclass.class_] and not l.subject.private and l.subject not in empty_subjects)
-                    
-                    
-            self.hidden_view.filter_func = filter_func
-            self.hidden_view.set_subclasses([subclass])
-            self.hidden_view.draw()
-            self.hidden_view.narrow_overlapping_blocks()
-
-            filename = f'{parent_folder}/{subclass.full_name()}/{subclass.full_name()}'
-            self.render(filename, pix, printer, scene)
-
+            self.export_subclass(subclass, parent_folder, pix, printer, scene)
             for student in subclass.students:
                 self.export_student(student, parent_folder, pix, printer, scene)
                 
@@ -275,27 +315,11 @@ class PlanWidget(QWidget):
         )
 
 
-        os.makedirs(f'{parent_folder}/nauczyciele', exist_ok=True)
         for teacher in self.db.all_teachers():
-            filename = f'{parent_folder}/nauczyciele/{teacher.name}'
-            def filter_func(l):
-                return teacher in l.teachers
-            self.hidden_view.filter_func = filter_func
-            self.hidden_view.set_subclasses(self.db.all_subclasses())
-            self.hidden_view.draw()
-            self.render(filename, pix, printer, scene)
+            self.export_teacher(teacher, parent_folder, pix, printer, scene)
 
-        os.makedirs(f'{parent_folder}/sale', exist_ok=True)
         for classroom in self.db.all_classrooms():
-            filename = f'{parent_folder}/sale/{classroom.name}'
-            def filter_func(l):
-                return l.classroom == classroom
-            self.hidden_view.filter_func = filter_func
-            self.hidden_view.set_subclasses(self.db.all_subclasses())
-            self.hidden_view.draw()
-            self.render(filename, pix, printer, scene)
-
-
+           self.export_classroom(classroom, parent_folder, pix, printer, scene)
                        
         self.db.update_settings(
             hide_empty_blocks = False,

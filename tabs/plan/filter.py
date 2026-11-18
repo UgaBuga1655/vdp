@@ -74,7 +74,12 @@ class FilterWidget(QWidget):
             self.update_filter() 
 
 
-
+    def get_checked_classes(self):
+        return [
+            button.class_
+            for button in self.findChildren(QPushButton)
+            if button.isChecked() and hasattr(button, 'class_')
+        ]
     
     def filter_btn_clicked(self):
         self.set_mode_normal.emit()
@@ -86,11 +91,7 @@ class FilterWidget(QWidget):
             draw_blocks_full_width = False,
             draw_custom_blocks = True
         )
-        display_names = [
-            button.class_
-            for button in self.findChildren(QPushButton)
-            if button.isChecked() and hasattr(button, 'class_')
-        ]
+        display_names = self.get_checked_classes()
         def filter(l):
             return not hasattr(l, 'subject') \
                 or l.subject.subclass in display_names \

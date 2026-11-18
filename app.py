@@ -73,6 +73,9 @@ class MainWindow(QMainWindow):
         ])
         export_menu = file_menu.addMenu('&Eksportuj')
 
+        export_current_action = QAction('&Obecny widok', self)
+        export_current_action.triggered.connect(self.tabs.plan.export_current)
+
         export_action = QAction('&Wszystko', self)
         export_action.triggered.connect(self.tabs.plan.export)
 
@@ -81,6 +84,7 @@ class MainWindow(QMainWindow):
 
         export_menu.addActions([
             export_action,
+            export_current_action,
             teacher_export
         ])
         
