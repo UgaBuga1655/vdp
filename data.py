@@ -160,7 +160,7 @@ class Data(QObject):
         
         if subject.name in target_names:
             return
-        copy = Subject(teacher=subject.teacher, name=subject.name, basic=subject.basic, short_name=subject.short_name, color=subject.color)
+        copy = Subject(teachers=subject.teachers, name=subject.name, basic=subject.basic, short_name=subject.short_name, color=subject.color)
         self.session.add(copy)
         target.subjects.append(copy)
         for lesson in subject.lessons:
@@ -275,6 +275,8 @@ class Data(QObject):
         self.session.commit()
 
     def update_student_name(self, student, name):
+        # if self.session.query(Student).filter_by(name=name).count():
+            
         student.name = name
         self.session.commit()
 

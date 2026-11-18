@@ -71,13 +71,16 @@ class ClassesWidget(QWidget):
 
         main_layout.addLayout(layout)
 
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
         container = QWidget()
+        scroll_area.setWidget(container)
         self.container_layout = QVBoxLayout()
         self.container_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         container.setLayout(self.container_layout)
 
     
-        main_layout.addWidget(container)
+        main_layout.addWidget(scroll_area)
         self.setLayout(main_layout)
         self.load_data(self.db)
 
@@ -190,20 +193,7 @@ class ClassesWidget(QWidget):
         extra_subs = sorted(my_class.subjects, key=lambda x: x.get_name(0,0,0))
         self.labels = {s: [] for s in extra_subs}
         for subclass in my_class.subclasses:
-            scrollarea = QScrollArea()
-            subclass_widget = QWidget()
-            scrollarea.setWidget(subclass_widget)
-            scrollarea.setMinimumHeight(200//len(my_class.subclasses))
-            subclass_layout = QVBoxLayout()
-            subclass_widget.setLayout(subclass_layout)
-            student_list = QGridLayout()
-            subclass_layout.addLayout(student_list)
-            student_list.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-            student_list.setContentsMargins(0, 0, 0, 0)
-            student_list.setSpacing(0)
-            scrollarea.setWidgetResizable(True)
-
-            #subclass name
+                        #subclass name
             name_row = QHBoxLayout()
             frame_layout.addLayout(name_row)
             name_row.addWidget(QLabel(subclass.name.upper()))
@@ -212,6 +202,21 @@ class ClassesWidget(QWidget):
                 remove_subclass_btn = QPushButton('Usuń podklasę')
                 remove_subclass_btn.clicked.connect(self.remove_subclass(subclass))
                 name_row.addWidget(remove_subclass_btn)
+                
+            subclass_widget = QWidget()
+            frame_layout.addWidget(subclass_widget)
+            subclass_layout = QVBoxLayout()
+            subclass_widget.setLayout(subclass_layout)
+            
+
+
+            # student list
+            student_list = QGridLayout()
+            subclass_layout.addLayout(student_list)
+            student_list.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+            student_list.setContentsMargins(0, 0, 0, 0)
+            student_list.setSpacing(0)
+
             
 
             basic_subs = sorted(subclass.subjects, key=lambda x: x.get_name(0,0,0))
@@ -282,16 +287,15 @@ class ClassesWidget(QWidget):
 
             subclass_layout.addStretch()
             
-            frame_layout.addWidget(scrollarea)
 
     def add_student_to_list(self, student, student_list: QGridLayout): 
         n = student_list.rowCount()
         #checkbox
         label = NameLabel(student)
-        label.setMargin(5)
-        label.setMinimumWidth(150)
+        label.label.setMargin(4)
+        label.label.setMinimumWidth(150)
         label.delete.connect(self.delete_student)
-        label.update_name.connect(self.db.update_student_name)
+        label.update_name.connect(self.update_student_name(label))
         label.move_student.connect(self.move_student)
         student_list.addWidget(Color('#c0c0c0', brighten=n%2), n, 0)
         student_list.addWidget(label,n, 0)
@@ -352,6 +356,17 @@ class ClassesWidget(QWidget):
     def set_student_sen(self, student):
         def func(sen):
             self.db.update_student_is_sen(student, sen)
+        return func
+
+    def update_student_name(self, label: NameLabel):
+        def func(student, name):
+            class_name = self.db.student_exists(name)
+            if class_name:
+                QMessageBox.warning(self, 'Uwaga', f'Taki uczeń już istnieje! ({class_name})')
+            else:
+                self.db.update_student_name(student, name)
+            label.label.setText(student.name)
+            pass
         return func
 
     def delete_student(self, student: Student):
