@@ -732,6 +732,14 @@ class Data(QObject):
         self.classrooms_changed.emit()
         return classroom
 
+    def move_classroom_by_id(self, classroom_id: int, group_id: int) -> None:
+        classroom = self.session.query(Classroom).filter_by(id=classroom_id).first()
+        if classroom is None:
+            return
+        group = self.session.query(ClassroomGroup).filter_by(id=group_id).first()
+        classroom.group = group
+        self.session.commit()
+
     @changes_bl_g
     def update_classroom_capacity(self, classroom: Classroom, capacity: int) -> None:
         classroom.capacity = capacity

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QPushButton, QLineEdit, QWidget, QHBoxLayout,\
       QSpinBox, QCheckBox, QMessageBox, QComboBox, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal
-from data import Data, Classroom
+from data import Data, Classroom, ClassroomGroup
 
 class ClassroomTreeWidget(QTreeWidget):
     redraw_table = pyqtSignal()
@@ -11,9 +11,7 @@ class ClassroomTreeWidget(QTreeWidget):
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDragDropMode(QTreeWidget.InternalMove)
-        self.setDefaultDropAction(Qt.MoveAction)
-        self.setSelectionMode(QTreeWidget.NoSelection)
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setDropIndicatorShown(False)
         self.header().hide()
         self.load_data()
 
@@ -25,6 +23,7 @@ class ClassroomTreeWidget(QTreeWidget):
         add_group_widget = QWidget(self)
         row = QHBoxLayout()
         add_group_widget.setLayout(row)
+        row.setContentsMargins(0,10,0,4)
 
         self.add_group_edit = QLineEdit(add_group_widget)
         self.add_group_edit.setMaximumWidth(200)
@@ -40,20 +39,22 @@ class ClassroomTreeWidget(QTreeWidget):
         row.addStretch()
 
         add_item = QTreeWidgetItem(self, [])
+        add_item.setFlags(add_item.flags() & ~Qt.ItemIsSelectable)
         self.setItemWidget(add_item, 0, add_group_widget)
 
         for group in self.db.all_classrooms_groups():
             self.add_group(group)
    
 
-    def add_group(self, group):
+    def add_group(self, group: ClassroomGroup):
         count = self.topLevelItemCount()
         index = max(0, count-1)
-        group_item = QTreeWidgetItem([])
+        group_item = QTreeWidgetItem([str(group.id), 'group'])
+        group_item.setFlags(group_item.flags() & ~Qt.ItemIsSelectable)
 
         group_widget = QWidget(self)
         row = QHBoxLayout()
-        row.setContentsMargins(0,0,0,0)
+        row.setContentsMargins(0,10,0,0)
         group_widget.setLayout(row)
 
         name_edit = QLineEdit(group_widget)
@@ -71,11 +72,12 @@ class ClassroomTreeWidget(QTreeWidget):
 
         self.insertTopLevelItem(index, group_item)
         self.setItemWidget(group_item, 0, group_widget)
-        new_classroom_item = QTreeWidgetItem(group_item, [])
+        new_classroom_item = QTreeWidgetItem(group_item, [str(group.id), 'new'])
+        new_classroom_item.setFlags(new_classroom_item.flags() & ~Qt.ItemIsSelectable)
 
         new_classroom_widget = QWidget(self)
         row = QHBoxLayout()
-        row.setContentsMargins(0,0,0,0)
+        row.setContentsMargins(0,3,0,0)
         new_classroom_widget.setLayout(row)
 
         new_classroom_edit = QLineEdit(new_classroom_widget)
@@ -92,7 +94,9 @@ class ClassroomTreeWidget(QTreeWidget):
         row.addStretch()
 
         self.setItemWidget(new_classroom_item, 0, new_classroom_widget)
-        for classroom in group.classrooms:
+        classrooms = list(group.classrooms)
+        classrooms.sort(key=lambda c: c.name)
+        for classroom in classrooms:
             self.add_classroom(group_item, classroom)
         group_item.setExpanded(True)
         return new_classroom_edit
@@ -151,17 +155,17 @@ class ClassroomTreeWidget(QTreeWidget):
     def add_classroom(self, group_item: QTreeWidgetItem, classroom: Classroom):
         count = group_item.childCount()
         index = max(0, count -1)
-        classroom_item = QTreeWidgetItem([])
+        classroom_item = QTreeWidgetItem([classroom.name, 'classroom', str(classroom.group_id), str(classroom.id)])
         group_item.insertChild(index, classroom_item)
 
         classroom_widget = QWidget(self)
         row = QHBoxLayout()
         classroom_widget.setLayout(row)
-        row.setContentsMargins(0,0,0,0)
+        row.setContentsMargins(0,3,0,0)
 
         name_edit = QLineEdit(classroom.name, classroom_widget)
         name_edit.setMaximumWidth(100)
-        name_edit.editingFinished.connect(self.update_classroom_name(classroom, name_edit))
+        name_edit.editingFinished.connect(self.update_classroom_name(classroom, name_edit, classroom_item))
         row.addWidget(name_edit)
 
         capacity = QSpinBox()
@@ -195,6 +199,18 @@ class ClassroomTreeWidget(QTreeWidget):
         self.setItemWidget(classroom_item, 0, classroom_widget)
         return capacity
 
+    def dropEvent(self, event):
+        target_item = self.itemAt(event.pos())
+        if target_item is None or not target_item.text(0) or self.currentItem().text(1) != 'classroom':
+            return
+        classroom_id = int(self.currentItem().text(3))
+        if target_item.text(1) == 'classroom':
+            group_id = int(target_item.text(2))
+        else:
+            group_id = int(target_item.text(0))
+        self.db.move_classroom_by_id(classroom_id, group_id)
+        self.load_data()
+
     def create_classroom(self, group, group_item: QTreeWidgetItem, line:QLineEdit):
         def func():
             name = line.text().strip()
@@ -225,9 +241,10 @@ class ClassroomTreeWidget(QTreeWidget):
             self.db.update_classroom_allow_pw(classroom, allow)
         return func
 
-    def update_classroom_name(self, classroom, name_edit):
+    def update_classroom_name(self, classroom, name_edit, item: QTreeWidgetItem):
         def func():
             self.db.update_classroom_name(classroom, name_edit.text())
+            item.setText(0, name_edit.text())
         return func
  
     def delete_classroom(self, classroom_item: QTreeWidgetItem, classroom: Classroom):
