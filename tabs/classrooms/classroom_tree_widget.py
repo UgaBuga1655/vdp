@@ -123,8 +123,7 @@ class ClassroomTreeWidget(QTreeWidget):
             n_of_lessons = 0
             if n_of_classrooms:
                 for classroom in group.classrooms:
-                    n_of_lessons += len(classroom.lessons)
-                    n_of_lessons += len(classroom.duties)
+                    n_of_lessons += len(classroom.events)
                 match n_of_classrooms:
                     case 1:
                         classrooms = 'jest 1 sala, w której'

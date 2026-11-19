@@ -189,7 +189,7 @@ class MyView(QGraphicsView):
         super().mouseReleaseEvent(event)
         if self.new_block:
             # drop block if it has no length:
-            if self.new_block.boundingRect().height() < self.five_min_h:
+            if self.new_block.boundingRect().height() + 1 < self.five_min_h:
                 self.new_block.delete()
                 self.new_block = ''
                 return
@@ -199,7 +199,7 @@ class MyView(QGraphicsView):
             day = int(x // self.day_w)
             y = self.new_block.boundingRect().y() - self.top_bar_h + 1
             start = int(y // self.five_min_h)
-            length = int((self.new_block.boundingRect().height()+1)// self.five_min_h)
+            length = int((self.new_block.boundingRect().height()+1) // self.five_min_h)
             # find (sub)class
             i = x // self.block_w
             i = int(i%self.l)
@@ -208,10 +208,10 @@ class MyView(QGraphicsView):
                 class_ = self.classes[i]
                 # find if block spans entire class
                 # either is wide
-                if self.new_block.boundingRect().width() -1 > self.block_w:
+                if self.new_block.boundingRect().width() - 1 > self.block_w:
                     class_ = class_.get_class()
                 # ... or is the only subclass
-                elif len(class_.get_class().subclasses)==1:
+                elif len(class_.get_class().subclasses) == 1:
                     class_ = class_.get_class()
 
                 block = self.db.create_block(day, start, length, class_)
